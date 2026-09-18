@@ -565,3 +565,61 @@ body {
 .text-green { color: var(--signal-green); }
 .text-muted { color: var(--text-muted); }
 .fade-in    { animation: fade-in 0.4s ease both; }
+
+/* ── Accessibility ───────────────────────────────────────────────── */
+
+/* Visible keyboard-focus ring everywhere, without adding a mouse-click outline. */
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 1000;
+  background: var(--accent-cyan);
+  color: #060910;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: top var(--transition-fast);
+}
+.skip-link:focus {
+  top: 0.75rem;
+}
+
+.connectivity-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--signal-red);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 1rem;
+  font-size: 0.82rem;
+  margin-bottom: 1rem;
+}
+.connectivity-banner code {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+}
+
+/* Respect the OS-level motion preference: this UI leans on canvas glow pulses,
+   fades, and spinners, none of which should force-animate for anyone who has
+   asked their system to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

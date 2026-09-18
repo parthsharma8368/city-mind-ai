@@ -1,38 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { Play, Square, Cpu, Monitor, RefreshCw } from "lucide-react";
-import { api, WS_SIMULATION } from "../api/client";
-import type { SimulationStatus, WsPayload } from "../api/client";
-import { useWebSocket } from "../hooks/useWebSocket";
+import { api } from "../api/client";
+import type { SimulationStatus } from "../api/client";
+import { useSimulationSocket } from "../context/SimulationSocketContext";
 
-interface SimulationControlProps {
-  onWsMessage?: (payload: WsPayload) => void;
-}
-
-export const SimulationControl: React.FC<SimulationControlProps> = ({ onWsMessage }) => {
+export const SimulationControl: React.FC = () => {
   const [simStatus, setSimStatus] = useState<SimulationStatus | null>(null);
   const [launching, setLaunching] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [launchMsg, setLaunchMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { status: wsStatus, lastMessage: wsPayload } = useWebSocket<WsPayload>({
-    url: WS_SIMULATION,
-    onMessage: (data) => {
-      onWsMessage?.(data);
-      setSimStatus((prev) => ({
-        gui_running: data.gui_running,
-        gui_pid: data.gui_pid ?? null,
-        latest_model: prev?.latest_model ?? null,
-        xquartz_display: prev?.xquartz_display ?? null,
-      }));
-    },
-  });
+  const { status: wsStatus, lastMessage: wsPayload } = useSimulationSocket();
 
   useEffect(() => {
     api.getSimulationStatus()
       .then(setSimStatus)
       .catch(() => null);
   }, []);
+
+  // Keep gui_running/pid in sync with the shared live feed without a second socket.
+  useEffect(() => {
+    if (!wsPayload) return;
+    setSimStatus((prev) => ({
+      gui_running: wsPayload.gui_running,
+      gui_pid: wsPayload.gui_pid ?? null,
+      latest_model: prev?.latest_model ?? null,
+      xquartz_display: prev?.xquartz_display ?? null,
+    }));
+  }, [wsPayload]);
 
   const handleLaunch = async () => {
     setLaunching(true);

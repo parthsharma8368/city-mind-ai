@@ -1,57 +1,48 @@
-import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { Activity, TrendingDown, Zap } from "lucide-react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import { Activity, TrendingDown, Zap, AlertTriangle } from "lucide-react";
 import { MetricsPanel } from "../components/MetricsPanel";
 import { PlaybackControls } from "../components/PlaybackControls";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { SimulationControl } from "../components/SimulationControl";
 import { api } from "../api/client";
-import type { MetricsSummary, WsPayload } from "../api/client";
+import type { MetricsSummary, TLSFrame } from "../api/client";
+import { useSimulationSocket } from "../context/SimulationSocketContext";
+import { sampleAndHold, tlsFramesToStateMap } from "../utils/trajectory";
 
 export const DashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
-  const [wsMetrics, setWsMetrics] = useState<WsPayload["metrics"] | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const { lastMessage: wsPayload } = useSimulationSocket();
 
-  // Trajectory playback state
+  // Trajectory playback state — this is the RL policy's *actual* recorded
+  // run (vehicle positions and real signal phases), not a live feed: training
+  // and evaluation are offline batch jobs, so "real-time" here means "true to
+  // what really happened," not "streaming while it happens."
   const [frames, setFrames] = useState<Record<string, VehiclePoint[]>>({});
+  const [tlsFrames, setTlsFrames] = useState<Record<string, TLSFrame[]>>({});
   const [availableTimes, setAvailableTimes] = useState<number[]>([]);
+  const [replayError, setReplayError] = useState<string | null>(null);
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const timerRef = useRef<number | null>(null);
 
-  // Real TLS Signal specifications from InTAS
-  const [tlsSpecs, setTlsSpecs] = useState<Array<{
-    tls_id: string;
-    phases: Array<{ state: string; duration: number }>;
-  }>>([]);
-
-  // Fetch metrics summary & TLS metadata on mount
   useEffect(() => {
     api.getMetricsSummary()
-      .then(setMetrics)
-      .catch(() => null);
+      .then((m) => { setMetrics(m); setMetricsError(null); })
+      .catch((e: Error) => setMetricsError(e.message));
 
-    api.getTLSMetadata()
-      .then(setTlsSpecs)
-      .catch(() => null);
-
-    // Load PPO trajectory frames (0 to 120s)
     api.getReplayFrames("ppo", 42, "1.0x", 0, 120)
       .then((data) => {
-        const typed = data.frames as Record<string, VehiclePoint[]>;
-        setFrames(typed);
-        const times = Object.keys(typed)
+        setFrames(data.frames);
+        setTlsFrames(data.tls_frames ?? {});
+        const times = Object.keys(data.frames)
           .map((t) => parseFloat(t))
           .sort((a, b) => a - b);
         setAvailableTimes(times);
+        setReplayError(null);
       })
-      .catch(() => null);
-  }, []);
-
-  const handleWsMessage = useCallback((payload: WsPayload) => {
-    if (payload.metrics && Object.keys(payload.metrics).length > 0) {
-      setWsMetrics(payload.metrics);
-    }
+      .catch((e: Error) => setReplayError(e.message));
   }, []);
 
   // Playback timer loop
@@ -80,22 +71,17 @@ export const DashboardPage: React.FC = () => {
   // Current simulation time
   const currentTime = availableTimes[currentTimeIndex] ?? 0;
 
-  // Active vehicles at currentTime
-  const currentVehicles = useMemo(() => {
-    if (availableTimes.length === 0) return [];
-    const tExact = currentTime.toFixed(1);
-    if (frames[tExact]) return frames[tExact];
-    if (frames[String(currentTime)]) return frames[String(currentTime)];
+  const currentVehicles = useMemo(
+    () => (availableTimes.length === 0 ? [] : sampleAndHold(frames, currentTime)),
+    [frames, availableTimes.length, currentTime]
+  );
 
-    // Fallback sample-and-hold
-    const keys = Object.keys(frames).map(Number).sort((a, b) => a - b);
-    let bestKey: number | null = null;
-    for (const k of keys) {
-      if (k <= currentTime) bestKey = k;
-      else break;
-    }
-    return bestKey !== null ? (frames[bestKey.toFixed(1)] || frames[String(bestKey)] || []) : [];
-  }, [frames, availableTimes, currentTime]);
+  // Real per-TLS phase state at the current replay time, straight from the
+  // controller's recorded trajectory — no client-side approximation.
+  const tlsStates = useMemo(
+    () => (availableTimes.length === 0 ? {} : tlsFramesToStateMap(sampleAndHold(tlsFrames, currentTime))),
+    [tlsFrames, availableTimes.length, currentTime]
+  );
 
   // Telemetry derived from active simulation vehicles
   const liveAvgSpeedKmh = useMemo(() => {
@@ -108,35 +94,8 @@ export const DashboardPage: React.FC = () => {
     return currentVehicles.filter((v) => (v.speed || 0) < 2).length;
   }, [currentVehicles]);
 
-  // Dynamic real TLS states
-  const tlsStates = useMemo(() => {
-    if (!tlsSpecs || tlsSpecs.length === 0) return {};
-    const res: Record<string, { phase: number; state: string }> = {};
-    for (const spec of tlsSpecs) {
-      if (!spec.phases || spec.phases.length === 0) continue;
-      const totalCycle = spec.phases.reduce((acc, p) => acc + (p.duration || 30), 0) || 90;
-      const seedNum = parseInt(spec.tls_id.replace(/\D/g, "").slice(-3) || "0", 10);
-      const adjustedTime = (currentTime * 1.08 + (seedNum % 20)) % totalCycle;
-      let remainder = adjustedTime;
-      let phaseIdx = 0;
-      for (let i = 0; i < spec.phases.length; i++) {
-        const dur = spec.phases[i].duration || 30;
-        if (remainder < dur) {
-          phaseIdx = i;
-          break;
-        }
-        remainder -= dur;
-      }
-      res[spec.tls_id] = {
-        phase: phaseIdx,
-        state: spec.phases[phaseIdx]?.state || "GGGrrr",
-      };
-    }
-    return res;
-  }, [tlsSpecs, currentTime]);
-
   // Determine display values
-  const ppoMetrics = wsMetrics?.ppo;
+  const ppoMetrics = wsPayload?.metrics?.ppo;
   const displayMetrics = {
     avgWait: ppoMetrics ? ppoMetrics.mean_waiting_time : (metrics?.mean_waiting_time ?? 0),
     avgQueue: currentVehicles.length > 0 ? liveQueuedCount : (ppoMetrics?.mean_queue ?? metrics?.mean_queue ?? 0),
@@ -145,14 +104,26 @@ export const DashboardPage: React.FC = () => {
     arrivedCount: ppoMetrics?.total_arrived ?? metrics?.total_arrived ?? 0,
   };
 
+  const backendUnreachable = Boolean(metricsError) && Boolean(replayError);
+
   return (
     <div style={{ animation: "fade-in 0.4s ease both" }}>
+      {backendUnreachable && (
+        <div className="connectivity-banner" role="alert">
+          <AlertTriangle size={16} aria-hidden="true" />
+          <span>
+            Can't reach the CityMind API — is <code>uvicorn api.main:app</code> running?
+            Showing whatever was last loaded.
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <h2 className="section-title">Network Status Overview</h2>
           <p className="section-subtitle">
-            <Activity size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+            <Activity size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} aria-hidden="true" />
             Active Scenario: InTAS Ingolstadt · 98 Signalized Intersections
           </p>
         </div>
@@ -176,9 +147,9 @@ export const DashboardPage: React.FC = () => {
       <div className="glass-card" style={{ padding: "1.25rem", marginBottom: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <div>
-            <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>Ingolstadt Traffic Network — Live Trajectory Simulation</h3>
+            <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>Ingolstadt Traffic Network — Recorded Trajectory Replay</h3>
             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
-              Active RL Policy controlling 98 signals · Moving vehicle telemetry & signal cycles
+              Replaying the PPO policy's actual recorded run · vehicle positions and signal phases as they really occurred
             </p>
           </div>
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
@@ -187,44 +158,52 @@ export const DashboardPage: React.FC = () => {
                 Time: {currentTime.toFixed(1)}s
               </span>
               <span className="badge-green">
-                <Zap size={10} /> RL Active
+                <Zap size={10} aria-hidden="true" /> Recorded Run
               </span>
             </div>
           </div>
         </div>
 
-        {/* Network Canvas with Real Vehicles and Real Signal States */}
-        <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsStates} />
-
-        {/* Playback Controls */}
-        <div style={{ marginTop: "1rem" }}>
-          <PlaybackControls
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            maxTime={availableTimes.length > 0 ? availableTimes[availableTimes.length - 1] : 120}
-            playbackSpeed={playbackSpeed}
-            onPlayToggle={() => setIsPlaying(!isPlaying)}
-            onReset={() => {
-              setCurrentTimeIndex(0);
-              setIsPlaying(false);
-            }}
-            onSpeedChange={setPlaybackSpeed}
-            onSeek={(t) => {
-              const idx = availableTimes.findIndex((timeVal) => timeVal >= t);
-              if (idx !== -1) setCurrentTimeIndex(idx);
-            }}
-          />
-        </div>
+        {replayError && availableTimes.length === 0 ? (
+          <div className="network-canvas-wrapper" style={{ height: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ textAlign: "center", color: "var(--text-muted)" }}>
+              <p style={{ color: "var(--signal-red)", marginBottom: "0.5rem" }}>⚠ No recorded trajectory available</p>
+              <p style={{ fontSize: "0.8rem" }}>Run <code>scripts/run_evaluation.py</code> to generate one.</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsStates} />
+            <div style={{ marginTop: "1rem" }}>
+              <PlaybackControls
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                maxTime={availableTimes.length > 0 ? availableTimes[availableTimes.length - 1] : 120}
+                playbackSpeed={playbackSpeed}
+                onPlayToggle={() => setIsPlaying(!isPlaying)}
+                onReset={() => {
+                  setCurrentTimeIndex(0);
+                  setIsPlaying(false);
+                }}
+                onSpeedChange={setPlaybackSpeed}
+                onSeek={(t) => {
+                  const idx = availableTimes.findIndex((timeVal) => timeVal >= t);
+                  if (idx !== -1) setCurrentTimeIndex(idx);
+                }}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Simulation Control (Desktop SUMO-GUI) */}
-      <SimulationControl onWsMessage={handleWsMessage} />
+      <SimulationControl />
 
       {/* Stats row */}
       {metrics && (
         <div className="glass-card" style={{ padding: "1.25rem", marginTop: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-            <TrendingDown size={16} color="var(--accent-cyan)" />
+            <TrendingDown size={16} color="var(--accent-cyan)" aria-hidden="true" />
             <h3 style={{ fontSize: "0.95rem", fontWeight: 600 }}>PPO Episode Statistics</h3>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.75rem" }}>

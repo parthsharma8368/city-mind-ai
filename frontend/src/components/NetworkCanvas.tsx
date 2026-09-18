@@ -35,6 +35,9 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   const [error, setError] = useState<string | null>(null);
   const animFrameRef = useRef<number>(0);
   const tickRef = useRef(0);
+  const reducedMotionRef = useRef(
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  );
 
   useEffect(() => {
     api.getNetworkGeoJSON()
@@ -142,8 +145,8 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       const stateInfo = tlsStates[tlsId];
       const color = stateInfo ? getSignalColor(stateInfo.state) : "#22d3ee";
 
-      // Subtle pulse glow
-      const pulse = 0.5 + 0.5 * Math.abs(Math.sin(t + sx * 0.02));
+      // Subtle pulse glow (static intensity if the viewer asked for reduced motion)
+      const pulse = reducedMotionRef.current ? 0.85 : 0.5 + 0.5 * Math.abs(Math.sin(t + sx * 0.02));
       const glowR = 6 * pulse;
       const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR);
       grd.addColorStop(0, color + "66");
@@ -160,24 +163,25 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       ctx.fill();
     }
 
-    // 3. Draw Active Vehicles
+    // 3. Draw Active Vehicles (Distinct styling to avoid confusion with traffic lights)
     if (vehicles && vehicles.length > 0) {
       for (const veh of vehicles) {
         const [vx, vy] = toScreen(veh.x, veh.y);
         if (vx < -10 || vx > W + 10 || vy < -10 || vy > H + 10) continue;
 
         ctx.beginPath();
-        // Queued (<2 m/s): Red, Slow (2-8 m/s): Amber, Cruising (>8 m/s): Emerald
+        // Moving vehicles use purple/magenta/cyan palette so they are never confused with traffic lights
         const isQueue = veh.speed < 2;
-        const color = isQueue ? "#ef4444" : veh.speed > 8 ? "#10b981" : "#f59e0b";
+        // Queued (<2 m/s): Bright Hot Pink/Magenta (#ec4899), Moderate (2-8 m/s): Lavender Violet (#a855f7), Cruising (>8 m/s): Electric Cyan/White (#38bdf8)
+        const color = isQueue ? "#ec4899" : veh.speed > 8 ? "#38bdf8" : "#a855f7";
 
         ctx.arc(vx, vy, isQueue ? 2.8 : 2.2, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
 
-        // Extra highlight on queued cars
+        // Extra outer halo on stopped vehicles
         if (isQueue) {
-          ctx.strokeStyle = "rgba(239, 68, 68, 0.4)";
+          ctx.strokeStyle = "rgba(236, 72, 153, 0.5)";
           ctx.lineWidth = 1;
           ctx.stroke();
         }
@@ -241,7 +245,12 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
 
   return (
     <div className="network-canvas-wrapper" style={{ height, position: "relative", borderRadius: 8, overflow: "hidden" }}>
-      <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label={`Ingolstadt road network map${vehicles.length ? ` with ${vehicles.length} vehicles currently visible` : ""}`}
+        style={{ width: "100%", height: "100%", display: "block" }}
+      />
       <div style={{
         position: "absolute", bottom: 10, right: 12, fontSize: "0.72rem",
         color: "var(--text-muted)", fontFamily: "var(--font-mono)",
@@ -262,10 +271,13 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
           <>
             <span style={{ color: "var(--border-subtle)" }}>|</span>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} /> Cruising
+              <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#38bdf8" }} /> Fast Car
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ef4444" }} /> Stopped/Queue
+              <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#a855f7" }} /> Moving Car
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ec4899" }} /> Stopped Car
             </span>
             <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>{vehicles.length} veh</span>
           </>

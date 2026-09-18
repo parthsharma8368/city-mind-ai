@@ -2,8 +2,9 @@
  * CityMind AI — API client for FastAPI backend.
  */
 
-const API_BASE = "http://localhost:8000/api";
-export const WS_SIMULATION = "ws://localhost:8000/ws/simulation";
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+export const WS_SIMULATION = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/ws/simulation";
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -143,10 +144,25 @@ export interface WsPayload {
   }>;
 }
 
+export interface TLSFrame {
+  tls_id: string;
+  phase: number;
+  state: string;
+}
+
+export interface VehiclePointDTO {
+  vehicle_id: string;
+  x: number;
+  y: number;
+  speed: number;
+}
+
 // ── API Client ────────────────────────────────────────────────────────────────
 
 async function _fetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, options);
+  const headers = new Headers(options?.headers);
+  if (API_KEY) headers.set("X-API-Key", API_KEY);
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`API ${path} → ${res.status}: ${text.slice(0, 200)}`);
@@ -192,10 +208,20 @@ export const api = {
 
   // ── Replay ────────────────────────────────────────────────────────────
   getAvailableTrajectories: () => _fetch<{ trajectories: string[] }>("/replay/available"),
-  getReplayFrames: (controller: string, seed = 42, demandId = "1.0x", startTime = 0, endTime = 60) =>
-    _fetch<{ frames: Record<string, unknown[]>; frame_count: number }>(
-      `/replay/frames?controller=${controller}&seed=${seed}&demand_id=${demandId}&start_time=${startTime}&end_time=${endTime}`
-    ),
+  getReplayFrames: (controller: string, seed = 42, demandId = "1.0x", startTime = 0, endTime = 60) => {
+    const params = new URLSearchParams({
+      controller,
+      seed: String(seed),
+      demand_id: demandId,
+      start_time: String(startTime),
+      end_time: String(endTime),
+    });
+    return _fetch<{
+      frames: Record<string, VehiclePointDTO[]>;
+      tls_frames: Record<string, TLSFrame[]>;
+      frame_count: number;
+    }>(`/replay/frames?${params.toString()}`);
+  },
 
   // ── Comparison ─────────────────────────────────────────────────────────
   getComparisonSummary: (demandId = "1.0x") =>

@@ -5,7 +5,9 @@ import {
 } from "lucide-react";
 
 import { api } from "../api/client";
+import type { TLSFrame } from "../api/client";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
+import { sampleAndHold, tlsFramesToStateMap } from "../utils/trajectory";
 
 const CONTROLLERS = [
   { id: "ppo", name: "PPO (RL Centralized)", badge: "badge-blue" },
@@ -29,24 +31,16 @@ export const ReplayPage: React.FC = () => {
   const [fixedFrames, setFixedFrames] = useState<Record<string, VehiclePoint[]>>({});
   const [ppoFrames, setPpoFrames] = useState<Record<string, VehiclePoint[]>>({});
 
-  // Real TLS Signal specifications from InTAS scenario
-  const [tlsSpecs, setTlsSpecs] = useState<Array<{
-    tls_id: string;
-    phases: Array<{ state: string; duration: number }>;
-  }>>([]);
+  // Real recorded TLS phase per controller, keyed the same way as the frame dicts.
+  const [tlsFrames, setTlsFrames] = useState<Record<string, TLSFrame[]>>({});
+  const [fixedTlsFrames, setFixedTlsFrames] = useState<Record<string, TLSFrame[]>>({});
+  const [ppoTlsFrames, setPpoTlsFrames] = useState<Record<string, TLSFrame[]>>({});
 
   // Playback state
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const timerRef = useRef<number | null>(null);
-
-  // Load TLS metadata once
-  useEffect(() => {
-    api.getTLSMetadata()
-      .then((data) => setTlsSpecs(data))
-      .catch(() => null);
-  }, []);
 
   // Load trajectory data
   useEffect(() => {
@@ -68,6 +62,8 @@ export const ReplayPage: React.FC = () => {
           const typedPpo = ppoData.frames as Record<string, VehiclePoint[]>;
           setFixedFrames(typedFt);
           setPpoFrames(typedPpo);
+          setFixedTlsFrames(ftData.tls_frames ?? {});
+          setPpoTlsFrames(ppoData.tls_frames ?? {});
 
           // Get union of sorted timestamps
           const timeSet = new Set([
@@ -84,6 +80,7 @@ export const ReplayPage: React.FC = () => {
 
           const typedFrames = data.frames as Record<string, VehiclePoint[]>;
           setFrames(typedFrames);
+          setTlsFrames(data.tls_frames ?? {});
 
           const times = Object.keys(typedFrames)
             .map((t) => parseFloat(t))
@@ -97,6 +94,9 @@ export const ReplayPage: React.FC = () => {
           setFrames({});
           setFixedFrames({});
           setPpoFrames({});
+          setTlsFrames({});
+          setFixedTlsFrames({});
+          setPpoTlsFrames({});
           setAvailableTimes([]);
         }
       } finally {
@@ -112,97 +112,36 @@ export const ReplayPage: React.FC = () => {
   // Current simulation time
   const currentTime = availableTimes[currentTimeIndex] ?? 0;
 
-  // Helper to find exact or most recent prior frame
-  const getFrameAt = (dict: Record<string, VehiclePoint[]>, time: number): VehiclePoint[] => {
-    const tExact = time.toFixed(1);
-    if (dict[tExact]) return dict[tExact];
-    if (dict[String(time)]) return dict[String(time)];
-
-    // If frame is sampled at larger steps (e.g., fixed-time every 5s), sample-and-hold the latest valid frame
-    const keys = Object.keys(dict).map(Number).sort((a, b) => a - b);
-    let bestKey: number | null = null;
-    for (const k of keys) {
-      if (k <= time) {
-        bestKey = k;
-      } else {
-        break;
-      }
-    }
-    if (bestKey !== null) {
-      return dict[bestKey.toFixed(1)] || dict[String(bestKey)] || [];
-    }
-    return [];
-  };
-
   // Active vehicles in Single Mode
   const currentVehicles = useMemo(() => {
     if (availableTimes.length === 0) return [];
-    return getFrameAt(frames, currentTime);
+    return sampleAndHold(frames, currentTime);
   }, [frames, availableTimes, currentTime]);
 
   // Active vehicles in Split Mode
   const currentFixedVehicles = useMemo(() => {
     if (availableTimes.length === 0) return [];
-    return getFrameAt(fixedFrames, currentTime);
+    return sampleAndHold(fixedFrames, currentTime);
   }, [fixedFrames, availableTimes, currentTime]);
 
   const currentPpoVehicles = useMemo(() => {
     if (availableTimes.length === 0) return [];
-    return getFrameAt(ppoFrames, currentTime);
+    return sampleAndHold(ppoFrames, currentTime);
   }, [ppoFrames, availableTimes, currentTime]);
 
-  // Dynamic TLS signal states computed from real InTAS signal programs & simulation clock
-  const tlsFixedStates = useMemo(() => {
-    if (!tlsSpecs || tlsSpecs.length === 0) return {};
-    const res: Record<string, { phase: number; state: string }> = {};
-    for (const spec of tlsSpecs) {
-      if (!spec.phases || spec.phases.length === 0) continue;
-      // Fixed-time cycle repeats periodically according to phase durations
-      const totalCycle = spec.phases.reduce((acc, p) => acc + (p.duration || 30), 0) || 90;
-      let remainder = currentTime % totalCycle;
-      let phaseIdx = 0;
-      for (let i = 0; i < spec.phases.length; i++) {
-        const dur = spec.phases[i].duration || 30;
-        if (remainder < dur) {
-          phaseIdx = i;
-          break;
-        }
-        remainder -= dur;
-      }
-      res[spec.tls_id] = {
-        phase: phaseIdx,
-        state: spec.phases[phaseIdx]?.state || "GGGrrr",
-      };
-    }
-    return res;
-  }, [tlsSpecs, currentTime]);
-
-  const tlsPpoStates = useMemo(() => {
-    if (!tlsSpecs || tlsSpecs.length === 0) return {};
-    const res: Record<string, { phase: number; state: string }> = {};
-    for (const spec of tlsSpecs) {
-      if (!spec.phases || spec.phases.length === 0) continue;
-      const totalCycle = spec.phases.reduce((acc, p) => acc + (p.duration || 30), 0) || 90;
-      // Adaptive PPO phase switching coordinated with flow
-      const seedNum = parseInt(spec.tls_id.replace(/\D/g, "").slice(-3) || "0", 10);
-      const adjustedTime = (currentTime * 1.08 + (seedNum % 20)) % totalCycle;
-      let remainder = adjustedTime;
-      let phaseIdx = 0;
-      for (let i = 0; i < spec.phases.length; i++) {
-        const dur = spec.phases[i].duration || 30;
-        if (remainder < dur) {
-          phaseIdx = i;
-          break;
-        }
-        remainder -= dur;
-      }
-      res[spec.tls_id] = {
-        phase: phaseIdx,
-        state: spec.phases[phaseIdx]?.state || "GGGrrr",
-      };
-    }
-    return res;
-  }, [tlsSpecs, currentTime]);
+  // Real recorded TLS phase state per controller — not a client-side guess.
+  const tlsCurrentStates = useMemo(
+    () => (availableTimes.length === 0 ? {} : tlsFramesToStateMap(sampleAndHold(tlsFrames, currentTime))),
+    [tlsFrames, availableTimes.length, currentTime]
+  );
+  const tlsFixedStates = useMemo(
+    () => (availableTimes.length === 0 ? {} : tlsFramesToStateMap(sampleAndHold(fixedTlsFrames, currentTime))),
+    [fixedTlsFrames, availableTimes.length, currentTime]
+  );
+  const tlsPpoStates = useMemo(
+    () => (availableTimes.length === 0 ? {} : tlsFramesToStateMap(sampleAndHold(ppoTlsFrames, currentTime))),
+    [ppoTlsFrames, availableTimes.length, currentTime]
+  );
 
   // Single Mode Telemetry
   const avgSpeedKmh = useMemo(() => {
@@ -538,7 +477,7 @@ export const ReplayPage: React.FC = () => {
                 {controller.toUpperCase()} · seed {seed}
               </span>
             </div>
-            <NetworkCanvas height={420} vehicles={currentVehicles} />
+            <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsCurrentStates} />
           </div>
         </>
       )}

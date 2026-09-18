@@ -89,10 +89,16 @@ export const ComparisonPage: React.FC = () => {
         </div>
         {improvement?.waiting_time_improvement_pct !== undefined && (
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            <span className="improvement-tag positive">
-              <Award size={12} />
-              {improvement.waiting_time_improvement_pct.toFixed(1)}% wait time reduction
-            </span>
+            {(() => {
+              const pct = improvement.waiting_time_improvement_pct;
+              const isImprovement = pct > 0;
+              return (
+                <span className={`improvement-tag ${isImprovement ? "positive" : "negative"}`}>
+                  {isImprovement ? <Award size={12} /> : <TrendingUp size={12} />}
+                  {Math.abs(pct).toFixed(1)}% wait time {isImprovement ? "reduction" : "increase"} vs Fixed-Time
+                </span>
+              );
+            })()}
           </div>
         )}
       </div>
