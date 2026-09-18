@@ -64,7 +64,8 @@ export const ComparisonBarChart: React.FC<ComparisonChartProps> = ({
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis
             dataKey="name"
-            tick={{ fill: "var(--text-muted)", fontSize: 11 }}
+            interval={0}
+            tick={{ fill: "var(--text-muted)", fontSize: 10 }}
             axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
             tickLine={false}
           />
