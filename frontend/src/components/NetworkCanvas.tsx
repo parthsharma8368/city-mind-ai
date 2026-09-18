@@ -9,28 +9,57 @@ export interface VehiclePoint {
   speed: number;
 }
 
+interface TLSMetaItem {
+  tls_id: string;
+  phases: Array<{ state: string; duration: number; index?: number }>;
+  totalCycle: number;
+}
+
 interface NetworkCanvasProps {
   height?: number;
   tlsStates?: Record<string, { phase: number; state: string }>;
   vehicles?: VehiclePoint[];
+  currentTime?: number;
 }
 
-function getSignalColor(state: string): string {
-  if (!state) return "#22d3ee";
-  const s = state.toLowerCase();
-  if (s.includes("g")) return "#10b981";
-  if (s.includes("y")) return "#f59e0b";
-  if (s.includes("r")) return "#ef4444";
-  return "#22d3ee";
+/**
+ * Determine high-visibility signal color (Green / Yellow / Red).
+ *
+ * `state` is the actual SUMO signal-state string (e.g. "rrGGGGg") whenever
+ * one is available — from a real recorded controller decision, or from a
+ * real phase definition in tls_metadata — and it is always authoritative
+ * when present: it reflects what genuinely happened, not a guess. The
+ * phaseIndex-parity heuristic below is only a last resort for the case
+ * where no state string exists at all (an unrecognized junction).
+ */
+function getSignalColor(state: string, phaseIndex?: number): string {
+  const s = (state || "").toLowerCase();
+  if (s) {
+    if (s.includes("y")) return "#f59e0b";
+    const hasGreen = s.includes("g");
+    const hasRed = s.includes("r");
+    if (hasGreen && !hasRed) return "#10b981";
+    if (hasRed && !hasGreen) return "#ef4444";
+    return hasGreen ? "#10b981" : "#ef4444";
+  }
+
+  // No real state string: fall back to a phase-index guess.
+  if (phaseIndex !== undefined) {
+    if (phaseIndex === 0) return "#10b981";
+    return phaseIndex % 2 === 1 ? "#f59e0b" : "#ef4444";
+  }
+  return "#10b981";
 }
 
 export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   height = 380,
   tlsStates = {},
   vehicles = [],
+  currentTime = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [geoJSON, setGeoJSON] = useState<NetworkGeoJSON | null>(null);
+  const [tlsMetaMap, setTlsMetaMap] = useState<Map<string, TLSMetaItem>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const animFrameRef = useRef<number>(0);
@@ -40,8 +69,28 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   );
 
   useEffect(() => {
-    api.getNetworkGeoJSON()
-      .then(setGeoJSON)
+    Promise.all([
+      api.getNetworkGeoJSON(),
+      api.getTLSMetadata().catch(() => []),
+    ])
+      .then(([geo, metaList]) => {
+        setGeoJSON(geo);
+        const map = new Map<string, TLSMetaItem>();
+        for (const item of metaList) {
+          const phases = (item.phases || []).map((p, idx) => ({
+            state: p.state,
+            duration: p.duration > 0 ? p.duration : 5,
+            index: idx,
+          }));
+          const totalCycle = phases.reduce((sum, p) => sum + p.duration, 0) || 60;
+          map.set(item.tls_id, {
+            tls_id: item.tls_id,
+            phases,
+            totalCycle,
+          });
+        }
+        setTlsMetaMap(map);
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -131,55 +180,22 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       ctx.stroke();
     }
 
-    // 2. Draw TLS Junctions (Traffic Lights)
-    for (const feat of geoJSON.features) {
-      if (feat.geometry.type !== "Point") continue;
-      // Only draw real signalized intersections (is_tls)
-      if (!feat.properties.is_tls) continue;
-
-      const coords = feat.geometry.coordinates as number[];
-      const [sx, sy] = toScreen(coords[0], coords[1]);
-      if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
-
-      const tlsId = feat.properties.tls_id ?? "";
-      const stateInfo = tlsStates[tlsId];
-      const color = stateInfo ? getSignalColor(stateInfo.state) : "#22d3ee";
-
-      // Subtle pulse glow (static intensity if the viewer asked for reduced motion)
-      const pulse = reducedMotionRef.current ? 0.85 : 0.5 + 0.5 * Math.abs(Math.sin(t + sx * 0.02));
-      const glowR = 6 * pulse;
-      const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR);
-      grd.addColorStop(0, color + "66");
-      grd.addColorStop(1, color + "00");
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.arc(sx, sy, glowR, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Sharp core pin
-      ctx.beginPath();
-      ctx.arc(sx, sy, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-    }
-
-    // 3. Draw Active Vehicles (Distinct styling to avoid confusion with traffic lights)
+    // 2. Draw Active Vehicles (Moving dots in magenta / lavender / cyan)
+    // Drawn BEFORE traffic lights so signals sit prominently on top at intersections!
     if (vehicles && vehicles.length > 0) {
       for (const veh of vehicles) {
         const [vx, vy] = toScreen(veh.x, veh.y);
         if (vx < -10 || vx > W + 10 || vy < -10 || vy > H + 10) continue;
 
         ctx.beginPath();
-        // Moving vehicles use purple/magenta/cyan palette so they are never confused with traffic lights
         const isQueue = veh.speed < 2;
-        // Queued (<2 m/s): Bright Hot Pink/Magenta (#ec4899), Moderate (2-8 m/s): Lavender Violet (#a855f7), Cruising (>8 m/s): Electric Cyan/White (#38bdf8)
-        const color = isQueue ? "#ec4899" : veh.speed > 8 ? "#38bdf8" : "#a855f7";
+        // Queued (<2 m/s): Hot Pink/Magenta (#ec4899), Moderate (2-8 m/s): Lavender (#a855f7), Cruising (>8 m/s): Cyan (#38bdf8)
+        const carColor = isQueue ? "#ec4899" : veh.speed > 8 ? "#38bdf8" : "#a855f7";
 
         ctx.arc(vx, vy, isQueue ? 2.8 : 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = color;
+        ctx.fillStyle = carColor;
         ctx.fill();
 
-        // Extra outer halo on stopped vehicles
         if (isQueue) {
           ctx.strokeStyle = "rgba(236, 72, 153, 0.5)";
           ctx.lineWidth = 1;
@@ -187,7 +203,89 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         }
       }
     }
-  }, [geoJSON, tlsStates, vehicles]);
+
+    // 3. Draw TLS Junctions (Traffic Lights) — ON TOP OF VEHICLES & ROADS
+    for (const feat of geoJSON.features) {
+      if (feat.geometry.type !== "Point") continue;
+      // Only draw signalized intersections
+      if (!feat.properties.is_tls) continue;
+
+      const coords = feat.geometry.coordinates as number[];
+      const [sx, sy] = toScreen(coords[0], coords[1]);
+      if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
+
+      const tlsId = feat.properties.tls_id ?? "";
+      let signalColor = "#10b981";
+
+      // A) Live / recorded controller state has priority
+      const liveState = tlsStates[tlsId];
+      if (liveState) {
+        signalColor = getSignalColor(liveState.state, liveState.phase);
+      } else if (tlsMetaMap.has(tlsId)) {
+        // B) InTAS Scenario schedule state for simulation time
+        const meta = tlsMetaMap.get(tlsId)!;
+        const timeOffset = currentTime > 0 ? currentTime : t * 2;
+        const tCycle = (timeOffset) % meta.totalCycle;
+        let acc = 0;
+        let activePhase = 0;
+        let activeState = "";
+        for (const p of meta.phases) {
+          if (tCycle < acc + p.duration) {
+            activePhase = p.index ?? 0;
+            activeState = p.state;
+            break;
+          }
+          acc += p.duration;
+        }
+        signalColor = getSignalColor(activeState, activePhase);
+      } else {
+        // C) Deterministic hash cycle for any junction ID
+        const hash = tlsId.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+        const timeOffset = currentTime > 0 ? currentTime : t * 2;
+        const mod = (timeOffset + hash * 3.7) % 60;
+        if (mod < 28) {
+          signalColor = "#10b981"; // Green
+        } else if (mod < 32) {
+          signalColor = "#f59e0b"; // Yellow
+        } else {
+          signalColor = "#ef4444"; // Red
+        }
+      }
+
+      // ── Traffic Light Visual Badge Rendering ───────────────────────────
+      // 1. Ambient pulsing halo in signal color
+      const pulse = reducedMotionRef.current ? 0.85 : 0.7 + 0.3 * Math.abs(Math.sin(t * 1.5 + sx * 0.03));
+      const haloR = 10 * pulse;
+      const glow = ctx.createRadialGradient(sx, sy, 2, sx, sy, haloR);
+      glow.addColorStop(0, signalColor + "99");
+      glow.addColorStop(1, signalColor + "00");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(sx, sy, haloR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. High-contrast protective collar (dark bezel + crisp white outline)
+      ctx.beginPath();
+      ctx.arc(sx, sy, 4.8, 0, Math.PI * 2);
+      ctx.fillStyle = "#030712";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // 3. Bright saturated LED signal lens
+      ctx.beginPath();
+      ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
+      ctx.fillStyle = signalColor;
+      ctx.fill();
+
+      // 4. Specular highlight (glass reflection)
+      ctx.beginPath();
+      ctx.arc(sx - 1, sy - 1, 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+      ctx.fill();
+    }
+  }, [geoJSON, tlsStates, vehicles, currentTime, tlsMetaMap]);
 
   useEffect(() => {
     if (!geoJSON) return;
@@ -226,7 +324,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       <div className="network-canvas-wrapper" style={{ height, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", color: "var(--text-muted)" }}>
           <span className="spinner" style={{ width: 28, height: 28, borderTopColor: "var(--accent-cyan)" }} />
-          <p style={{ marginTop: "0.75rem", fontSize: "0.875rem" }}>Loading InTAS Ingolstadt network…</p>
+          <p style={{ marginTop: "0.75rem", fontSize: "0.875rem" }}>Loading InTAS Ingolstadt network &amp; signals…</p>
         </div>
       </div>
     );
@@ -248,28 +346,29 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={`Ingolstadt road network map${vehicles.length ? ` with ${vehicles.length} vehicles currently visible` : ""}`}
+        aria-label={`Ingolstadt road network map with traffic lights${vehicles.length ? ` and ${vehicles.length} vehicles visible` : ""}`}
         style={{ width: "100%", height: "100%", display: "block" }}
       />
       <div style={{
         position: "absolute", bottom: 10, right: 12, fontSize: "0.72rem",
         color: "var(--text-muted)", fontFamily: "var(--font-mono)",
-        display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
-        background: "rgba(10,15,28,0.85)", padding: "0.3rem 0.65rem", borderRadius: 6,
-        border: "1px solid var(--border-subtle)", backdropFilter: "blur(6px)",
+        display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
+        background: "rgba(8, 12, 22, 0.92)", padding: "0.4rem 0.8rem", borderRadius: 8,
+        border: "1px solid var(--border-subtle)", backdropFilter: "blur(8px)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
       }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#10b981" }} /> Green
+        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#10b981", fontWeight: 600 }}>
+          <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: "#10b981", border: "1.5px solid #fff", boxShadow: "0 0 6px #10b981" }} /> Green
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#f59e0b" }} /> Yellow
+        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#f59e0b", fontWeight: 600 }}>
+          <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: "#f59e0b", border: "1.5px solid #fff", boxShadow: "0 0 6px #f59e0b" }} /> Yellow
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#ef4444" }} /> Red
+        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#ef4444", fontWeight: 600 }}>
+          <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: "#ef4444", border: "1.5px solid #fff", boxShadow: "0 0 6px #ef4444" }} /> Red
         </span>
         {vehicles.length > 0 && (
           <>
-            <span style={{ color: "var(--border-subtle)" }}>|</span>
+            <span style={{ color: "var(--border-subtle)" }}>│</span>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#38bdf8" }} /> Fast Car
             </span>
@@ -279,7 +378,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#ec4899" }} /> Stopped Car
             </span>
-            <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>{vehicles.length} veh</span>
+            <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>({vehicles.length} veh)</span>
           </>
         )}
       </div>

@@ -386,7 +386,7 @@ export const ReplayPage: React.FC = () => {
             </div>
 
             {/* Canvas */}
-            <NetworkCanvas height={390} vehicles={currentFixedVehicles} tlsStates={tlsFixedStates} />
+            <NetworkCanvas height={390} vehicles={currentFixedVehicles} tlsStates={tlsFixedStates} currentTime={currentTime} />
           </div>
 
           {/* RIGHT: PPO RL Agent */}
@@ -430,7 +430,7 @@ export const ReplayPage: React.FC = () => {
             </div>
 
             {/* Canvas */}
-            <NetworkCanvas height={390} vehicles={currentPpoVehicles} tlsStates={tlsPpoStates} />
+            <NetworkCanvas height={390} vehicles={currentPpoVehicles} tlsStates={tlsPpoStates} currentTime={currentTime} />
           </div>
         </div>
       ) : (
@@ -477,7 +477,7 @@ export const ReplayPage: React.FC = () => {
                 {controller.toUpperCase()} · seed {seed}
               </span>
             </div>
-            <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsCurrentStates} />
+            <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsCurrentStates} currentTime={currentTime} />
           </div>
         </>
       )}

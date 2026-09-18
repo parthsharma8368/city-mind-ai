@@ -56,10 +56,21 @@ class MaxPressureController(BaseController):
         decision_interval: int = 5,
         step_length: float = 1.0,
         episode_duration: int = 3600,
+        pressure_margin: float = 0.0,
     ) -> None:
         self.decision_interval = decision_interval
         self.step_length = step_length
         self.episode_duration = episode_duration
+        # Textbook Varaiya rule: switch whenever the next phase has strictly
+        # higher pressure (margin=0). A pressure_margin > 0 (require the next
+        # phase to clear the current one by more than this before switching)
+        # is exposed for experimentation but is NOT a validated improvement
+        # here: tested at margin=3.0 on this network under the SafetyLayer's
+        # mandatory yellow/all-red clearance, mean waiting time got *worse*
+        # (37.4s -> 46.7s) with only a modest drop in switch count (5096 ->
+        # 4084) — the default stays at the unmodified rule rather than a
+        # speculative "fix" that measurement didn't support.
+        self.pressure_margin = pressure_margin
         self.safety_cfg = SafetyConfig(
             min_green=min_green,
             max_green=max_green,
@@ -254,4 +265,4 @@ class MaxPressureController(BaseController):
 
         current_pressure = self._phase_pressure(spec, current_phase, downstream_cache)
         next_pressure = self._phase_pressure(spec, spec.phases[next_idx], downstream_cache)
-        return 1 if next_pressure > current_pressure else 0
+        return 1 if next_pressure > current_pressure + self.pressure_margin else 0

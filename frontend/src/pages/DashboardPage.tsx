@@ -173,7 +173,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         ) : (
           <>
-            <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsStates} />
+            <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsStates} currentTime={currentTime} />
             <div style={{ marginTop: "1rem" }}>
               <PlaybackControls
                 isPlaying={isPlaying}

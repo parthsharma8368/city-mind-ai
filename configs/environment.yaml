@@ -46,14 +46,22 @@ safety:
   min_red: 0              # seconds before green allowed again
 
 # ─── Reward ──────────────────────────────────────────────────────────────────
+# switching_penalty was 0.0 in the run evaluated on 2026-09-17/18 (500k
+# timesteps, seed 42). That run collapsed to 15,360 switches over 720
+# decision steps (98 TLS all thrashing near every legal opportunity) and
+# mean_speed of 0.88 m/s — a policy with no cost for switching has no reason
+# not to, and every switch burns a full yellow+all-red clearance. 0.3 is a
+# modest, non-dominant starting point to test whether penalizing the
+# specific failure mode we measured helps; it is not a validated final
+# value.
 reward:
   waiting_delta_weight: 1.0
   queue_weight: 0.0
-  switching_penalty: 0.0
+  switching_penalty: 0.3
   # Rich reward: uncomment to activate
   # waiting_delta_weight: 1.0
   # queue_weight: 0.1
-  # switching_penalty: 0.01
+  # switching_penalty: 0.3
 
 # ─── Episode Termination ─────────────────────────────────────────────────────
 termination:

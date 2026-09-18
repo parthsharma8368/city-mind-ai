@@ -155,7 +155,9 @@ class PPOAgent:
         )
 
         ppo = self.ppo_cfg
-        policy_kwargs = ppo.get("policy_kwargs", {})
+        # Copy, don't mutate: self.ppo_cfg is dumped verbatim to config.yaml
+        # later, and a raw torch.nn class object isn't yaml.safe_load-able.
+        policy_kwargs = dict(ppo.get("policy_kwargs", {}))
         if "activation_fn" in policy_kwargs:
             import torch.nn as nn
             activation_map = {"tanh": nn.Tanh, "relu": nn.ReLU}
