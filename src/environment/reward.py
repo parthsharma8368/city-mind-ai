@@ -116,6 +116,6 @@ class RewardCalculator:
             "metrics/total_waiting_time": current_waiting,
             "metrics/total_queue": current_queue,
             "metrics/switch_count": self._switch_count,
-            "metrics/vehicle_count": len(vehicle_ids) if "vehicle_ids" in dir() else 0,
+            "metrics/vehicle_count": num_vehicles,
         }
         return float(reward), info

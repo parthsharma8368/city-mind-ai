@@ -136,31 +136,41 @@ class ObservationBuilder:
                         halt, vcnt, spd, occ = 0.0, 0.0, 0.0, 0.0
                     lane_cache[lane_id] = (halt, vcnt, spd, occ)
 
-                if cfg.normalize:
-                    queue_vals.append(min(halt / cfg.max_lane_vehicles, 1.0))
-                    vcount_vals.append(min(vcnt / cfg.max_lane_vehicles, 1.0))
-                    speed_vals.append(min(max(spd, 0.0) / cfg.max_speed, 1.0))
-                    density_vals.append(min(occ, 1.0))
-                else:
-                    queue_vals.append(halt)
-                    vcount_vals.append(vcnt)
-                    speed_vals.append(spd)
-                    density_vals.append(occ)
+                # Raw physical-unit values — shared with reward/metrics so every
+                # controller (RL or baseline) reports queue/speed on the same scale.
+                queue_vals.append(halt)
+                vcount_vals.append(vcnt)
+                speed_vals.append(spd)
+                density_vals.append(occ)
 
-            # Write back to shared state for reward/metrics
+            # Write back to shared state for reward/metrics — always raw units.
             state.lane_queue = queue_vals
             state.lane_vehicles = vcount_vals
             state.lane_speed = speed_vals
             state.lane_density = density_vals
 
+            # Observation vector uses normalized values (policy input only);
+            # normalization happens here, on a copy, so it never leaks into
+            # the shared runtime state that reward.py / metrics.py read.
             if cfg.include_queue:
-                parts.extend(queue_vals)
+                parts.extend(
+                    [min(v / cfg.max_lane_vehicles, 1.0) for v in queue_vals]
+                    if cfg.normalize else queue_vals
+                )
             if cfg.include_vehicle_count:
-                parts.extend(vcount_vals)
+                parts.extend(
+                    [min(v / cfg.max_lane_vehicles, 1.0) for v in vcount_vals]
+                    if cfg.normalize else vcount_vals
+                )
             if cfg.include_mean_speed:
-                parts.extend(speed_vals)
+                parts.extend(
+                    [min(max(v, 0.0) / cfg.max_speed, 1.0) for v in speed_vals]
+                    if cfg.normalize else speed_vals
+                )
             if cfg.include_density:
-                parts.extend(density_vals)
+                parts.extend(
+                    [min(v, 1.0) for v in density_vals] if cfg.normalize else density_vals
+                )
 
         # ── Global features ──────────────────────────────────────────────────
         vehicle_ids = []

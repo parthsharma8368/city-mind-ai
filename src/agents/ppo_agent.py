@@ -61,6 +61,7 @@ def make_env(
         reward_config=reward_config,
         safety_config=safety_config,
         record_trajectories=record_trajectories,
+        episode_duration=episode_duration,
         sumo_extra_args=["--end", str(episode_duration)],
     )
     return Monitor(env)

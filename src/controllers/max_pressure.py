@@ -5,11 +5,17 @@ Max-Pressure (MP) controller — a strong non-RL baseline.
 
 Reference: Varaiya (2013), "Max Pressure Control of a Network of Signalized Intersections"
 
-Algorithm per TLS per decision step:
-  1. For each phase, compute pressure = sum of upstream queue - sum of downstream queue
-     over all movements served by that phase.
-  2. Select the phase with the highest total pressure.
-  3. Apply via TraCI, subject to minimum green constraint.
+Decision rule per TLS per decision step:
+  1. Compute pressure = upstream queue - downstream queue for the current
+     green phase and for the next green phase in the fixed cycle. Downstream
+     lanes are resolved live via traci.lane.getLinks(), so this is true
+     Varaiya pressure (not upstream-only).
+  2. Request an advance (same binary action the RL policy uses) only if the
+     next phase has strictly higher pressure than the current one.
+  3. The request is applied through the same SafetyLayer state machine used
+     by the RL environment — full min/max green, yellow, and all-red
+     clearance. Max-Pressure gets no unsafe shortcut the RL policy doesn't
+     also get, so the comparison is apples-to-apples.
 
 Max-Pressure is important because:
   - It is a well-known, provably throughput-optimal policy (under certain assumptions)
@@ -18,50 +24,48 @@ Max-Pressure is important because:
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
 from src.environment.sumo_connection import traci, USING_LIBSUMO
 
-import numpy as np
-from dataclasses import dataclass, field
-
 from src.controllers.base import BaseController, ControllerResult
 from src.environment.metrics import MetricsCollector
-from src.scenario.tls_metadata import TLSSpec, TLSRuntimeState, load_tls_specs
-
-
-@dataclass
-class MPState:
-    """Runtime state for one TLS under Max-Pressure control."""
-    tls_id: str
-    current_phase: int = 0
-    phase_elapsed: float = 0.0  # seconds
+from src.environment.safety import SafetyLayer, SafetyConfig
+from src.scenario.tls_metadata import TLSSpec, TLSRuntimeState, PhaseSpec, load_tls_specs
 
 
 class MaxPressureController(BaseController):
     """
-    Decentralized Max-Pressure controller operating on the same SUMO simulation.
+    Max-Pressure controller operating on the same SUMO simulation and the
+    same SafetyLayer state machine as the RL environment.
 
-    Each intersection independently selects the phase with maximum pressure.
-    Min green constraint is enforced before switching.
-
-    Note: MP is a *decentralized* controller — each intersection acts independently.
-    This is contrasted with the centralized RL policy which observes/acts globally.
+    Each intersection independently selects, every decision step, whether to
+    hold its current phase or advance to the next green phase in its cycle —
+    based on which side of that choice has higher Varaiya pressure. This is
+    still a *decentralized* decision rule, unlike the centralized RL policy,
+    but it is now mechanically constrained the same way (same legal
+    transitions, same metrics units) so the comparison is fair.
     """
 
     def __init__(
         self,
         min_green: float = 10.0,
+        max_green: float = 90.0,
+        yellow_duration: float = 3.0,
+        all_red_duration: float = 1.0,
         decision_interval: int = 5,
         step_length: float = 1.0,
         episode_duration: int = 3600,
     ) -> None:
-        self.min_green = min_green
         self.decision_interval = decision_interval
         self.step_length = step_length
         self.episode_duration = episode_duration
+        self.safety_cfg = SafetyConfig(
+            min_green=min_green,
+            max_green=max_green,
+            yellow_duration=yellow_duration,
+            all_red_duration=all_red_duration,
+        )
 
     @property
     def name(self) -> str:
@@ -76,10 +80,13 @@ class MaxPressureController(BaseController):
         trajectory_path: str | None = None,
     ) -> ControllerResult:
         tls_specs = load_tls_specs(Path(tls_metadata_json))
-        mp_states: dict[str, MPState] = {
-            s.tls_id: MPState(tls_id=s.tls_id) for s in tls_specs
-        }
         specs_by_id: dict[str, TLSSpec] = {s.tls_id: s for s in tls_specs}
+        runtime_states: dict[str, TLSRuntimeState] = {
+            s.tls_id: TLSRuntimeState(tls_id=s.tls_id) for s in tls_specs
+        }
+        safety = SafetyLayer(tls_specs, self.safety_cfg)
+        safety.register_states(runtime_states)
+        downstream_cache: dict[str, list[str]] = {}
 
         cmd = [
             "sumo",
@@ -93,30 +100,47 @@ class MaxPressureController(BaseController):
         if USING_LIBSUMO:
             traci.start(cmd)
         else:
-            traci.start(cmd, label=f"max_pressure_{seed}")
+            traci.start(cmd, label=f"max_pressure_{seed}_{demand_id}")
+
+        # Sync initial phases from SUMO (same as CentralizedSumoEnv.reset()).
+        for tid, state in runtime_states.items():
+            try:
+                state.current_phase = traci.trafficlight.getPhase(tid)
+            except traci.exceptions.TraCIException:
+                state.current_phase = 0
+            state.phase_elapsed = 0.0
 
         collector = MetricsCollector()
         collector.reset("max_pressure", seed, demand_id)
 
         trajectory_rows = []
         step = 0
+        action_dict: dict[str, int] = {tid: 0 for tid in runtime_states}
+        total_switches_prev = {tid: s.current_phase for tid, s in runtime_states.items()}
         total_switches = 0
+
         try:
             while traci.simulation.getMinExpectedNumber() > 0:
                 sim_time = traci.simulation.getTime()
 
-                # Make MP decisions every decision_interval steps
                 if step % self.decision_interval == 0:
-                    switches = self._apply_mp_decisions(specs_by_id, mp_states, sim_time)
-                    total_switches += switches
+                    action_dict = {
+                        tid: self._decide_action(specs_by_id[tid], state, downstream_cache)
+                        for tid, state in runtime_states.items()
+                    }
+
+                prev_phases = {tid: s.current_phase for tid, s in runtime_states.items()}
+                safety.step(sim_time, action_dict, self.step_length)
+                for tid, state in runtime_states.items():
+                    if state.current_phase != prev_phases[tid]:
+                        total_switches += 1
 
                 traci.simulationStep()
 
-                # Update elapsed time for each TLS
-                for tid, state in mp_states.items():
-                    state.phase_elapsed += self.step_length
-
-                if step % 5 == 0:
+                if step % self.decision_interval == 0:
+                    # No states= here: this keeps max-pressure on the same raw,
+                    # all-network-lane TraCI query fixed_time.py uses, so mean_queue
+                    # / mean_speed stay on identical units across every controller.
                     collector.record_step(step, sim_time, 0.0, total_switches)
                     if trajectory_path:
                         for vid in traci.vehicle.getIDList():
@@ -159,71 +183,66 @@ class MaxPressureController(BaseController):
             total_switches=total_switches,
         )
 
-    def _apply_mp_decisions(
-        self,
-        specs: dict[str, TLSSpec],
-        states: dict[str, MPState],
-        sim_time: float,
-    ) -> int:
-        """Apply Max-Pressure phase selection to all TLS. Returns switch count."""
-        switches = 0
-        for tid, state in states.items():
-            spec = specs[tid]
-            # Only switch if minimum green has elapsed
-            if state.phase_elapsed < self.min_green:
-                continue
+    # ──────────────────────────────────────────────────────────────────────────
+    # Pressure computation
+    # ──────────────────────────────────────────────────────────────────────────
 
-            best_phase = self._select_max_pressure_phase(spec, state)
-            if best_phase != state.current_phase:
-                # Insert yellow (simplified: direct phase switch via SUMO)
-                # For production, integrate the safety layer here too
+    def _get_downstream_lanes(self, lane_id: str) -> list[str]:
+        try:
+            links = traci.lane.getLinks(lane_id)
+        except traci.exceptions.TraCIException:
+            return []
+        return [link[0] for link in links if link and link[0]]
+
+    def _phase_pressure(
+        self,
+        spec: TLSSpec,
+        phase: PhaseSpec,
+        downstream_cache: dict[str, list[str]],
+    ) -> float:
+        """Varaiya pressure: sum over green movements of (upstream - downstream queue)."""
+        pressure = 0.0
+        for i, sig in enumerate(phase.state):
+            if sig not in ("G", "g") or i >= len(spec.controlled_lanes):
+                continue
+            lane_id = spec.controlled_lanes[i]
+            try:
+                upstream = traci.lane.getLastStepHaltingNumber(lane_id)
+            except traci.exceptions.TraCIException:
+                upstream = 0.0
+
+            downstream_lanes = downstream_cache.get(lane_id)
+            if downstream_lanes is None:
+                downstream_lanes = self._get_downstream_lanes(lane_id)
+                downstream_cache[lane_id] = downstream_lanes
+
+            downstream = 0.0
+            for dl in downstream_lanes:
                 try:
-                    traci.trafficlight.setPhase(tid, best_phase)
-                    state.current_phase = best_phase
-                    state.phase_elapsed = 0.0
-                    switches += 1
+                    downstream += traci.lane.getLastStepHaltingNumber(dl)
                 except traci.exceptions.TraCIException:
                     pass
-        return switches
 
-    def _select_max_pressure_phase(
-        self, spec: TLSSpec, state: MPState
+            pressure += upstream - downstream
+        return pressure
+
+    def _decide_action(
+        self,
+        spec: TLSSpec,
+        state: TLSRuntimeState,
+        downstream_cache: dict[str, list[str]],
     ) -> int:
-        """
-        Select the green phase with maximum pressure.
+        """Binary keep(0)/advance(1) decision, applied through the SafetyLayer."""
+        if not spec.phases or state.yellow_pending:
+            return 0
+        current_phase = spec.phases[state.current_phase]
+        if not current_phase.is_green:
+            return 0
 
-        Pressure for a phase = sum of upstream queue lengths for lanes that
-        receive green in this phase minus sum of downstream queue lengths
-        for the downstream lanes.
+        next_idx = spec.next_green_phase(state.current_phase)
+        if next_idx == state.current_phase:
+            return 0
 
-        Simplified implementation: uses only upstream halting vehicles
-        (downstream estimation via downstream lane queues requires lane link
-        topology which we approximate here).
-        """
-        if not spec.phases:
-            return state.current_phase
-
-        best_phase = state.current_phase
-        best_pressure = -float("inf")
-
-        for phase in spec.phases:
-            if not phase.is_green:
-                continue
-
-            # Identify which lanes get green in this phase
-            # SUMO signal state: 'G'/'g' = green for that lane position
-            pressure = 0.0
-            for i, sig in enumerate(phase.state):
-                if sig in ("G", "g") and i < len(spec.controlled_lanes):
-                    lane_id = spec.controlled_lanes[i]
-                    try:
-                        upstream_queue = traci.lane.getLastStepHaltingNumber(lane_id)
-                        pressure += upstream_queue
-                    except traci.exceptions.TraCIException:
-                        pass
-
-            if pressure > best_pressure:
-                best_pressure = pressure
-                best_phase = phase.index
-
-        return best_phase
+        current_pressure = self._phase_pressure(spec, current_phase, downstream_cache)
+        next_pressure = self._phase_pressure(spec, spec.phases[next_idx], downstream_cache)
+        return 1 if next_pressure > current_pressure else 0
