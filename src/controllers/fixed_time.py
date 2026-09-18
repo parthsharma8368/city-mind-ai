@@ -63,6 +63,7 @@ class FixedTimeController(BaseController):
 
         collector = MetricsCollector()
         collector.reset("fixed_time", seed, demand_id)
+        tls_ids = list(traci.trafficlight.getIDList())
 
         trajectory_rows = []
         step = 0
@@ -78,11 +79,20 @@ class FixedTimeController(BaseController):
                             x, y = traci.vehicle.getPosition(vid)
                             spd = traci.vehicle.getSpeed(vid)
                             trajectory_rows.append({
-                                "time": sim_time,
-                                "vehicle_id": vid,
-                                "x": x,
-                                "y": y,
-                                "speed": spd,
+                                "time": sim_time, "vehicle_id": vid, "x": x, "y": y, "speed": spd,
+                                "tls_id": None, "phase": None, "tls_state": None,
+                            })
+                        # SUMO owns fixed-time signal programs directly, so
+                        # traci's own phase/state is authoritative here.
+                        for tid in tls_ids:
+                            try:
+                                phase = traci.trafficlight.getPhase(tid)
+                                state_str = traci.trafficlight.getRedYellowGreenState(tid)
+                            except traci.exceptions.TraCIException:
+                                continue
+                            trajectory_rows.append({
+                                "time": sim_time, "vehicle_id": None, "x": None, "y": None, "speed": None,
+                                "tls_id": tid, "phase": phase, "tls_state": state_str,
                             })
                 step += 1
                 if sim_time >= self.episode_duration:

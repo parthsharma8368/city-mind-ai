@@ -359,7 +359,14 @@ class CentralizedSumoEnv(gym.Env):
             pass
 
     def save_trajectory(self, path: str) -> None:
-        """Save recorded trajectory to a Parquet file."""
+        """
+        Save recorded trajectory to a Parquet file.
+
+        Long format: vehicle rows and TLS-phase rows share one table (vehicle
+        columns are null on TLS rows and vice versa), so the replay API can
+        serve the RL policy's *actual* per-frame signal state to the frontend
+        instead of a client-side approximation.
+        """
         if not self._trajectory:
             return
         import pandas as pd
@@ -368,20 +375,23 @@ class CentralizedSumoEnv(gym.Env):
             t = frame["time"]
             for v in frame["vehicles"]:
                 rows.append({
-                    "time": t,
-                    "vehicle_id": v["id"],
-                    "x": v["x"],
-                    "y": v["y"],
-                    "speed": v["speed"],
+                    "time": t, "vehicle_id": v["id"], "x": v["x"], "y": v["y"], "speed": v["speed"],
+                    "tls_id": None, "phase": None, "tls_state": None,
+                })
+            for tls in frame["tls"]:
+                rows.append({
+                    "time": t, "vehicle_id": None, "x": None, "y": None, "speed": None,
+                    "tls_id": tls["id"], "phase": tls["phase"], "tls_state": tls["state"],
                 })
         Path(path).parent.mkdir(parents=True, exist_ok=True)
+        df = pd.DataFrame(rows)
         try:
-            pd.DataFrame(rows).to_parquet(path, index=False, engine="pyarrow")
+            df.to_parquet(path, index=False, engine="pyarrow")
         except Exception:
             try:
-                pd.DataFrame(rows).to_parquet(path, index=False)
+                df.to_parquet(path, index=False)
             except Exception:
-                pd.DataFrame(rows).to_csv(str(path).replace(".parquet", ".csv"), index=False)
+                df.to_csv(str(path).replace(".parquet", ".csv"), index=False)
         print(f"  Trajectory saved: {path} ({len(rows)} rows)")
 
     # ──────────────────────────────────────────────────────────────────────────

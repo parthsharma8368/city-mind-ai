@@ -147,11 +147,20 @@ class MaxPressureController(BaseController):
                             x, y = traci.vehicle.getPosition(vid)
                             spd = traci.vehicle.getSpeed(vid)
                             trajectory_rows.append({
-                                "time": sim_time,
-                                "vehicle_id": vid,
-                                "x": x,
-                                "y": y,
-                                "speed": spd,
+                                "time": sim_time, "vehicle_id": vid, "x": x, "y": y, "speed": spd,
+                                "tls_id": None, "phase": None, "tls_state": None,
+                            })
+                        # The safety layer drives signals via raw state strings, so our
+                        # own tracked phase (not traci's program cursor) is authoritative.
+                        for tid, state in runtime_states.items():
+                            spec = specs_by_id[tid]
+                            phase_idx = state.current_phase
+                            state_str = (
+                                spec.phases[phase_idx].state if phase_idx < len(spec.phases) else ""
+                            )
+                            trajectory_rows.append({
+                                "time": sim_time, "vehicle_id": None, "x": None, "y": None, "speed": None,
+                                "tls_id": tid, "phase": phase_idx, "tls_state": state_str,
                             })
 
                 step += 1
