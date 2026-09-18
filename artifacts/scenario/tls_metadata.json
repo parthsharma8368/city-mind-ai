@@ -1,0 +1,6476 @@
+[
+  {
+    "tls_id": "1863241632",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "1863241632",
+    "phase_count": 6,
+    "controlled_lane_count": 7,
+    "controlled_lanes": [
+      "224892361#7_1",
+      "224892361#7_2",
+      "170018165#0_1",
+      "170018165#0_2",
+      "-170018165#1_1",
+      "-170018165#1_2",
+      "-170018165#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGGg",
+        "duration": 35.0,
+        "min_dur": 7.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyyg",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrGGG",
+        "duration": 6.0,
+        "min_dur": 7.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrrryyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrrr",
+        "duration": 34.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "2033094557",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "2033094557",
+    "phase_count": 6,
+    "controlled_lane_count": 5,
+    "controlled_lanes": [
+      "30131201#1_0",
+      "30131201#1_1",
+      "-192768909#1_1",
+      "-192768909#1_2",
+      "gneE149_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGrr",
+        "duration": 26.0,
+        "min_dur": 26.0,
+        "max_dur": 26.0
+      },
+      {
+        "index": 1,
+        "state": "yyyrr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 2,
+        "state": "GrrrG",
+        "duration": 26.0,
+        "min_dur": 26.0,
+        "max_dur": 26.0
+      },
+      {
+        "index": 3,
+        "state": "yrrry",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 4,
+        "state": "rrGGr",
+        "duration": 26.0,
+        "min_dur": 26.0,
+        "max_dur": 26.0
+      },
+      {
+        "index": 5,
+        "state": "rryyr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      }
+    ]
+  },
+  {
+    "tls_id": "214620430",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "214620430",
+    "phase_count": 8,
+    "controlled_lane_count": 16,
+    "controlled_lanes": [
+      "-58622231#2_1",
+      "-58622231#2_1",
+      "-58622231#2_2",
+      "-58622231#2_2",
+      "266887588#1_1",
+      "266887588#1_1",
+      "266887588#1_2",
+      "266887588#1_3",
+      "201926269#3_1",
+      "201926269#3_1",
+      "201926269#3_1",
+      "201926269#3_2",
+      "-201926268#1_1",
+      "-201926268#1_1",
+      "-201926268#1_2",
+      "-201926268#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrGGGgrrrrGGGg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "rrrryyygrrrryyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrGrrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrryrrrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGggrrrrGGGgrrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "yyggrrrryyygrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrGGrrrrrrrGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rryyrrrrrrryrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "21532591",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "21532591",
+    "phase_count": 4,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-201243226#2_1",
+      "-201243226#2_1",
+      "200908888#1_1",
+      "200908888#1_1",
+      "200908888#1_1",
+      "266607800#0_1",
+      "266607800#0_1",
+      "266607800#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GgrrrGGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGGrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "21532605",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "21532605",
+    "phase_count": 8,
+    "controlled_lane_count": 14,
+    "controlled_lanes": [
+      "-10597454#1_1",
+      "-10597454#1_1",
+      "-10597454#1_2",
+      "-29027936#0_1",
+      "-29027936#0_1",
+      "-29027936#0_2",
+      "-29027936#0_3",
+      "71809618#5_1",
+      "71809618#5_1",
+      "71809618#5_2",
+      "168249926#1_1",
+      "168249926#1_1",
+      "168249926#1_2",
+      "168249926#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGGgrrrGGGg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyygrrryyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrGrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrryrrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGgrrrrGGgrrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "yygrrrryygrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrGrrrrrrGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rryrrrrrryrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "21532622",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "21532622",
+    "phase_count": 3,
+    "controlled_lane_count": 4,
+    "controlled_lanes": [
+      "266887592_1",
+      "266887592_2",
+      "-141058757_1",
+      "-141058757_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGG",
+        "duration": 82.0,
+        "min_dur": 82.0,
+        "max_dur": 82.0
+      },
+      {
+        "index": 1,
+        "state": "yyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "2330725114",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "2330725114",
+    "phase_count": 6,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "224251776#0_1",
+      "224251776#0_2",
+      "170018165#2.175_1",
+      "170018165#2.175_2",
+      "-306240162#1_0",
+      "-306240162#1_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGg",
+        "duration": 35.0,
+        "min_dur": 7.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyg",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrGG",
+        "duration": 6.0,
+        "min_dur": 7.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrrryy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrr",
+        "duration": 34.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "241292286",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "241292286",
+    "phase_count": 4,
+    "controlled_lane_count": 11,
+    "controlled_lanes": [
+      "-390842191#1_1",
+      "-390842191#1_1",
+      "-390842191#1_1",
+      "390842192#0_1",
+      "390842192#0_1",
+      "201286890#11_1",
+      "201286890#11_1",
+      "201286890#11_1",
+      "-390842192#3_1",
+      "-390842192#3_1",
+      "-390842192#3_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGgrrrGGg",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGgrrGGgrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrryyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "243351999",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "243351999",
+    "phase_count": 6,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "-233675413#6_1",
+      "-233675413#6_1",
+      "233675413#3_1",
+      "233675413#3_2",
+      "-22690205#1_1",
+      "-22690205#1_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrr",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yyygrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GrrrGG",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "243641585",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "243641585",
+    "phase_count": 7,
+    "controlled_lane_count": 10,
+    "controlled_lanes": [
+      "23166741#5_1",
+      "23166741#5_1",
+      "23166741#5_2",
+      "23166741#5_2",
+      "174800513_1",
+      "174800513_2",
+      "-201201945#0.78_1",
+      "-201201945#0.78_1",
+      "-201201945#0.78_1",
+      "-201201945#0.78_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrr",
+        "duration": 1.0,
+        "min_dur": 1.0,
+        "max_dur": 1.0
+      },
+      {
+        "index": 1,
+        "state": "rGgG",
+        "duration": 20.0,
+        "min_dur": 20.0,
+        "max_dur": 20.0
+      },
+      {
+        "index": 2,
+        "state": "rGgy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 3,
+        "state": "rGGr",
+        "duration": 30.0,
+        "min_dur": 30.0,
+        "max_dur": 30.0
+      },
+      {
+        "index": 4,
+        "state": "ryyr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 5,
+        "state": "Grrr",
+        "duration": 26.0,
+        "min_dur": 26.0,
+        "max_dur": 26.0
+      },
+      {
+        "index": 6,
+        "state": "yrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "243749571",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "243749571",
+    "phase_count": 8,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "315358254#0_1",
+      "315358254#0_1",
+      "315358254#0_2",
+      "315358257#0.43_1",
+      "315358257#0.43_1",
+      "315358257#0.43_2",
+      "315358255#0_1",
+      "315358255#0_1",
+      "315358255#0_2",
+      "612075153#1_1",
+      "612075153#1_1",
+      "612075153#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrGGrrrr",
+        "duration": 29.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yygrrryyrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrGrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rryrrrrryrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGgrrrGGg",
+        "duration": 29.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrryygrrryyg",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrGrrrrrG",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrryrrrrry",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "243780145",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "243780145",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-27830333#0_1",
+      "-27830333#0_2",
+      "-27830333#0_3",
+      "-393420116#2_1",
+      "-393420116#2_1",
+      "-393420116#2_1",
+      "266561174#0_1",
+      "266561174#0_1",
+      "266561174#0_2",
+      "266561178#0_1",
+      "266561178#0_1",
+      "266561178#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrGGgrrr",
+        "duration": 29.0,
+        "min_dur": 29.0,
+        "max_dur": 29.0
+      },
+      {
+        "index": 1,
+        "state": "yyyrrrGGgrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrGGgrrr",
+        "duration": 10.0,
+        "min_dur": 10.0,
+        "max_dur": 10.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrryyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGgrrrGGg",
+        "duration": 29.0,
+        "min_dur": 29.0,
+        "max_dur": 29.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "248066503",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "248066503",
+    "phase_count": 4,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "274823622#9_1",
+      "274823622#9_1",
+      "137463478#3_1",
+      "137463478#3_1",
+      "-29238188#0_1",
+      "-29238188#0_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGg",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "249179882",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "249179882",
+    "phase_count": 8,
+    "controlled_lane_count": 18,
+    "controlled_lanes": [
+      "39444748#8_1",
+      "39444748#8_1",
+      "39444748#8_1",
+      "39444748#8_2",
+      "39444748#8_2",
+      "-201243230#0_1",
+      "-201243230#0_1",
+      "-201243230#0_2",
+      "-201243230#0_3",
+      "60100821#4_1",
+      "60100821#4_1",
+      "60100821#4_1",
+      "60100821#4_2",
+      "60100821#4_2",
+      "233673420#1_1",
+      "233673420#1_1",
+      "233673420#1_2",
+      "233673420#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrGGGgrrrrrGGGg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrryyygrrrrryyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrrGrrrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrrryrrrrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGggrrrrGGGggrrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "yyyggrrrryyyggrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrGGrrrrrrrGGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rrryyrrrrrrryyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "249179919",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "249179919",
+    "phase_count": 4,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "201078448#2_1",
+      "201078448#2_1",
+      "-116765451#2_1",
+      "-116765451#2_2",
+      "200949176#1_1",
+      "200949176#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGrGG",
+        "duration": 69.0,
+        "min_dur": 69.0,
+        "max_dur": 69.0
+      },
+      {
+        "index": 1,
+        "state": "rryyryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGrrGrr",
+        "duration": 15.0,
+        "min_dur": 15.0,
+        "max_dur": 15.0
+      },
+      {
+        "index": 3,
+        "state": "yyrryrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "249720697",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "249720697",
+    "phase_count": 4,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "27196044#6_1",
+      "27196044#6_1",
+      "27196044#6_1",
+      "25638761#3_1",
+      "25638761#3_1",
+      "25638761#3_1",
+      "-31021477#2_1",
+      "-31021477#2_1",
+      "-31021477#2_1",
+      "32021365#3_1",
+      "32021365#3_1",
+      "32021365#3_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrGGgrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyyrrryyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGGgrrrGGg",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "rrryyyrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "249721581",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "249721581",
+    "phase_count": 8,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "31021477#0_1",
+      "31021477#0_1",
+      "31021477#0_1",
+      "-25638761#0_1",
+      "-25638761#0_1",
+      "-25638761#0_1",
+      "97304242#12_1",
+      "97304242#12_1",
+      "97304242#12_1",
+      "32140255_0",
+      "32140255_0",
+      "32140255_0"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrrGGGGrr",
+        "duration": 16.0,
+        "min_dur": 16.0,
+        "max_dur": 16.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrrryyyyrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "GGGGrrrrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 3,
+        "state": "yyyyrrrrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GrrrrrrrrGGG",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 5,
+        "state": "yrrrrrrrryyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "rrrGGGGrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 7,
+        "state": "rrryyyyrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "250713433",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "250713433",
+    "phase_count": 4,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-201278216#1_1",
+      "-201278216#1_2",
+      "29458100#0_1",
+      "29458100#0_1",
+      "29458100#0_1",
+      "29458100#0_1",
+      "201278214#0_1",
+      "201278214#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGrrrrGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGGrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "25579778",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "25579778",
+    "phase_count": 6,
+    "controlled_lane_count": 13,
+    "controlled_lanes": [
+      "-202070429#5_1",
+      "-202070429#5_1",
+      "-202070429#5_2",
+      "-202070429#5_2",
+      "-153692837#0_1",
+      "-153692837#0_1",
+      "-153692837#0_1",
+      "-153692837#0_1",
+      "-153692837#0_1",
+      "202070429#4_1",
+      "202070429#4_1",
+      "202070429#4_2",
+      "202070429#4_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrrrGGGg",
+        "duration": 50.0,
+        "min_dur": 50.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyrrrrrGGGG",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrrrGGGG",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrrrrGyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGGGGrrr",
+        "duration": 25.0,
+        "min_dur": 25.0,
+        "max_dur": 25.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyyyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "25579808",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "25579808",
+    "phase_count": 4,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "-150746347#0_1",
+      "-150746347#0_1",
+      "-41522167#1_1",
+      "-41522167#1_1",
+      "144655546#0_1",
+      "144655546#0_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GgrrGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "255883212",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "255883212",
+    "phase_count": 8,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-24754881#1_1",
+      "-24754881#1_1",
+      "-24754881#1_2",
+      "-201238725#1_0",
+      "-201238725#1_0",
+      "-201238725#1_1",
+      "164051420#1_1",
+      "164051420#1_1",
+      "164051420#1_2",
+      "24754876#12_1",
+      "24754876#12_1",
+      "24754876#12_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrrGGGGrr",
+        "duration": 16.0,
+        "min_dur": 16.0,
+        "max_dur": 16.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrrryyyyrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "GrrrrrrrrGGG",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 3,
+        "state": "yrrrrrrrryyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGGrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyyrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "GGGGrrrrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 7,
+        "state": "yyyyrrrrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "260470961",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "260470961",
+    "phase_count": 4,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-201789794#2_1",
+      "-201789794#2_2",
+      "-201789794#2_2",
+      "149045269#3_1",
+      "149045269#3_1",
+      "202070429#7_1",
+      "202070429#7_1",
+      "202070429#7_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrGGG",
+        "duration": 64.0,
+        "min_dur": 64.0,
+        "max_dur": 64.0
+      },
+      {
+        "index": 1,
+        "state": "yyyrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGGGrr",
+        "duration": 20.0,
+        "min_dur": 20.0,
+        "max_dur": 20.0
+      },
+      {
+        "index": 3,
+        "state": "rrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "26288878",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "26288878",
+    "phase_count": 4,
+    "controlled_lane_count": 10,
+    "controlled_lanes": [
+      "-24970784#3_1",
+      "-24970784#3_1",
+      "-24970784#3_1",
+      "-164051429#0_1",
+      "-164051429#0_1",
+      "-164051429#0_2",
+      "161678034#2.46_1",
+      "161678034#2.46_2",
+      "161678034#2.46_3",
+      "161678034#2.46_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGGGGGg",
+        "duration": 40.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyyyyyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "GGGGrrrrrr",
+        "duration": 40.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yyyyrrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "26423900",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "26423900",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "gneE153_1",
+      "gneE153_2",
+      "-25508272#0_1",
+      "-25508272#0_2",
+      "-25508272#0_3",
+      "gneE179_1",
+      "gneE179_2",
+      "gneE179_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGgrrr",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yyyygrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GrrrrGGG",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "26423915",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "26423915",
+    "phase_count": 6,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "27267723_1",
+      "27267723_2",
+      "-136618613#0_1",
+      "-136618613#0_2",
+      "-42738708_0",
+      "-42738708_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GgrrGG",
+        "duration": 36.0,
+        "min_dur": 36.0,
+        "max_dur": 36.0
+      },
+      {
+        "index": 1,
+        "state": "ygrryy",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 2,
+        "state": "GGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyrrrr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 4,
+        "state": "rrGGGr",
+        "duration": 36.0,
+        "min_dur": 36.0,
+        "max_dur": 36.0
+      },
+      {
+        "index": 5,
+        "state": "rryyyr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      }
+    ]
+  },
+  {
+    "tls_id": "266359531",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "266359531",
+    "phase_count": 6,
+    "controlled_lane_count": 9,
+    "controlled_lanes": [
+      "379723624#1_1",
+      "379723624#1_2",
+      "379723624#1_3",
+      "-130996521#1_1",
+      "-130996521#1_1",
+      "-130996521#1_1",
+      "28418763_1",
+      "28418763_2",
+      "28418763_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrGgG",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yygrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGrGr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyryr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "266812023",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "266812023",
+    "phase_count": 8,
+    "controlled_lane_count": 15,
+    "controlled_lanes": [
+      "128070666#1_0",
+      "128070666#1_0",
+      "128070666#1_1",
+      "128070666#1_2",
+      "306240160#1_0",
+      "306240160#1_0",
+      "306240160#1_0",
+      "306240160#1_1",
+      "306240160#1_1",
+      "-128070667#0_0",
+      "-128070667#0_1",
+      "-128070667#0_1",
+      "-150746361#0_0",
+      "-150746361#0_0",
+      "-150746361#0_0"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrrrGGgrrr",
+        "duration": 31.0,
+        "min_dur": 31.0,
+        "max_dur": 31.0
+      },
+      {
+        "index": 1,
+        "state": "yyygrrrrryygrrr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGrrrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrryrrrrrrryrrr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGggrrrGGg",
+        "duration": 31.0,
+        "min_dur": 31.0,
+        "max_dur": 31.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyggrrryyg",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrrGGrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrrrryyrrrrry",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      }
+    ]
+  },
+  {
+    "tls_id": "267380207",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "267380207",
+    "phase_count": 6,
+    "controlled_lane_count": 9,
+    "controlled_lanes": [
+      "24982688#3_1",
+      "24982688#3_1",
+      "-145069294#1_1",
+      "-145069294#1_1",
+      "145069373#0_1",
+      "145069373#0_1",
+      "145069373#0_1",
+      "-32201172_1",
+      "-32201172_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGrrrGg",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 1,
+        "state": "rryyrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrrr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGrr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "267517510",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "267517510",
+    "phase_count": 4,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-148050448#0_1",
+      "-148050448#0_1",
+      "266565295#1_1",
+      "266565295#1_1",
+      "266565295#1_2",
+      "-266565295#2_1",
+      "-266565295#2_2",
+      "-266565295#2_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGGGg",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "268417350",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "268417350",
+    "phase_count": 7,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "201238718#2_1",
+      "201238718#2_1",
+      "201238718#2_1",
+      "201238718#2_2",
+      "176550249#4_1",
+      "176550249#4_1",
+      "176550249#4_2",
+      "176550249#4_2",
+      "176550249#4_2",
+      "-174800513_1",
+      "-174800513_2",
+      "-174800513_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrG",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 1,
+        "state": "rry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrr",
+        "duration": 8.0,
+        "min_dur": 8.0,
+        "max_dur": 8.0
+      },
+      {
+        "index": 3,
+        "state": "Grr",
+        "duration": 19.0,
+        "min_dur": 19.0,
+        "max_dur": 19.0
+      },
+      {
+        "index": 4,
+        "state": "yrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 5,
+        "state": "rGr",
+        "duration": 30.0,
+        "min_dur": 30.0,
+        "max_dur": 30.0
+      },
+      {
+        "index": 6,
+        "state": "ryr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "271405446",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "271405446",
+    "phase_count": 6,
+    "controlled_lane_count": 18,
+    "controlled_lanes": [
+      "-54154921#2_1",
+      "-54154921#2_1",
+      "-54154921#2_1",
+      "-54154921#2_1",
+      "-54154921#2_1",
+      "-54154922#0_1",
+      "-54154922#0_1",
+      "-54154922#0_2",
+      "-54154922#0_3",
+      "24977473#0_1",
+      "24977473#0_1",
+      "24977473#0_1",
+      "24977473#0_1",
+      "24977473#0_1",
+      "42745461#1_1",
+      "42745461#1_1",
+      "42745461#1_2",
+      "42745461#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrGGGgrrrrrGGGg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrryyygrrrrryyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrrGrrrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrrryrrrrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGggrrrrGGGggrrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyyyrrrryyyyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "279014956",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "279014956",
+    "phase_count": 5,
+    "controlled_lane_count": 10,
+    "controlled_lanes": [
+      "-202070429#4_1",
+      "-202070429#4_2",
+      "202070429#3_1",
+      "202070429#3_1",
+      "202070429#3_2",
+      "175761129#1_1",
+      "175761129#1_1",
+      "175761129#1_1",
+      "175761129#1_1",
+      "175761129#1_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGGrrrrr",
+        "duration": 50.0,
+        "min_dur": 50.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "GGyyyrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "yyrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrGGGGG",
+        "duration": 25.0,
+        "min_dur": 25.0,
+        "max_dur": 25.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrryyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "279299817",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "279299817",
+    "phase_count": 6,
+    "controlled_lane_count": 16,
+    "controlled_lanes": [
+      "266507547_1",
+      "266507547_1",
+      "266507547_2",
+      "266507547_3",
+      "201789796#1_1",
+      "201789796#1_1",
+      "201789796#1_2",
+      "201789796#1_2",
+      "201789796#1_2",
+      "266507550_1",
+      "266507550_1",
+      "266507550_2",
+      "266507550_3",
+      "-36291830_1",
+      "-36291830_1",
+      "-36291830_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrrrGGGgrrr",
+        "duration": 40.0,
+        "min_dur": 40.0,
+        "max_dur": 40.0
+      },
+      {
+        "index": 1,
+        "state": "GGGgrrrrryyyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGGrrrrrrrrrrrr",
+        "duration": 16.0,
+        "min_dur": 16.0,
+        "max_dur": 16.0
+      },
+      {
+        "index": 3,
+        "state": "yyyyrrrrrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGGGrrrrGGG",
+        "duration": 25.0,
+        "min_dur": 25.0,
+        "max_dur": 25.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyyyrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "279461126",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "279461126",
+    "phase_count": 4,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "32202927#2_1",
+      "32202927#2_1",
+      "137463478#1_1",
+      "137463478#1_1",
+      "-137463478#2_1",
+      "-137463478#2_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGg",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "281435582",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "281435582",
+    "phase_count": 4,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "-144655547#0_1",
+      "-144655547#0_1",
+      "29459182#0_1",
+      "29459182#0_1",
+      "150746347#4_1",
+      "150746347#4_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GgrrGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "281967823",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "281967823",
+    "phase_count": 6,
+    "controlled_lane_count": 17,
+    "controlled_lanes": [
+      "-29238013_1",
+      "-29238013_1",
+      "-29238013_1",
+      "-29238013_1",
+      "-29458096_1",
+      "-29458096_1",
+      "-29458096_1",
+      "-29458096_2",
+      "-29458096_2",
+      "27825654#0_1",
+      "27825654#0_1",
+      "27825654#0_1",
+      "27825654#0_1",
+      "51856495#0_1",
+      "51856495#0_1",
+      "51856495#0_2",
+      "51856495#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrGGGGgrrrrGGgg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rrrryyyygrrrryygg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrrGrrrrrrGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrrryrrrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGggrrrrrGGGgrrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyyrrrrryyyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "290100048",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "290100048",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-26471752#1_1",
+      "-26471752#1_2",
+      "32923867#2_1",
+      "32923867#2_2",
+      "32923867#2_3",
+      "-32923867#3_1",
+      "-32923867#3_2",
+      "-32923867#3_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGGGg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrGGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "296125095",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "296125095",
+    "phase_count": 4,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "233673422#4_1",
+      "233673422#4_1",
+      "27015261#2_1",
+      "27015261#2_1",
+      "-233673422#6_1",
+      "-233673422#6_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GgrrGG",
+        "duration": 79.0,
+        "min_dur": 79.0,
+        "max_dur": 79.0
+      },
+      {
+        "index": 1,
+        "state": "yyrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "30503246",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "30503246",
+    "phase_count": 6,
+    "controlled_lane_count": 14,
+    "controlled_lanes": [
+      "136436466_1",
+      "136436466_2",
+      "136436466_3",
+      "136436466_3",
+      "-4942389#0_1",
+      "-4942389#0_1",
+      "-4942389#0_1",
+      "-4942389#0_2",
+      "-4942389#0_3",
+      "202092676#0_1",
+      "202092676#0_2",
+      "202092676#0_2",
+      "202092676#0_2",
+      "202092676#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGggGGGGGrrrrr",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yyggyyyyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGGrrrrrrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyyyrrrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrrrrrrGGGGG",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrrrrrrrryyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "30624898",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "30624898",
+    "phase_count": 6,
+    "controlled_lane_count": 15,
+    "controlled_lanes": [
+      "315358251#1_1",
+      "315358251#1_1",
+      "315358251#1_2",
+      "315358251#1_2",
+      "315358251#1_3",
+      "386687232#0_1",
+      "386687232#0_1",
+      "386687232#0_2",
+      "386687232#0_2",
+      "386687232#0_2",
+      "386687232#0_2",
+      "-136436466_1",
+      "-136436466_2",
+      "-136436466_3",
+      "-136436466_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGGrrrrrrGGgg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyyrrrrrryygg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrrrrrGGGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrrrrrryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrrGGGGGGrrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrrrryyyyyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "30965800",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "30965800",
+    "phase_count": 8,
+    "controlled_lane_count": 18,
+    "controlled_lanes": [
+      "-4819338#0_0",
+      "-4819338#0_0",
+      "-4819338#0_0",
+      "-4819338#0_1",
+      "-4819338#0_1",
+      "-266607803#0_1",
+      "-266607803#0_1",
+      "-266607803#0_2",
+      "-266607803#0_3",
+      "-23184274#0_1",
+      "-23184274#0_1",
+      "-23184274#0_1",
+      "-23184274#0_1",
+      "-23184274#0_1",
+      "266607804#2_1",
+      "266607804#2_1",
+      "266607804#2_2",
+      "266607804#2_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrGGGgrrrrrGGGg",
+        "duration": 29.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrryyygrrrrryyyg",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrrGrrrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrrryrrrrrrrry",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrrrrrGGGggrrrr",
+        "duration": 29.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrrrrryyyggrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "rrrGGrrrrrrrGGrrrr",
+        "duration": 29.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 7,
+        "state": "rrryyrrrrrrryyrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "30965809",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "30965809",
+    "phase_count": 8,
+    "controlled_lane_count": 11,
+    "controlled_lanes": [
+      "20975946#0_1",
+      "20975946#0_1",
+      "20975946#0_1",
+      "205182378#8_1",
+      "205182378#8_1",
+      "205182378#8_1",
+      "28269810#5_0",
+      "28269810#5_0",
+      "-205182378#11_1",
+      "-205182378#11_1",
+      "-205182378#11_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrrGGGrr",
+        "duration": 16.0,
+        "min_dur": 16.0,
+        "max_dur": 16.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrrryyyrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "GGGGrrrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 3,
+        "state": "yyyyrrrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GrrrrrrrGGG",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 5,
+        "state": "yrrrrrrryyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "rrrGGGrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 7,
+        "state": "rrryyyrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "30965815",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "30965815",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-23184252#0_1",
+      "-23184252#0_2",
+      "-23184252#0_2",
+      "205182378#15_1",
+      "205182378#15_1",
+      "205182378#15_2",
+      "37282688#5_1",
+      "37282688#5_2",
+      "37282688#5_2",
+      "-48742425#0_1",
+      "-48742425#0_1",
+      "-48742425#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrgGgrrrGGg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rrrgygrrryyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrgrGrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrryryrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGgrrrGGgrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrryyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "31065768",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "31065768",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-24978651_1",
+      "-24978651_2",
+      "-28132014#0_1",
+      "-28132014#0_1",
+      "-28132014#0_2",
+      "23009002#0_1",
+      "23009002#0_1",
+      "23009002#0_1",
+      "23009002#0_1",
+      "23009002#0_1",
+      "116765457#1_1",
+      "116765457#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGrrrrrGG",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyrrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrGGGGGrr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrryyyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrrrrGGrr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrrrryyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "319229058",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "319229058",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-24537982#1_1",
+      "-24537982#1_1",
+      "-24537982#1_1",
+      "-32009683#1_1",
+      "-32009683#1_1",
+      "-32009683#1_2",
+      "31343367#0_1",
+      "31343367#0_1",
+      "31343367#0_1",
+      "24972185#9_1",
+      "24972185#9_1",
+      "24972185#9_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGgrrrGGg",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrryygrrryyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrGrrrrrG",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrryrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGgrrrGGgrrr",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrryyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "320621276",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "320621276",
+    "phase_count": 6,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "-29146979#1_1",
+      "-29146979#1_2",
+      "-130185488#0_1",
+      "-130185488#0_2",
+      "136728344#5_1",
+      "136728344#5_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "321324256",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "321324256",
+    "phase_count": 6,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "128070665#1_0",
+      "128070665#1_1",
+      "-29212862#0_0",
+      "-29212862#0_0",
+      "-542730346#0_0",
+      "-542730346#0_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GgrrGG",
+        "duration": 36.0,
+        "min_dur": 36.0,
+        "max_dur": 36.0
+      },
+      {
+        "index": 1,
+        "state": "ygrryy",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 2,
+        "state": "GGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyrrrr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 4,
+        "state": "rrGGGr",
+        "duration": 36.0,
+        "min_dur": 36.0,
+        "max_dur": 36.0
+      },
+      {
+        "index": 5,
+        "state": "rryyyr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      }
+    ]
+  },
+  {
+    "tls_id": "321325405",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "321325405",
+    "phase_count": 6,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "194377108#0.135_0",
+      "194377108#0.135_1",
+      "-182753515#0_0",
+      "-182753515#0_0",
+      "-194377108#3_0",
+      "-194377108#3_0"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GgrrGG",
+        "duration": 36.0,
+        "min_dur": 36.0,
+        "max_dur": 36.0
+      },
+      {
+        "index": 1,
+        "state": "ygrryy",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 2,
+        "state": "GGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyrrrr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      },
+      {
+        "index": 4,
+        "state": "rrGGGr",
+        "duration": 36.0,
+        "min_dur": 36.0,
+        "max_dur": 36.0
+      },
+      {
+        "index": 5,
+        "state": "rryyyr",
+        "duration": 4.0,
+        "min_dur": 4.0,
+        "max_dur": 4.0
+      }
+    ]
+  },
+  {
+    "tls_id": "32564122",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "32564122",
+    "phase_count": 4,
+    "controlled_lane_count": 9,
+    "controlled_lanes": [
+      "32999434#0_1",
+      "32999434#0_1",
+      "32999434#0_2",
+      "-201089423#1_1",
+      "-201089423#1_2",
+      "-201089423#1_2",
+      "-24693977#0_1",
+      "-24693977#0_2",
+      "-24693977#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGGgrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GrrrrrGGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "yrrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "336359379",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "336359379",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-25699307#1_1",
+      "-25699307#1_1",
+      "-25699307#1_2",
+      "51180454#3_1",
+      "51180454#3_1",
+      "51180454#3_1",
+      "315512843#0_1",
+      "315512843#0_1",
+      "315512843#0_2",
+      "-51244815#1_1",
+      "-51244815#1_1",
+      "-51244815#1_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGrrrrGGrrrr",
+        "duration": 35.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yyrrrryyrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrGrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rryrrrrryrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGgrrrGGg",
+        "duration": 34.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrrryyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "498468294",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "498468294",
+    "phase_count": 4,
+    "controlled_lane_count": 10,
+    "controlled_lanes": [
+      "-233673410#5_1",
+      "-233673410#5_2",
+      "-233673410#5_2",
+      "40930495#0_1",
+      "40930495#0_1",
+      "40930495#0_1",
+      "40930495#0_1",
+      "233673410#1_1",
+      "233673410#1_1",
+      "233673410#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrrGGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyyrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGGGGGrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "rrryyyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "89127267",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "89127267",
+    "phase_count": 6,
+    "controlled_lane_count": 11,
+    "controlled_lanes": [
+      "-447569997#0_1",
+      "-447569997#0_1",
+      "-447569997#0_2",
+      "-447569997#0_2",
+      "-129379918#1_1",
+      "-129379918#1_1",
+      "-129379918#1_2",
+      "315358252#0_1",
+      "315358252#0_2",
+      "315358252#0_3",
+      "315358252#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrGGGGGgg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rrrryyyyygg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrGGGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGGGrrrrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyyyrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "89129103",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "89129103",
+    "phase_count": 4,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-389831364_1",
+      "-389831364_2",
+      "102818928#1_1",
+      "102818928#1_2",
+      "102818928#1_2",
+      "-10425610#2_1",
+      "-10425610#2_1",
+      "-10425610#2_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGgrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GrrrrGGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "yrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "89129156",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "89129156",
+    "phase_count": 8,
+    "controlled_lane_count": 13,
+    "controlled_lanes": [
+      "-24972185#1_1",
+      "-24972185#1_1",
+      "-24972185#1_2",
+      "-29458097#2_1",
+      "-29458097#2_1",
+      "-29458097#2_2",
+      "389840420#3_1",
+      "389840420#3_1",
+      "389840420#3_2",
+      "32978638#1_1",
+      "32978638#1_1",
+      "32978638#1_2",
+      "32978638#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGgrrrGGGg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "rrryygrrryyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrGrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrryrrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGgrrrGGgrrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "yygrrryygrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrGrrrrrGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rryrrrrryrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "89129168",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "89129168",
+    "phase_count": 6,
+    "controlled_lane_count": 7,
+    "controlled_lanes": [
+      "-11014139#1_1",
+      "-11014139#1_2",
+      "-145069303#0_1",
+      "-145069303#0_2",
+      "-145069303#0_2",
+      "29048562#0_1",
+      "29048562#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGGg",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrGG",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrrr",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "89170505",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "89170505",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-51244813#5.55_1",
+      "-51244813#5.55_1",
+      "-51244813#5.55_2",
+      "-26416597#2_1",
+      "-26416597#2_1",
+      "-26416597#2_1",
+      "51244813#1_1",
+      "51244813#1_1",
+      "51244813#1_1",
+      "24733323#5_1",
+      "24733323#5_1",
+      "24733323#5_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrGGgrrr",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yygrrryygrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryrrrrryrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGgrrrGGg",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "89173763",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "89173763",
+    "phase_count": 8,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-10427692#1_1",
+      "-10427692#1_1",
+      "-10427692#1_2",
+      "-201963533#0_1",
+      "-201963533#0_2",
+      "-201963533#0_3",
+      "-18809672#1_1",
+      "-18809672#1_1",
+      "-18809672#1_1",
+      "285549250#0_1",
+      "285549250#0_1",
+      "285549250#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGgrrrGGg",
+        "duration": 29.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrryygrrryyg",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrGrrrrrG",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrryrrrrry",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GGrrrrGGgrrr",
+        "duration": 29.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyrrrryygrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "rrGrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 7,
+        "state": "rryrrrrryrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "89173808",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "89173808",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-18813598#1_1",
+      "-18813598#1_1",
+      "-18813598#1_2",
+      "-25122731#1_1",
+      "-25122731#1_1",
+      "-25122731#1_1",
+      "-18809673#1.275_1",
+      "-18809673#1.275_1",
+      "-18809673#1.275_2",
+      "201963522#6_1",
+      "201963522#6_1",
+      "201963522#6_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrGGgrrr",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yygrrryygrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryrrrrryrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGgrrrGGg",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "98101360",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "98101360",
+    "phase_count": 8,
+    "controlled_lane_count": 15,
+    "controlled_lanes": [
+      "233673425#1_1",
+      "233673425#1_1",
+      "233673425#1_2",
+      "380273343_1",
+      "380273343_1",
+      "380273343_2",
+      "380273343_2",
+      "-24977590#0_1",
+      "-24977590#0_1",
+      "-24977590#0_2",
+      "-24977590#0_3",
+      "140684001_1",
+      "140684001_1",
+      "140684001_2",
+      "140684001_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrrGGGgrrrr",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 1,
+        "state": "yygrrrryyygrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGrrrrrrrGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryrrrrrrryrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGGGrrrrrrr",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyyyrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "GrrrrrrrrrrGGGG",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 7,
+        "state": "yrrrrrrrrrryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1270380467_1270380469_1270380471",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_1270380467_1270380469_1270380471",
+    "phase_count": 6,
+    "controlled_lane_count": 7,
+    "controlled_lanes": [
+      "450076615#0_0",
+      "450076615#0_1",
+      "266885721#0_1",
+      "266885721#0_2",
+      "266885723#0_1",
+      "266885723#0_2",
+      "266885723#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrGGG",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrGGy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGGr",
+        "duration": 40.0,
+        "min_dur": 40.0,
+        "max_dur": 40.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyyr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GGrrrrr",
+        "duration": 17.0,
+        "min_dur": 17.0,
+        "max_dur": 17.0
+      },
+      {
+        "index": 5,
+        "state": "yyrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_13876315_20921026_476074983",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_13876315_20921026_476074983",
+    "phase_count": 6,
+    "controlled_lane_count": 7,
+    "controlled_lanes": [
+      "39704919_1",
+      "39704919_2",
+      "266507548_1",
+      "266507548_2",
+      "266507548_3",
+      "48395120#1_1",
+      "48395120#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGrrr",
+        "duration": 48.0,
+        "min_dur": 48.0,
+        "max_dur": 48.0
+      },
+      {
+        "index": 1,
+        "state": "yyGGrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGrr",
+        "duration": 20.0,
+        "min_dur": 20.0,
+        "max_dur": 20.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrrGG",
+        "duration": 17.0,
+        "min_dur": 17.0,
+        "max_dur": 17.0
+      },
+      {
+        "index": 5,
+        "state": "rrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_13876325_281116670",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_13876325_281116670",
+    "phase_count": 8,
+    "controlled_lane_count": 13,
+    "controlled_lanes": [
+      "-23009600#1_1",
+      "-23009600#1_1",
+      "-23009600#1_2",
+      "4942575#2_1",
+      "4942575#2_1",
+      "4942575#2_2",
+      "-31342351#1_1",
+      "-31342351#1_2",
+      "-31342351#1_2",
+      "32203023#2.134_0",
+      "32203023#2.134_0",
+      "32203023#2.134_1",
+      "32203023#2.134_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGGgrrrGGGr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyygrrryyyr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrGrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrryrrrrrry",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 4,
+        "state": "GGgrrrrGGgrrrr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 5,
+        "state": "yygrrrryygrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 6,
+        "state": "rrGrrrrrrGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rryrrrrrryrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1427494838_273472399",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_1427494838_273472399",
+    "phase_count": 8,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-129379921#0_1",
+      "-129379921#0_2",
+      "-129379921#0_3",
+      "129379967#0_1",
+      "129379967#0_2",
+      "315358250#1_1",
+      "315358250#1_1",
+      "315358250#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGgrrGGG",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 1,
+        "state": "rryygrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGrrrrrrrr",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 5,
+        "state": "yyrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrGGGrr",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1443568599_365519573",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_1443568599_365519573",
+    "phase_count": 3,
+    "controlled_lane_count": 5,
+    "controlled_lanes": [
+      "131118468#3_1",
+      "131118468#3_2",
+      "54033673#0.28_1",
+      "54033673#0.28_2",
+      "54033673#0.28_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGG",
+        "duration": 82.0,
+        "min_dur": 82.0,
+        "max_dur": 82.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1443568606_1834131515_1834131519_1834131548_1834131550",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_1443568606_1834131515_1834131519_1834131548_1834131550",
+    "phase_count": 8,
+    "controlled_lane_count": 19,
+    "controlled_lanes": [
+      "201278218#0_1",
+      "201278218#0_2",
+      "172515814#1_1",
+      "172515814#1_2",
+      "172515814#1_3",
+      "172515814#1_4",
+      "172517198#0_1",
+      "172517198#0_2",
+      "172517198#0_3",
+      "172517198#0_4",
+      "172519650_1",
+      "172519650_1",
+      "172519650_2",
+      "172519650_3",
+      "172519650_4",
+      "201278215_1",
+      "201278215_1",
+      "201278215_2",
+      "201278215_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrrGGGGGrrrrrrrr",
+        "duration": 18.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrrryyyyyrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGrrrrrrrrrrrrrGGGG",
+        "duration": 20.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yyrrrrrrrrrrrrryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrGGGGGrrrrrrrrrrrr",
+        "duration": 20.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rryyyyyrrrrrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrrrrrGGGGGGGrr",
+        "duration": 20.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrrrrrrryyyyyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_148517293_2108758054",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_148517293_2108758054",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-266607802#0_1",
+      "-266607802#0_2",
+      "-266607802#0_3",
+      "25543980#0_1",
+      "25543980#0_1",
+      "266607801#1_1",
+      "266607801#1_1",
+      "266607801#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrGGG",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yygrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrr",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGrr",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1542094095_cluster_3048861139_3048861140_cluster_1993435751_25633338_312005795",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_1542094095_cluster_3048861139_3048861140_cluster_1993435751_25633338_312005795",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "556434727_1",
+      "556434727_2",
+      "556434727_2",
+      "556434727_3",
+      "201953160#3_1",
+      "201953160#3_1",
+      "201953160#3_1",
+      "201953160#3_1",
+      "201953160#3_1",
+      "4268816#1_1",
+      "4268816#1_1",
+      "4268816#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrrrGGG",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yyygrrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGGrrrrrrrr",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yyyyrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGGGGrr",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1757124350_1757124352",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_1757124350_1757124352",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "124812856#1_1",
+      "124812856#1_2",
+      "124812856#1_3",
+      "-173169611#0_1",
+      "-173169611#0_1",
+      "201956819#0_1",
+      "201956819#0_1",
+      "201956819#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrGGG",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yygrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1835799604_30965824",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_1835799604_30965824",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "31624236#0_1",
+      "32881076#0_1",
+      "32881076#0_1",
+      "32881076#0_2",
+      "29458647#0_1",
+      "29458647#0_1",
+      "29458647#0_1",
+      "29458647#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGrrrr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrGGGG",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 3,
+        "state": "rrrryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGGrrrr",
+        "duration": 27.0,
+        "min_dur": 27.0,
+        "max_dur": 27.0
+      },
+      {
+        "index": 5,
+        "state": "yyyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1840464676_89130928",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_1840464676_89130928",
+    "phase_count": 7,
+    "controlled_lane_count": 10,
+    "controlled_lanes": [
+      "-156788416#1_1",
+      "-156788416#1_2",
+      "-156788416#1_3",
+      "-10425743_1",
+      "-10425743_1",
+      "-10425743_2",
+      "-10425743_2",
+      "627181818#1_1",
+      "627181818#1_1",
+      "627181818#1_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGrrrrrGGG",
+        "duration": 35.0,
+        "min_dur": 35.0,
+        "max_dur": 35.0
+      },
+      {
+        "index": 1,
+        "state": "yyrrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGrrrrr",
+        "duration": 35.0,
+        "min_dur": 35.0,
+        "max_dur": 35.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGGGrr",
+        "duration": 35.0,
+        "min_dur": 35.0,
+        "max_dur": 35.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrrGrr",
+        "duration": 2.0,
+        "min_dur": 2.0,
+        "max_dur": 2.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_1863241547_1863241548_1976170214",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_1863241547_1863241548_1976170214",
+    "phase_count": 8,
+    "controlled_lane_count": 15,
+    "controlled_lanes": [
+      "176550246_1",
+      "176550246_2",
+      "176550246_3",
+      "176550246_4",
+      "201238726#1_1",
+      "201238726#1_1",
+      "201238726#1_2",
+      "201238726#1_3",
+      "128361109#4_1",
+      "128361109#4_2",
+      "128361109#4_3",
+      "128361109#4_4",
+      "137133006#1_1",
+      "137133006#1_2",
+      "137133006#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrrGGGgrrr",
+        "duration": 29.0,
+        "min_dur": 29.0,
+        "max_dur": 29.0
+      },
+      {
+        "index": 1,
+        "state": "yyygrrrryyygrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGrrrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrryrrrrrrryrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGrrrrrGGg",
+        "duration": 29.0,
+        "min_dur": 29.0,
+        "max_dur": 29.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyrrrrryyg",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrrGrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrrrryrrrrrry",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_2018192363_25579774_324961472",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_2018192363_25579774_324961472",
+    "phase_count": 8,
+    "controlled_lane_count": 16,
+    "controlled_lanes": [
+      "33280102#5_1",
+      "33280102#5_1",
+      "33280102#5_2",
+      "33280102#5_3",
+      "33280102#5_3",
+      "257907859#1_1",
+      "257907859#1_2",
+      "257907859#1_2",
+      "257907858#0_1",
+      "257907858#0_1",
+      "257907858#0_1",
+      "257907858#0_1",
+      "257907858#0_1",
+      "266507552#0_1",
+      "266507552#0_2",
+      "266507552#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrGGgrrrrrGGg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrryygrrrrryyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrGrrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrryrrrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGggrrrGGGggrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "yyyggrrryyyggrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrGGrrrrrrGGrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rrryyrrrrrryyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_21532613_25633348",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_21532613_25633348",
+    "phase_count": 8,
+    "controlled_lane_count": 19,
+    "controlled_lanes": [
+      "354967545#1_1",
+      "354967545#1_1",
+      "354967545#1_2",
+      "354967545#1_4",
+      "354967545#1_4",
+      "266887590#1_1",
+      "266887590#1_2",
+      "266887590#1_2",
+      "266887590#1_3",
+      "266887590#1_3",
+      "354967544#2_1",
+      "354967544#2_1",
+      "354967544#2_2",
+      "354967544#2_3",
+      "354967544#2_4",
+      "25188983#1_1",
+      "25188983#1_2",
+      "25188983#1_3",
+      "25188983#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGggrrrrrGGGGgrrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "yyyggrrrrryyyygrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGGrrrrrrrrrGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrryyrrrrrrrrryrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrrGGGggrrrrrGGgg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "rrrrryyyggrrrrryygg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrrrGGrrrrrrrGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrrrrryyrrrrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_25579770_2633530003_2633530004_2633530005",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_25579770_2633530003_2633530004_2633530005",
+    "phase_count": 10,
+    "controlled_lane_count": 18,
+    "controlled_lanes": [
+      "257907860#1.168_1",
+      "257907860#1.168_1",
+      "257907860#1.168_2",
+      "257907860#1.168_3",
+      "137463477#0_1",
+      "137463477#0_1",
+      "137463477#0_2",
+      "137463477#0_3",
+      "137463477#0_3",
+      "31342064#1.83_1",
+      "31342064#1.83_1",
+      "31342064#1.83_2",
+      "31342064#1.83_3",
+      "25796398#0_1",
+      "25796398#0_1",
+      "25796398#0_1",
+      "25796398#0_2",
+      "25796398#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrrrGGGgrrrrr",
+        "duration": 31.0,
+        "min_dur": 31.0,
+        "max_dur": 31.0
+      },
+      {
+        "index": 1,
+        "state": "yyyGrrrrryyyGrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGrrrrrrrrGrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrryrrrrrrrryrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGGGrrrrrrrrr",
+        "duration": 7.0,
+        "min_dur": 7.0,
+        "max_dur": 7.0
+      },
+      {
+        "index": 5,
+        "state": "rrrrGGGyyrrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrGGGrrrrrrGGGGr",
+        "duration": 25.0,
+        "min_dur": 25.0,
+        "max_dur": 25.0
+      },
+      {
+        "index": 7,
+        "state": "rrrryyyrrrrrrGGGGr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 8,
+        "state": "rrrrrrrrrrrrrGGGGG",
+        "duration": 11.0,
+        "min_dur": 11.0,
+        "max_dur": 11.0
+      },
+      {
+        "index": 9,
+        "state": "rrrrrrrrrrrrryyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_266813213_335525545",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_266813213_335525545",
+    "phase_count": 6,
+    "controlled_lane_count": 7,
+    "controlled_lanes": [
+      "29119849#1_1",
+      "29119849#1_2",
+      "29119849#1_3",
+      "248012814_1",
+      "248012814_1",
+      "116687469#0_1",
+      "116687469#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrGG",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yygrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_271273941_59743835",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_271273941_59743835",
+    "phase_count": 6,
+    "controlled_lane_count": 9,
+    "controlled_lanes": [
+      "542650763#1.78_1",
+      "542650763#1.78_2",
+      "542650763#1.78_3",
+      "-25626616#1.26_1",
+      "-25626616#1.26_2",
+      "-25626616#1.26_2",
+      "391029009#0.69_1",
+      "391029009#0.69_2",
+      "391029009#0.69_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrGGG",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yygrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGGrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_271273943_339223426",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_271273943_339223426",
+    "phase_count": 8,
+    "controlled_lane_count": 16,
+    "controlled_lanes": [
+      "-97304242#1_1",
+      "-97304242#1_2",
+      "-97304242#1_2",
+      "391029008#2_1",
+      "391029008#2_2",
+      "391029008#2_3",
+      "391029008#2_4",
+      "33280103#4.68_1",
+      "33280103#4.68_1",
+      "33280103#4.68_2",
+      "33280103#4.68_2",
+      "33280103#4.68_3",
+      "31342350#2.130_1",
+      "31342350#2.130_1",
+      "31342350#2.130_2",
+      "31342350#2.130_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGGgrrrrrGGGg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyygrrrrryyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrGrrrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrryrrrrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGgrrrrGGGggrrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "yygrrrryyyggrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrGrrrrrrrGGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rryrrrrrrryyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_276507127_335525534",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_276507127_335525534",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "54858973#1_1",
+      "54858973#1_2",
+      "54858973#1_3",
+      "30399322#1.56_1",
+      "30399322#1.56_2",
+      "30399322#1.56_3",
+      "-25367735#1_1",
+      "-25367735#1_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGGgrr",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyygrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGGGrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GrrrrrGG",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yrrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_277739062_39732718_89129091_89129092",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_277739062_39732718_89129091_89129092",
+    "phase_count": 6,
+    "controlled_lane_count": 7,
+    "controlled_lanes": [
+      "-102818928#0.78_1",
+      "-102818928#0.78_2",
+      "61940355_1",
+      "61940355_1",
+      "61940355_2",
+      "-201969576#0_1",
+      "-201969576#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGGg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rryyyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_30503250_675201183",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_30503250_675201183",
+    "phase_count": 8,
+    "controlled_lane_count": 14,
+    "controlled_lanes": [
+      "30399662#1_1",
+      "30399662#1_2",
+      "30399662#1_3",
+      "148050455#2_1",
+      "148050455#2_2",
+      "42745545#6_1",
+      "42745545#6_1",
+      "42745545#6_2",
+      "42745545#6_3",
+      "30399663#0_1",
+      "30399663#0_1",
+      "30399663#0_1",
+      "30399663#0_2",
+      "30399663#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrGGGgrrrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 1,
+        "state": "yygrryyygrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGrrrrrGrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryrrrrryrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGrrrrGGGgg",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyrrrryyygg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrrrrGGGGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrrrrrryyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_30503255_335525526",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_30503255_335525526",
+    "phase_count": 8,
+    "controlled_lane_count": 13,
+    "controlled_lanes": [
+      "31342349#3_1",
+      "31342349#3_1",
+      "31342349#3_2",
+      "31342349#3_3",
+      "54858974_1",
+      "54858974_1",
+      "54858974_2",
+      "54858974_3",
+      "542635729_1",
+      "542635729_2",
+      "542635729_3",
+      "-542727960_1",
+      "-542727960_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrrGGgrr",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 1,
+        "state": "yyygrrrryygrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGrrrrrrGrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrryrrrrrryrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGGrrrrr",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "GrrrrrrrrrrGG",
+        "duration": 24.0,
+        "min_dur": 24.0,
+        "max_dur": 24.0
+      },
+      {
+        "index": 7,
+        "state": "yrrrrrrrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_306484187_cluster_1200363791_1200363826_1200363834_1200363898_1200363927_1200363938_1200363947_1200364074_1200364103_1507566554_1507566556_255882157_306484190",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_306484187_cluster_1200363791_1200363826_1200363834_1200363898_1200363927_1200363938_1200363947_1200364074_1200364103_1507566554_1507566556_255882157_306484190",
+    "phase_count": 7,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "285716192#0.83_1",
+      "285716192#0.83_2",
+      "285716192#0.83_3",
+      "285716192#0.83_4",
+      "104012170_1",
+      "104012170_2",
+      "104012170_3",
+      "104012170_4",
+      "27920078#1_1",
+      "27920078#1_2",
+      "27920078#1_3",
+      "27920078#1_4"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrrrrrrGGGG",
+        "duration": 15.0,
+        "min_dur": 15.0,
+        "max_dur": 15.0
+      },
+      {
+        "index": 1,
+        "state": "rrrrrrrrGGyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrGGGGrr",
+        "duration": 25.0,
+        "min_dur": 25.0,
+        "max_dur": 25.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrGGGGGGrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGyyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 5,
+        "state": "GGGGGGrrrrrr",
+        "duration": 36.0,
+        "min_dur": 36.0,
+        "max_dur": 36.0
+      },
+      {
+        "index": 6,
+        "state": "yyyyyyrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_308989441_476075007_476075018",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_308989441_476075007_476075018",
+    "phase_count": 11,
+    "controlled_lane_count": 14,
+    "controlled_lanes": [
+      "151167747.23_1",
+      "151167747.23_1",
+      "151167747.23_1",
+      "151167747.23_2",
+      "151167747.23_3",
+      "266507542_0",
+      "266507542_0",
+      "266507542_1",
+      "266507554_1",
+      "266507554_2",
+      "266507554_3",
+      "28132852_1",
+      "28132852_1",
+      "28132852_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGGrrrrrrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 1,
+        "state": "GGGyyrrrrrrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrrGGrrrrr",
+        "duration": 16.0,
+        "min_dur": 16.0,
+        "max_dur": 16.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrrGGrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrrrrrGGrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 5,
+        "state": "rrrrrrrrGGGrrrr",
+        "duration": 10.0,
+        "min_dur": 10.0,
+        "max_dur": 10.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrrryyyrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrrGGGrrrrrrr",
+        "duration": 11.0,
+        "min_dur": 11.0,
+        "max_dur": 11.0
+      },
+      {
+        "index": 8,
+        "state": "rrrrryyyrrrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 9,
+        "state": "rrrrrrrrrrrGGGG",
+        "duration": 7.0,
+        "min_dur": 7.0,
+        "max_dur": 7.0
+      },
+      {
+        "index": 10,
+        "state": "rrrrrrrrrrryyyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_32564118_371775504",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_32564118_371775504",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "168702040#4_1",
+      "168702040#4_2",
+      "168702040#4_3",
+      "32999110#1_1",
+      "32999110#1_2",
+      "32999110#1_3",
+      "315358253#3_1",
+      "315358253#3_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGGgrr",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyygrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGGGrr",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GrrrrrGG",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yrrrrryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_475944687_475944688_480162640",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "cluster_475944687_475944688_480162640",
+    "phase_count": 6,
+    "controlled_lane_count": 7,
+    "controlled_lanes": [
+      "39649524#0_0",
+      "39649524#0_1",
+      "380271165#0_1",
+      "380271165#0_2",
+      "27453586#0_1",
+      "27453586#0_2",
+      "27453586#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrGGGGr",
+        "duration": 40.0,
+        "min_dur": 40.0,
+        "max_dur": 40.0
+      },
+      {
+        "index": 1,
+        "state": "rryyGGr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrGGG",
+        "duration": 20.0,
+        "min_dur": 20.0,
+        "max_dur": 20.0
+      },
+      {
+        "index": 3,
+        "state": "rrrryyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "GGrrrrr",
+        "duration": 16.0,
+        "min_dur": 16.0,
+        "max_dur": 16.0
+      },
+      {
+        "index": 5,
+        "state": "yyrrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_494830315_cluster_283155103_285141680_3300414849_3300414850_3300414851_792810590_792810596_792810637",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_494830315_cluster_283155103_285141680_3300414849_3300414850_3300414851_792810590_792810596_792810637",
+    "phase_count": 6,
+    "controlled_lane_count": 19,
+    "controlled_lanes": [
+      "64464399#1_1",
+      "64464399#1_2",
+      "64464399#1_2",
+      "-64464377#3_1",
+      "-64464377#3_1",
+      "-64464377#3_1",
+      "-64464377#3_1",
+      "-64464377#3_1",
+      "-64464377#3_1",
+      "64464408_1",
+      "64464408_1",
+      "64464408_2",
+      "64464408_3",
+      "64464408_3",
+      "266567308#0_1",
+      "266567308#0_1",
+      "266567308#0_2",
+      "32009826#1_1",
+      "32009826#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrrrrGGGggrrrrr",
+        "duration": 18.0,
+        "min_dur": 18.0,
+        "max_dur": 18.0
+      },
+      {
+        "index": 1,
+        "state": "yyyrrrrrryyyyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrrrrrrrrGGGGG",
+        "duration": 41.0,
+        "min_dur": 41.0,
+        "max_dur": 41.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrrrrrrrrryyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGGGGrrrrrrrrrr",
+        "duration": 9.0,
+        "min_dur": 9.0,
+        "max_dur": 9.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyyyyrrrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "cluster_581455_7437612",
+    "program_id": "0",
+    "type": "0",
+    "junction_id": "cluster_581455_7437612",
+    "phase_count": 6,
+    "controlled_lane_count": 9,
+    "controlled_lanes": [
+      "-4058127#1_1",
+      "-4058127#1_2",
+      "-4058127#1_2",
+      "266507557#1_1",
+      "266507557#1_1",
+      "266507557#1_2",
+      "41425835.236_1",
+      "41425835.236_2",
+      "41425835.236_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGGGGg",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyyyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrGGG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGGrrrrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "yyyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ137",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 8,
+    "controlled_lane_count": 11,
+    "controlled_lanes": [
+      "-32881185#1_1",
+      "-32881185#1_1",
+      "-32881185#1_2",
+      "-41494424#2_1",
+      "-41494424#2_2",
+      "21224506#1_1",
+      "21224506#1_1",
+      "21224506#1_2",
+      "266607805#1_1",
+      "266607805#1_2",
+      "266607805#1_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGgrrrGGg",
+        "duration": 50.0,
+        "min_dur": 50.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrrygrrryyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrGrrrrrG",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rrrryrrrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGgrrGGgrrr",
+        "duration": 33.0,
+        "min_dur": 33.0,
+        "max_dur": 33.0
+      },
+      {
+        "index": 5,
+        "state": "yygrryygrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "rrGrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 7,
+        "state": "rryrrrryrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ143",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "10425609#1_1",
+      "10425609#1_2",
+      "10425609#1_3",
+      "201956821#1.68_1",
+      "201956821#1.68_1",
+      "201956821#1.68_2",
+      "201956821#1.68_3",
+      "201956821#1.68_3",
+      "124812857#0_1",
+      "124812857#0_1",
+      "124812857#0_2",
+      "124812857#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGGGgGGGg",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyyygyyyg",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrrrrrrGrrrG",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrrrrrryrrry",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGGrrrrrrrr",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyyyrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ144",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 8,
+    "controlled_lane_count": 10,
+    "controlled_lanes": [
+      "-33102477_1",
+      "-33102477_1",
+      "-33102477_2",
+      "204388144#1_1",
+      "204388144#1_2",
+      "204388144#1_3",
+      "33102476_1",
+      "33102476_1",
+      "-18909061#1_1",
+      "-18909061#1_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "rrrGGGGrrr",
+        "duration": 24.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "rrryyyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGgrrrGGrr",
+        "duration": 24.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yygrrryyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "GGGrrrrrrr",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "yyyrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 6,
+        "state": "GrrrrrGrGG",
+        "duration": 24.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 7,
+        "state": "yrrrrryryy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ148",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "gneJ148",
+    "phase_count": 6,
+    "controlled_lane_count": 9,
+    "controlled_lanes": [
+      "-51857519#1_1",
+      "-51857519#1_2",
+      "32350852#4_1",
+      "32350852#4_2",
+      "32350852#4_3",
+      "161678033#0_1",
+      "161678033#0_1",
+      "161678033#0_2",
+      "161678033#0_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGgrrrr",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yyyygrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "rrGGGrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "rryyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrrGGGG",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrrrryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ149",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "gneJ149",
+    "phase_count": 4,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "-32350852#1_1",
+      "-32350852#1_2",
+      "28418764#2_1",
+      "28418764#2_2",
+      "28418764#2_2",
+      "-145069366#2_1",
+      "-145069366#2_1",
+      "-145069366#2_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGGgrrr",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 1,
+        "state": "yyyyyrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GrrrrGGG",
+        "duration": 42.0,
+        "min_dur": 42.0,
+        "max_dur": 42.0
+      },
+      {
+        "index": 3,
+        "state": "yrrrryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ153",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "gneJ153",
+    "phase_count": 6,
+    "controlled_lane_count": 12,
+    "controlled_lanes": [
+      "-201950252#1_1",
+      "-201950252#1_1",
+      "-201950252#1_2",
+      "-201950261#0_1",
+      "-201950261#0_1",
+      "-201950261#0_1",
+      "315512845#6_1",
+      "315512845#6_1",
+      "315512845#6_2",
+      "51244814#4_1",
+      "51244814#4_1",
+      "51244814#4_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGrrrrGGrrrr",
+        "duration": 35.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yyrrrryyrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrGrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rryrrrrryrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGgrrrGGg",
+        "duration": 34.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrrryyy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ205",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 8,
+    "controlled_lane_count": 14,
+    "controlled_lanes": [
+      "266567304#0_1",
+      "266567304#0_1",
+      "266567304#0_2",
+      "266567304#0_3",
+      "323248156#0_1",
+      "323248156#0_1",
+      "323248156#0_2",
+      "266567294#0_1",
+      "266567294#0_1",
+      "266567294#0_2",
+      "266567294#0_3",
+      "323248169#0_0",
+      "323248169#0_0",
+      "323248169#0_0"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGGgrrrGGGgrrr",
+        "duration": 29.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yyygrrryyygrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "rrrGrrrrrrGrrr",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "rrryrrrrrryrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGrrrrrGGr",
+        "duration": 29.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyrrrrryyr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 6,
+        "state": "rrrrrrGrrrrrrG",
+        "duration": 6.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 7,
+        "state": "rrrrrryrrrrrry",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ207",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 6,
+    "controlled_lane_count": 8,
+    "controlled_lanes": [
+      "201963537#1_1",
+      "201963537#1_2",
+      "201963537#1_3",
+      "164051413_1",
+      "164051413_2",
+      "104010354_1",
+      "104010354_1",
+      "104010354_2"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgGrGGG",
+        "duration": 38.0,
+        "min_dur": 38.0,
+        "max_dur": 38.0
+      },
+      {
+        "index": 1,
+        "state": "yygyryyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrr",
+        "duration": 6.0,
+        "min_dur": 6.0,
+        "max_dur": 6.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGrr",
+        "duration": 37.0,
+        "min_dur": 37.0,
+        "max_dur": 37.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ208",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 6,
+    "controlled_lane_count": 6,
+    "controlled_lanes": [
+      "-286646456#2_1",
+      "-286646456#2_2",
+      "-224892361#1_1",
+      "-224892361#1_2",
+      "286646456#0_1",
+      "286646456#0_1"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GrrrGG",
+        "duration": 35.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yrrryy",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 2,
+        "state": "GGrrrr",
+        "duration": 6.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yyrrrr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      },
+      {
+        "index": 4,
+        "state": "rrGGGr",
+        "duration": 34.0,
+        "min_dur": 10.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rryyyr",
+        "duration": 5.0,
+        "min_dur": 5.0,
+        "max_dur": 5.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ210",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 6,
+    "controlled_lane_count": 14,
+    "controlled_lanes": [
+      "32124637#1_1",
+      "32124637#1_2",
+      "32124637#1_3",
+      "32124637#1_3",
+      "32021112#0_1",
+      "32021112#0_1",
+      "32021112#0_2",
+      "32021112#0_2",
+      "32021112#0_3",
+      "32021112#0_3",
+      "51857517#1_1",
+      "51857517#1_2",
+      "51857517#1_3",
+      "51857517#1_4"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGggrrrrrrGGGG",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yyggrrrrrryyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGGrrrrrrrrrr",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yyyyrrrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrrGGGGGGGGrr",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrrryyyyyyyyrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  },
+  {
+    "tls_id": "gneJ214",
+    "program_id": "0",
+    "type": "3",
+    "junction_id": "",
+    "phase_count": 6,
+    "controlled_lane_count": 13,
+    "controlled_lanes": [
+      "172515812#0_1",
+      "172515812#0_2",
+      "172515812#0_3",
+      "172515811#0_1",
+      "172515811#0_1",
+      "172515811#0_1",
+      "172515811#0_2",
+      "172515811#0_3",
+      "29458640#0_1",
+      "29458640#0_2",
+      "29458640#0_2",
+      "29458640#0_3",
+      "29458640#0_3"
+    ],
+    "phases": [
+      {
+        "index": 0,
+        "state": "GGgrrrrrGGGGG",
+        "duration": 38.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 1,
+        "state": "yygrrrrryyyyy",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 2,
+        "state": "GGGrrrrrrrrrr",
+        "duration": 6.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 3,
+        "state": "yyyrrrrrrrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      },
+      {
+        "index": 4,
+        "state": "rrrGGGGGGrrrr",
+        "duration": 37.0,
+        "min_dur": 5.0,
+        "max_dur": 50.0
+      },
+      {
+        "index": 5,
+        "state": "rrryyyyyyrrrr",
+        "duration": 3.0,
+        "min_dur": 3.0,
+        "max_dur": 3.0
+      }
+    ]
+  }
+]

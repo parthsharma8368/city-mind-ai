@@ -1,0 +1,48 @@
+# ─── Evaluation Protocol ─────────────────────────────────────────────────────
+controllers:
+  - name: fixed_time
+    type: fixed_time
+  - name: max_pressure
+    type: max_pressure
+  - name: ppo
+    type: ppo
+    model_path: null       # filled at runtime: artifacts/models/ppo_best.zip
+
+seeds:
+  - 42
+  - 123
+  - 777
+
+demand_scales:
+  - 1.0                    # Week 1: single demand level
+  # Post-week expansion:
+  # - 0.75
+  # - 1.25
+  # - 1.5
+
+# Episode settings (mirrors environment.yaml)
+episode_duration: 3600     # seconds (1 hour)
+decision_interval: 5
+
+# Metrics to collect
+metrics:
+  primary:
+    - average_travel_time
+    - average_waiting_time
+    - total_waiting_time
+    - average_queue_length
+    - max_queue_length
+    - throughput
+    - total_stops
+  secondary:
+    - signal_switch_count
+    - total_departed
+    - total_arrived
+    - average_speed
+
+# Output
+output_dir: artifacts/metrics
+trajectory_dir: artifacts/trajectories
+report_dir: artifacts/reports
+save_trajectories: true
+trajectory_interval: 1     # record every N simulation seconds

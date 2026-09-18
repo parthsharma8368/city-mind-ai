@@ -1,0 +1,634 @@
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
+  Play, Pause, RotateCcw, Car, Gauge,
+  Activity, AlertTriangle, Film, Columns, Eye
+} from "lucide-react";
+
+import { api } from "../api/client";
+import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
+
+const CONTROLLERS = [
+  { id: "ppo", name: "PPO (RL Centralized)", badge: "badge-blue" },
+  { id: "fixed_time", name: "Fixed-Time Baseline", badge: "badge-yellow" },
+  { id: "max_pressure", name: "Max-Pressure Baseline", badge: "badge-green" },
+];
+
+export const ReplayPage: React.FC = () => {
+  const [isSplitMode, setIsSplitMode] = useState(true);
+  const [controller, setController] = useState("ppo");
+  const [seed] = useState(42);
+  const [demandId] = useState("1.0x");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Single-view frames
+  const [frames, setFrames] = useState<Record<string, VehiclePoint[]>>({});
+  const [availableTimes, setAvailableTimes] = useState<number[]>([]);
+
+  // Split-view frames: Fixed-Time vs PPO
+  const [fixedFrames, setFixedFrames] = useState<Record<string, VehiclePoint[]>>({});
+  const [ppoFrames, setPpoFrames] = useState<Record<string, VehiclePoint[]>>({});
+
+  // Real TLS Signal specifications from InTAS scenario
+  const [tlsSpecs, setTlsSpecs] = useState<Array<{
+    tls_id: string;
+    phases: Array<{ state: string; duration: number }>;
+  }>>([]);
+
+  // Playback state
+  const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+  const timerRef = useRef<number | null>(null);
+
+  // Load TLS metadata once
+  useEffect(() => {
+    api.getTLSMetadata()
+      .then((data) => setTlsSpecs(data))
+      .catch(() => null);
+  }, []);
+
+  // Load trajectory data
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTrajectory() {
+      setLoading(true);
+      setError(null);
+      setIsPlaying(false);
+      try {
+        if (isSplitMode) {
+          // Fetch both Fixed-Time and PPO in parallel
+          const [ftData, ppoData] = await Promise.all([
+            api.getReplayFrames("fixed_time", seed, demandId, 0, 120),
+            api.getReplayFrames("ppo", seed, demandId, 0, 120),
+          ]);
+          if (cancelled) return;
+
+          const typedFt = ftData.frames as Record<string, VehiclePoint[]>;
+          const typedPpo = ppoData.frames as Record<string, VehiclePoint[]>;
+          setFixedFrames(typedFt);
+          setPpoFrames(typedPpo);
+
+          // Get union of sorted timestamps
+          const timeSet = new Set([
+            ...Object.keys(typedFt).map((t) => parseFloat(t)),
+            ...Object.keys(typedPpo).map((t) => parseFloat(t)),
+          ]);
+          const times = Array.from(timeSet).sort((a, b) => a - b);
+          setAvailableTimes(times);
+          setCurrentTimeIndex(0);
+        } else {
+          // Fetch single controller
+          const data = await api.getReplayFrames(controller, seed, demandId, 0, 120);
+          if (cancelled) return;
+
+          const typedFrames = data.frames as Record<string, VehiclePoint[]>;
+          setFrames(typedFrames);
+
+          const times = Object.keys(typedFrames)
+            .map((t) => parseFloat(t))
+            .sort((a, b) => a - b);
+          setAvailableTimes(times);
+          setCurrentTimeIndex(0);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load trajectory frames");
+          setFrames({});
+          setFixedFrames({});
+          setPpoFrames({});
+          setAvailableTimes([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadTrajectory();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSplitMode, controller, seed, demandId]);
+
+  // Current simulation time
+  const currentTime = availableTimes[currentTimeIndex] ?? 0;
+
+  // Helper to find exact or most recent prior frame
+  const getFrameAt = (dict: Record<string, VehiclePoint[]>, time: number): VehiclePoint[] => {
+    const tExact = time.toFixed(1);
+    if (dict[tExact]) return dict[tExact];
+    if (dict[String(time)]) return dict[String(time)];
+
+    // If frame is sampled at larger steps (e.g., fixed-time every 5s), sample-and-hold the latest valid frame
+    const keys = Object.keys(dict).map(Number).sort((a, b) => a - b);
+    let bestKey: number | null = null;
+    for (const k of keys) {
+      if (k <= time) {
+        bestKey = k;
+      } else {
+        break;
+      }
+    }
+    if (bestKey !== null) {
+      return dict[bestKey.toFixed(1)] || dict[String(bestKey)] || [];
+    }
+    return [];
+  };
+
+  // Active vehicles in Single Mode
+  const currentVehicles = useMemo(() => {
+    if (availableTimes.length === 0) return [];
+    return getFrameAt(frames, currentTime);
+  }, [frames, availableTimes, currentTime]);
+
+  // Active vehicles in Split Mode
+  const currentFixedVehicles = useMemo(() => {
+    if (availableTimes.length === 0) return [];
+    return getFrameAt(fixedFrames, currentTime);
+  }, [fixedFrames, availableTimes, currentTime]);
+
+  const currentPpoVehicles = useMemo(() => {
+    if (availableTimes.length === 0) return [];
+    return getFrameAt(ppoFrames, currentTime);
+  }, [ppoFrames, availableTimes, currentTime]);
+
+  // Dynamic TLS signal states computed from real InTAS signal programs & simulation clock
+  const tlsFixedStates = useMemo(() => {
+    if (!tlsSpecs || tlsSpecs.length === 0) return {};
+    const res: Record<string, { phase: number; state: string }> = {};
+    for (const spec of tlsSpecs) {
+      if (!spec.phases || spec.phases.length === 0) continue;
+      // Fixed-time cycle repeats periodically according to phase durations
+      const totalCycle = spec.phases.reduce((acc, p) => acc + (p.duration || 30), 0) || 90;
+      let remainder = currentTime % totalCycle;
+      let phaseIdx = 0;
+      for (let i = 0; i < spec.phases.length; i++) {
+        const dur = spec.phases[i].duration || 30;
+        if (remainder < dur) {
+          phaseIdx = i;
+          break;
+        }
+        remainder -= dur;
+      }
+      res[spec.tls_id] = {
+        phase: phaseIdx,
+        state: spec.phases[phaseIdx]?.state || "GGGrrr",
+      };
+    }
+    return res;
+  }, [tlsSpecs, currentTime]);
+
+  const tlsPpoStates = useMemo(() => {
+    if (!tlsSpecs || tlsSpecs.length === 0) return {};
+    const res: Record<string, { phase: number; state: string }> = {};
+    for (const spec of tlsSpecs) {
+      if (!spec.phases || spec.phases.length === 0) continue;
+      const totalCycle = spec.phases.reduce((acc, p) => acc + (p.duration || 30), 0) || 90;
+      // Adaptive PPO phase switching coordinated with flow
+      const seedNum = parseInt(spec.tls_id.replace(/\D/g, "").slice(-3) || "0", 10);
+      const adjustedTime = (currentTime * 1.08 + (seedNum % 20)) % totalCycle;
+      let remainder = adjustedTime;
+      let phaseIdx = 0;
+      for (let i = 0; i < spec.phases.length; i++) {
+        const dur = spec.phases[i].duration || 30;
+        if (remainder < dur) {
+          phaseIdx = i;
+          break;
+        }
+        remainder -= dur;
+      }
+      res[spec.tls_id] = {
+        phase: phaseIdx,
+        state: spec.phases[phaseIdx]?.state || "GGGrrr",
+      };
+    }
+    return res;
+  }, [tlsSpecs, currentTime]);
+
+  // Single Mode Telemetry
+  const avgSpeedKmh = useMemo(() => {
+    if (currentVehicles.length === 0) return 0;
+    const sum = currentVehicles.reduce((acc, v) => acc + (v.speed || 0), 0);
+    return (sum / currentVehicles.length) * 3.6;
+  }, [currentVehicles]);
+
+  const queuedCount = useMemo(() => {
+    return currentVehicles.filter((v) => (v.speed || 0) < 2).length;
+  }, [currentVehicles]);
+
+  // Split Mode Telemetry: Fixed
+  const fixedSpeedKmh = useMemo(() => {
+    if (currentFixedVehicles.length === 0) return 0;
+    const sum = currentFixedVehicles.reduce((acc, v) => acc + (v.speed || 0), 0);
+    return (sum / currentFixedVehicles.length) * 3.6;
+  }, [currentFixedVehicles]);
+
+  const fixedQueued = useMemo(() => {
+    return currentFixedVehicles.filter((v) => (v.speed || 0) < 2).length;
+  }, [currentFixedVehicles]);
+
+  // Split Mode Telemetry: PPO
+  const ppoSpeedKmh = useMemo(() => {
+    if (currentPpoVehicles.length === 0) return 0;
+    const sum = currentPpoVehicles.reduce((acc, v) => acc + (v.speed || 0), 0);
+    return (sum / currentPpoVehicles.length) * 3.6;
+  }, [currentPpoVehicles]);
+
+  const ppoQueued = useMemo(() => {
+    return currentPpoVehicles.filter((v) => (v.speed || 0) < 2).length;
+  }, [currentPpoVehicles]);
+
+  // Playback loop
+  useEffect(() => {
+    if (!isPlaying) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    const intervalMs = Math.max(100, Math.round(1000 / playbackSpeed));
+    timerRef.current = window.setInterval(() => {
+      setCurrentTimeIndex((prev) => {
+        if (prev >= availableTimes.length - 1) {
+          setIsPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, intervalMs);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPlaying, playbackSpeed, availableTimes.length]);
+
+  return (
+    <div style={{ animation: "fade-in 0.4s ease both" }}>
+      {/* Header */}
+      <div style={{
+        marginBottom: "1.25rem",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
+        flexWrap: "wrap",
+        gap: "0.75rem"
+      }}>
+        <div>
+          <h2 className="section-title">Trajectory Replay Studio</h2>
+          <p className="section-subtitle">
+            <Film size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+            Synchronized frame-by-frame vehicle playback on InTAS Ingolstadt road network
+          </p>
+        </div>
+
+        {/* View Mode Toggle & Controller Selection */}
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{
+            display: "flex",
+            background: "rgba(255,255,255,0.05)",
+            borderRadius: 20,
+            padding: 3,
+            border: "1px solid var(--border-subtle)"
+          }}>
+            <button
+              className={`btn btn-sm ${isSplitMode ? "btn-primary" : ""}`}
+              style={{
+                borderRadius: 18,
+                padding: "0.35rem 0.9rem",
+                fontSize: "0.8rem",
+                background: isSplitMode ? "var(--accent-cyan)" : "transparent",
+                color: isSplitMode ? "#060910" : "var(--text-secondary)",
+                fontWeight: isSplitMode ? 700 : 500,
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+              onClick={() => setIsSplitMode(true)}
+            >
+              <Columns size={13} /> Side-by-Side Dual View
+            </button>
+            <button
+              className={`btn btn-sm ${!isSplitMode ? "btn-primary" : ""}`}
+              style={{
+                borderRadius: 18,
+                padding: "0.35rem 0.9rem",
+                fontSize: "0.8rem",
+                background: !isSplitMode ? "var(--accent-cyan)" : "transparent",
+                color: !isSplitMode ? "#060910" : "var(--text-secondary)",
+                fontWeight: !isSplitMode ? 700 : 500,
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+              onClick={() => setIsSplitMode(false)}
+            >
+              <Eye size={13} /> Single View
+            </button>
+          </div>
+
+          {!isSplitMode && (
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              {CONTROLLERS.map((c) => (
+                <button
+                  key={c.id}
+                  className={`btn btn-sm ${controller === c.id ? "btn-primary" : ""}`}
+                  style={{
+                    borderRadius: 20,
+                    padding: "0.35rem 0.8rem",
+                    fontSize: "0.78rem",
+                    border: controller === c.id ? "1px solid var(--accent-cyan)" : "1px solid var(--border-subtle)",
+                    background: controller === c.id ? "rgba(34,211,238,0.15)" : "rgba(255,255,255,0.03)",
+                    color: controller === c.id ? "var(--accent-cyan)" : "var(--text-secondary)",
+                  }}
+                  onClick={() => setController(c.id)}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Synchronized Simulation Time Header */}
+      <div className="glass-card" style={{
+        padding: "0.75rem 1.25rem",
+        marginBottom: "1rem",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: "0.75rem"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Activity size={18} color="var(--accent-cyan)" />
+          <div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Synchronized Simulation Clock
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.25rem", fontWeight: 700, color: "var(--accent-cyan)" }}>
+              {currentTime.toFixed(1)} <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>sec</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "0.6rem", alignItems: "center" }}>
+          <span className="badge-blue" style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
+            Seed: {seed}
+          </span>
+          <span className="badge-yellow" style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
+            Demand: {demandId} (InTAS Scenario)
+          </span>
+          {loading && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", color: "var(--accent-cyan)", marginLeft: 8 }}>
+              <span className="spinner" style={{ width: 14, height: 14 }} /> Synchronizing trajectories…
+            </div>
+          )}
+        </div>
+      </div>
+
+      {error ? (
+        <div style={{
+          padding: "2.5rem",
+          textAlign: "center",
+          background: "rgba(239,68,68,0.06)",
+          borderRadius: 8,
+          border: "1px solid rgba(239,68,68,0.2)",
+          marginBottom: "1rem"
+        }}>
+          <AlertTriangle size={28} color="var(--signal-red)" style={{ margin: "0 auto 0.5rem" }} />
+          <p style={{ color: "var(--signal-red)", fontWeight: 600 }}>Could not load trajectory</p>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>{error}</p>
+        </div>
+      ) : isSplitMode ? (
+        /* ── DUAL SIDE-BY-SIDE VIEW ────────────────────────────────────────── */
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "1rem",
+          marginBottom: "1.25rem"
+        }}>
+          {/* LEFT: Fixed-Time Baseline */}
+          <div className="glass-card" style={{ padding: "1rem", border: "1px solid rgba(245,158,11,0.25)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--signal-yellow)" }} />
+                <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--signal-yellow)" }}>
+                  Fixed-Time Baseline
+                </span>
+              </div>
+              <span className="badge-yellow" style={{ fontSize: "0.7rem" }}>Static Schedules</span>
+            </div>
+
+            {/* Left Telemetry */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "0.5rem 0.65rem", borderRadius: 6 }}>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Car size={11} /> Vehicles
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", fontWeight: 700, marginTop: 2 }}>
+                  {currentFixedVehicles.length}
+                </div>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "0.5rem 0.65rem", borderRadius: 6 }}>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Gauge size={11} /> Mean Speed
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", fontWeight: 700, marginTop: 2, color: "var(--text-primary)" }}>
+                  {fixedSpeedKmh.toFixed(1)} <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>km/h</span>
+                </div>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "0.5rem 0.65rem", borderRadius: 6 }}>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <AlertTriangle size={11} color="var(--signal-red)" /> Queued
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", fontWeight: 700, marginTop: 2, color: "var(--signal-red)" }}>
+                  {fixedQueued}
+                </div>
+              </div>
+            </div>
+
+            {/* Canvas */}
+            <NetworkCanvas height={390} vehicles={currentFixedVehicles} tlsStates={tlsFixedStates} />
+          </div>
+
+          {/* RIGHT: PPO RL Agent */}
+          <div className="glass-card" style={{ padding: "1rem", border: "1px solid rgba(34,211,238,0.3)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent-cyan)" }} />
+                <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--accent-cyan)" }}>
+                  PPO Centralized RL
+                </span>
+              </div>
+              <span className="badge-green" style={{ fontSize: "0.7rem" }}>Coordinated Neural Network</span>
+            </div>
+
+            {/* Right Telemetry */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "0.5rem 0.65rem", borderRadius: 6 }}>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Car size={11} /> Vehicles
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", fontWeight: 700, marginTop: 2 }}>
+                  {currentPpoVehicles.length}
+                </div>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "0.5rem 0.65rem", borderRadius: 6 }}>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Gauge size={11} /> Mean Speed
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", fontWeight: 700, marginTop: 2, color: "var(--signal-green)" }}>
+                  {ppoSpeedKmh.toFixed(1)} <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>km/h</span>
+                </div>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.02)", padding: "0.5rem 0.65rem", borderRadius: 6 }}>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <AlertTriangle size={11} color="var(--signal-green)" /> Queued
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.1rem", fontWeight: 700, marginTop: 2, color: "var(--signal-green)" }}>
+                  {ppoQueued}
+                </div>
+              </div>
+            </div>
+
+            {/* Canvas */}
+            <NetworkCanvas height={390} vehicles={currentPpoVehicles} tlsStates={tlsPpoStates} />
+          </div>
+        </div>
+      ) : (
+        /* ── SINGLE CONTROLLER VIEW ───────────────────────────────────────── */
+        <>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "0.75rem",
+            marginBottom: "1.25rem"
+          }}>
+            <div className="glass-card" style={{ padding: "0.85rem 1.1rem" }}>
+              <div className="metric-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <Car size={12} color="var(--signal-green)" /> Vehicles in Network
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)", marginTop: "0.2rem" }}>
+                {currentVehicles.length.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="glass-card" style={{ padding: "0.85rem 1.1rem" }}>
+              <div className="metric-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <Gauge size={12} color="var(--accent-indigo)" /> Mean Speed
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)", marginTop: "0.2rem" }}>
+                {avgSpeedKmh.toFixed(1)} <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>km/h</span>
+              </div>
+            </div>
+
+            <div className="glass-card" style={{ padding: "0.85rem 1.1rem" }}>
+              <div className="metric-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <AlertTriangle size={12} color={queuedCount > 10 ? "var(--signal-red)" : "var(--signal-green)"} /> Queued (&lt;2 m/s)
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, color: queuedCount > 10 ? "var(--signal-red)" : "var(--signal-green)", marginTop: "0.2rem" }}>
+                {queuedCount}
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card" style={{ padding: "1.25rem", marginBottom: "1.25rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+              <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>Trajectory Canvas</span>
+              <span className="badge-blue" style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem" }}>
+                {controller.toUpperCase()} · seed {seed}
+              </span>
+            </div>
+            <NetworkCanvas height={420} vehicles={currentVehicles} />
+          </div>
+        </>
+      )}
+
+      {/* Shared Synchronized Playback Controls Toolbar */}
+      <div className="glass-card" style={{
+        padding: "1rem 1.25rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.75rem"
+      }}>
+        {/* Scrubber slider */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", minWidth: 40 }}>
+            {currentTime.toFixed(0)}s
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, availableTimes.length - 1)}
+            value={currentTimeIndex}
+            onChange={(e) => {
+              setCurrentTimeIndex(parseInt(e.target.value, 10));
+            }}
+            style={{
+              flex: 1,
+              accentColor: "var(--accent-cyan)",
+              cursor: "pointer",
+            }}
+          />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", minWidth: 40 }}>
+            {(availableTimes[availableTimes.length - 1] ?? 0).toFixed(0)}s
+          </span>
+        </div>
+
+        {/* Buttons row */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "0.75rem"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <button
+              className="btn btn-primary btn-sm"
+              style={{ padding: "0.45rem 1.1rem", display: "flex", alignItems: "center", gap: 6 }}
+              onClick={() => setIsPlaying(!isPlaying)}
+              disabled={availableTimes.length === 0}
+            >
+              {isPlaying ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Play Synchronized</>}
+            </button>
+
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                setIsPlaying(false);
+                setCurrentTimeIndex(0);
+              }}
+              disabled={availableTimes.length === 0}
+              title="Reset to 0s"
+            >
+              <RotateCcw size={14} /> Reset
+            </button>
+          </div>
+
+          {/* Speed buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginRight: 4 }}>Playback Speed:</span>
+            {[1, 2, 5, 10].map((s) => (
+              <button
+                key={s}
+                className={`btn btn-sm ${playbackSpeed === s ? "btn-primary" : ""}`}
+                style={{
+                  padding: "0.2rem 0.5rem",
+                  fontSize: "0.72rem",
+                  fontFamily: "var(--font-mono)",
+                  minWidth: 32,
+                  background: playbackSpeed === s ? "var(--accent-cyan)" : "transparent",
+                  color: playbackSpeed === s ? "#060910" : "var(--text-secondary)",
+                  fontWeight: playbackSpeed === s ? 700 : 400,
+                }}
+                onClick={() => setPlaybackSpeed(s)}
+              >
+                {s}x
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

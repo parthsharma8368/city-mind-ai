@@ -1,0 +1,150 @@
+{
+  "routes_dir": "data/raw/intas/scenario/routes",
+  "total_files": 24,
+  "files": [
+    {
+      "filename": "BusRoutes.flow.xml",
+      "size_bytes": 273097,
+      "vehicle_count": 0,
+      "flow_count": 172
+    },
+    {
+      "filename": "InTAS_001.rou.xml",
+      "size_bytes": 36439301,
+      "vehicle_count": 9290,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_002.rou.xml",
+      "size_bytes": 36213320,
+      "vehicle_count": 8398,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_003.rou.xml",
+      "size_bytes": 36097485,
+      "vehicle_count": 8016,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_004.rou.xml",
+      "size_bytes": 36469249,
+      "vehicle_count": 8530,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_005.rou.xml",
+      "size_bytes": 33193569,
+      "vehicle_count": 8780,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_006.rou.xml",
+      "size_bytes": 39584095,
+      "vehicle_count": 8450,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_007.rou.xml",
+      "size_bytes": 49598057,
+      "vehicle_count": 10228,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_008.rou.xml",
+      "size_bytes": 48267298,
+      "vehicle_count": 9747,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_009.rou.xml",
+      "size_bytes": 44043600,
+      "vehicle_count": 8849,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_010.rou.xml",
+      "size_bytes": 33430831,
+      "vehicle_count": 6652,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_011.rou.xml",
+      "size_bytes": 46245067,
+      "vehicle_count": 9035,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_012.rou.xml",
+      "size_bytes": 41298790,
+      "vehicle_count": 8071,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_013.rou.xml",
+      "size_bytes": 45918399,
+      "vehicle_count": 8420,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_014.rou.xml",
+      "size_bytes": 34648946,
+      "vehicle_count": 6083,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_015.rou.xml",
+      "size_bytes": 46918344,
+      "vehicle_count": 8228,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_016.rou.xml",
+      "size_bytes": 41243381,
+      "vehicle_count": 7099,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_017.rou.xml",
+      "size_bytes": 47783511,
+      "vehicle_count": 8163,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_018.rou.xml",
+      "size_bytes": 52863751,
+      "vehicle_count": 8992,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_019.rou.xml",
+      "size_bytes": 44861096,
+      "vehicle_count": 7723,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_020.rou.xml",
+      "size_bytes": 52876506,
+      "vehicle_count": 9053,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_021.rou.xml",
+      "size_bytes": 49261287,
+      "vehicle_count": 8394,
+      "flow_count": 0
+    },
+    {
+      "filename": "InTAS_022.rou.xml",
+      "size_bytes": 54788496,
+      "vehicle_count": 9722,
+      "flow_count": 0
+    },
+    {
+      "filename": "ped.rou.xml",
+      "size_bytes": 188940,
+      "vehicle_count": 0,
+      "flow_count": 0
+    }
+  ]
+}

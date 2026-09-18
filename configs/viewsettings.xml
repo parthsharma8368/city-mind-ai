@@ -1,0 +1,41 @@
+<viewsettings>
+    <scheme name="real world">
+        <!-- Vehicles: colored by speed — red=stopped, yellow=slow, green=moving, cyan=fast -->
+        <vehicles vehicleMode="0" vehicleQuality="2"
+                  vehicle_minSize="4.00" vehicle_exaggeration="3.00"
+                  vehicle_constantSize="0" showBlinker="1">
+            <colorScheme name="by speed" interpolated="1">
+                <entry color="255,50,50"   threshold="0.00"/>   <!-- stopped: bright red -->
+                <entry color="255,200,0"   threshold="3.00"/>   <!-- slow: amber -->
+                <entry color="80,220,80"   threshold="10.00"/>  <!-- moving: green -->
+                <entry color="0,200,255"   threshold="18.00"/>  <!-- fast: cyan -->
+            </colorScheme>
+        </vehicles>
+
+        <!-- Junctions: draw shape + crossings so TLS intersections are visible -->
+        <junctions junctionMode="0" drawShape="1"
+                   drawCrossingsAndWalkingareas="1"
+                   junction_minSize="3.00" junction_exaggeration="2.00"
+                   showLinkDecals="1" showLane2LaneConnections="0"/>
+
+        <!-- Roads: realistic-width lanes -->
+        <edges edgeMode="0" edgeQuality="2" showLaneBorders="1"
+               showLaneDecals="1" spreadSuperposed="0"/>
+
+        <!-- TLS: show signal heads + phase labels on junctions -->
+        <tls_phase_label sizeDynamic="1" size="70.00" color="255,255,0"/>
+
+        <!-- POI / Polygons (buildings) -->
+        <polygons polyMode="0" polyQuality="2"/>
+
+        <!-- Background -->
+        <background color="30,30,40"/>
+    </scheme>
+
+    <!-- Initial viewport: city center of Ingolstadt InTAS scenario -->
+    <viewport zoom="350.00" x="216327.00" y="452158.00" angle="0.00"/>
+
+    <!-- 100ms delay → watchable but not too slow -->
+    <delay value="100.00"/>
+</viewsettings>
+

@@ -1,0 +1,45 @@
+# ─── PPO Hyperparameters (Stable-Baselines3) ─────────────────────────────────
+algorithm: PPO
+device: cpu               # MlpPolicy runs faster on CPU than MPS (SB3 recommendation)
+
+# ── Training budget ────────────────────────────────────────────────────────────
+# 500K steps ≈ ~4166 episodes of 120 steps each
+# (600s episode ÷ 5s decision_interval = 120 steps/episode)
+# Shorter 600s episodes → faster resets → more training diversity
+total_timesteps: 500000
+
+# ── Rollout buffer ─────────────────────────────────────────────────────────────
+# n_steps=120 = exactly ONE 600s episode per rollout → clean gradient
+n_steps: 120
+batch_size: 60            # 50% of rollout per mini-batch
+n_epochs: 10              # PPO update passes per rollout
+
+# ── Discount & advantage ───────────────────────────────────────────────────────
+gamma: 0.99
+gae_lambda: 0.95
+normalize_advantage: true
+
+# ── PPO clipping ───────────────────────────────────────────────────────────────
+clip_range: 0.2
+clip_range_vf: null
+
+# ── Loss coefficients ──────────────────────────────────────────────────────────
+ent_coef: 0.01            # entropy bonus — encourages exploration early
+vf_coef: 0.5
+max_grad_norm: 0.5
+
+# ── Learning rate ──────────────────────────────────────────────────────────────
+learning_rate: 3.0e-4     # constant LR; reduce to 1e-4 after first run
+
+# ── Policy network ─────────────────────────────────────────────────────────────
+policy: MlpPolicy
+policy_kwargs:
+  net_arch:
+    - 256
+    - 256
+  activation_fn: tanh
+
+# ── Artifacts ──────────────────────────────────────────────────────────────────
+save_checkpoints: true
+checkpoint_freq: 50000    # save every 50K steps (~10 checkpoints total)
+tensorboard_log: artifacts/tb_logs

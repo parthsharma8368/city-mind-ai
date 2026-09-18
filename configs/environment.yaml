@@ -1,0 +1,61 @@
+# ─── SUMO / Simulator ────────────────────────────────────────────────────────
+sumo:
+  binary: sumo           # "sumo" for headless; "sumo-gui" for visual debug
+  scenario_dir: data/raw/intas
+  # Populated after inspect_intas.py runs:
+  net_file: null         # e.g. data/raw/intas/ingolstadt.net.xml
+  route_files: []        # populated dynamically
+  additional_files: []   # tls programs, etc.
+  step_length: 1.0       # simulation timestep in seconds
+  begin: 0
+  end: 3600              # 1-hour episode; extend to 86400 for full day
+  no_warnings: true
+  lateral_resolution: 0.0
+
+# ─── RL Decision Frequency ───────────────────────────────────────────────────
+decision_interval: 5     # RL acts every N simulation seconds
+
+# ─── Observation ─────────────────────────────────────────────────────────────
+observation:
+  lane_features:
+    - queue_length        # number of halting vehicles
+    - vehicle_count       # total vehicles on lane
+    - mean_speed          # average speed (m/s)
+    - density             # occupancy [0,1]
+  signal_features:
+    - phase_index         # current phase (int, one-hot encoded)
+    - phase_elapsed       # seconds in current phase
+  global_features:
+    - total_vehicles      # all vehicles in network
+    - total_waiting_time  # sum across all vehicles
+  normalize: true
+  max_lane_vehicles: 50   # normalization cap
+  max_speed: 13.9         # 50 km/h in m/s
+
+# ─── Action Space ────────────────────────────────────────────────────────────
+action:
+  type: MultiBinary       # one bit per controlled TLS: 0=keep, 1=advance
+  # alternative: MultiDiscrete with per-TLS phase choices
+
+# ─── Safety Layer ────────────────────────────────────────────────────────────
+safety:
+  min_green: 10           # seconds
+  max_green: 90           # seconds
+  yellow_duration: 3      # seconds
+  all_red_duration: 1     # seconds (0 to disable)
+  min_red: 0              # seconds before green allowed again
+
+# ─── Reward ──────────────────────────────────────────────────────────────────
+reward:
+  waiting_delta_weight: 1.0
+  queue_weight: 0.0
+  switching_penalty: 0.0
+  # Rich reward: uncomment to activate
+  # waiting_delta_weight: 1.0
+  # queue_weight: 0.1
+  # switching_penalty: 0.01
+
+# ─── Episode Termination ─────────────────────────────────────────────────────
+termination:
+  max_steps: null         # null = use sumo end time
+  on_collision: false
