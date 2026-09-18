@@ -1,6 +1,7 @@
 """experiments.py — List and retrieve experiment runs."""
 from __future__ import annotations
 import json
+import re
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from api.models import ExperimentRun
@@ -9,6 +10,14 @@ router = APIRouter()
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
+EXPERIMENTS_DIR = _PROJECT_ROOT / "artifacts" / "experiments" / "ppo"
+_SAFE_RUN_ID = re.compile(r"^[A-Za-z0-9_.\-]+$")
+
+
+def _resolve_run_dir(run_id: str) -> Path:
+    if not _SAFE_RUN_ID.match(run_id):
+        raise HTTPException(400, f"Invalid run_id: {run_id!r}")
+    return EXPERIMENTS_DIR / run_id
 
 
 def _load_yaml(text: str) -> dict:
@@ -32,12 +41,13 @@ def _sanitize_json(obj):
         return str(obj)
 
 @router.get("/", response_model=list[ExperimentRun])
-def list_experiments(experiments_dir: str = "artifacts/experiments/ppo"):
+def list_experiments():
     runs = []
-    base = _PROJECT_ROOT / experiments_dir
-    if not base.exists():
+    if not EXPERIMENTS_DIR.exists():
         return []
-    for run_dir in sorted(base.iterdir(), reverse=True):
+    for run_dir in sorted(EXPERIMENTS_DIR.iterdir(), reverse=True):
+        if not run_dir.is_dir():
+            continue
         cfg_path = run_dir / "config.yaml"
         if cfg_path.exists():
             cfg = _load_yaml(cfg_path.read_text())
@@ -54,8 +64,8 @@ def list_experiments(experiments_dir: str = "artifacts/experiments/ppo"):
     return runs
 
 @router.get("/{run_id}")
-def get_experiment(run_id: str, experiments_dir: str = "artifacts/experiments/ppo"):
-    run_dir = _PROJECT_ROOT / experiments_dir / run_id
+def get_experiment(run_id: str):
+    run_dir = _resolve_run_dir(run_id)
     if not run_dir.exists():
         raise HTTPException(404, f"Run {run_id} not found")
     cfg_path = run_dir / "config.yaml"

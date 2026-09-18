@@ -14,17 +14,22 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
+
+from api.security import require_api_key
 
 router = APIRouter()
 
 _gui_process: Optional[subprocess.Popen] = None
+_gui_lock = threading.Lock()
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
+_ARTIFACTS_DIR = (_PROJECT_ROOT / "artifacts").resolve()
 
 
 class LaunchResponse(BaseModel):
@@ -66,76 +71,86 @@ def _is_gui_running() -> bool:
     return True
 
 
-@router.post("/launch-gui", response_model=LaunchResponse)
+def _resolve_model_path(model: Optional[str]) -> Path:
+    """Resolve a requested model path and require it to live under artifacts/."""
+    if not model:
+        found = _find_latest_model()
+        if found is None:
+            raise HTTPException(404, "No trained model found in artifacts/experiments/.")
+        return found
+
+    candidate = (_PROJECT_ROOT / model).resolve() if not Path(model).is_absolute() else Path(model).resolve()
+    if _ARTIFACTS_DIR not in candidate.parents and candidate != _ARTIFACTS_DIR:
+        raise HTTPException(400, "Model path must be inside artifacts/.")
+    if candidate.suffix != ".zip" or not candidate.exists():
+        raise HTTPException(404, f"Model not found: {model}")
+    return candidate
+
+
+@router.post("/launch-gui", response_model=LaunchResponse, dependencies=[Depends(require_api_key)])
 def launch_gui(model: Optional[str] = None, delay: int = 80, duration: int = 3600):
     """Launch SUMO-GUI visual simulation via XQuartz."""
     global _gui_process
 
-    if _is_gui_running():
+    with _gui_lock:
+        if _is_gui_running():
+            return LaunchResponse(
+                status="already_running",
+                pid=_gui_process.pid,
+                message="SUMO-GUI already running.",
+            )
+
+        model_path = _resolve_model_path(model)
+
+        python_bin = sys.executable
+        demo_script = _PROJECT_ROOT / "scripts" / "run_visual_demo.py"
+
+        cmd = [python_bin, str(demo_script), "--model", str(model_path),
+               "--delay", str(delay), "--duration", str(duration)]
+
+        env = os.environ.copy()
+        if "DISPLAY" not in env:
+            env["DISPLAY"] = ":0"
+
+        try:
+            _gui_process = subprocess.Popen(
+                cmd, cwd=str(_PROJECT_ROOT), env=env,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except Exception as exc:
+            raise HTTPException(500, f"Failed to launch SUMO-GUI: {exc}") from exc
+
+        time.sleep(0.5)
+        if _gui_process.poll() is not None:
+            raise HTTPException(500, "SUMO-GUI process exited immediately.")
+
         return LaunchResponse(
-            status="already_running",
+            status="launched",
             pid=_gui_process.pid,
-            message="SUMO-GUI already running.",
+            model=str(model_path),
+            message=f"SUMO-GUI launched (PID={_gui_process.pid}). XQuartz window opening. DISPLAY={env.get('DISPLAY')}",
         )
 
-    model_path: Optional[Path] = None
-    if model:
-        model_path = Path(model)
-        if not model_path.exists():
-            raise HTTPException(404, f"Model not found: {model}")
-    else:
-        model_path = _find_latest_model()
-        if model_path is None:
-            raise HTTPException(404, "No trained model found in artifacts/experiments/.")
 
-    python_bin = sys.executable
-    demo_script = _PROJECT_ROOT / "scripts" / "run_visual_demo.py"
-
-    cmd = [python_bin, str(demo_script), "--model", str(model_path),
-           "--delay", str(delay), "--duration", str(duration)]
-
-    env = os.environ.copy()
-    if "DISPLAY" not in env:
-        env["DISPLAY"] = ":0"
-
-    try:
-        _gui_process = subprocess.Popen(
-            cmd, cwd=str(_PROJECT_ROOT), env=env,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-    except Exception as exc:
-        raise HTTPException(500, f"Failed to launch SUMO-GUI: {exc}") from exc
-
-    time.sleep(0.5)
-    if _gui_process.poll() is not None:
-        raise HTTPException(500, "SUMO-GUI process exited immediately.")
-
-    return LaunchResponse(
-        status="launched",
-        pid=_gui_process.pid,
-        model=str(model_path),
-        message=f"SUMO-GUI launched (PID={_gui_process.pid}). XQuartz window opening. DISPLAY={env.get('DISPLAY')}",
-    )
-
-
-@router.post("/stop-gui")
+@router.post("/stop-gui", dependencies=[Depends(require_api_key)])
 def stop_gui():
     """Terminate the running SUMO-GUI process."""
     global _gui_process
-    if not _is_gui_running():
-        return {"status": "not_running", "message": "No SUMO-GUI process is running."}
-    pid = _gui_process.pid
-    try:
-        _gui_process.terminate()
-        _gui_process.wait(timeout=5)
-    except Exception:
+    with _gui_lock:
+        if not _is_gui_running():
+            return {"status": "not_running", "message": "No SUMO-GUI process is running."}
+        pid = _gui_process.pid
         try:
-            _gui_process.kill()
+            _gui_process.terminate()
+            _gui_process.wait(timeout=5)
         except Exception:
-            pass
-    _gui_process = None
-    return {"status": "stopped", "pid": pid, "message": f"SUMO-GUI process {pid} terminated."}
+            try:
+                _gui_process.kill()
+            except Exception:
+                pass
+        _gui_process = None
+        return {"status": "stopped", "pid": pid, "message": f"SUMO-GUI process {pid} terminated."}
 
 
 @router.get("/status", response_model=StatusResponse)

@@ -7,16 +7,14 @@ from api.models import ComparisonResult
 
 router = APIRouter()
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
+METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
 
 @router.get("/summary")
 def get_comparison_summary(
-    metrics_dir: str | None = None,
     demand_id: str = "1.0x",
 ):
     """Return mean metrics per controller for a given demand level."""
-    base = Path(metrics_dir) if metrics_dir else DEFAULT_METRICS_DIR
-    path = base / "evaluation_results.parquet"
+    path = METRICS_DIR / "evaluation_results.parquet"
     if not path.exists():
         raise HTTPException(404, "Evaluation results not found. Run run_evaluation.py first.")
 
@@ -46,11 +44,9 @@ def get_improvement(
     target: str = "ppo",
     metric: str = "mean_waiting_time",
     demand_id: str = "1.0x",
-    metrics_dir: str | None = None,
 ):
     """Compute % improvement of target vs baseline."""
-    base = Path(metrics_dir) if metrics_dir else DEFAULT_METRICS_DIR
-    path = base / "evaluation_results.parquet"
+    path = METRICS_DIR / "evaluation_results.parquet"
     if not path.exists():
         raise HTTPException(404, "Evaluation results not found.")
 
