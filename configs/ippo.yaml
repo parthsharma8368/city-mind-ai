@@ -1,0 +1,43 @@
+# ─── IPPO (parameter-shared) Hyperparameters ─────────────────────────────────
+# One shared policy, invoked once per TLS per decision step (98 agents/step,
+# one SUMO instance). SB3 counts total_timesteps across all agents, so one
+# real decision step of simulation contributes ~98 to the counter — the
+# same total_timesteps budget as the centralized run covers far fewer real
+# simulated seconds, but with 98x the (obs, action, reward) samples per
+# gradient step and — the actual point of this design — a reward that's
+# attributable to the specific agent that earned it.
+algorithm: PPO
+device: cpu
+
+# n_steps=720 (one real episode) x 98 agents = 70,560-sample rollout per
+# update. total_timesteps=3,600,000 -> ~36,730 real decision steps -> ~51
+# real episodes. Deliberately smaller than the centralized run's 500k/694
+# episodes for a first diagnostic read; scale up once the curve looks healthy.
+total_timesteps: 3600000
+n_steps: 720
+batch_size: 8820          # 70,560 / 8
+n_epochs: 10
+
+gamma: 0.99
+gae_lambda: 0.95
+normalize_advantage: true
+
+clip_range: 0.2
+clip_range_vf: null
+
+ent_coef: 0.01
+vf_coef: 0.5
+max_grad_norm: 0.5
+
+learning_rate: 3.0e-4
+
+policy: MlpPolicy
+policy_kwargs:
+  net_arch:
+    - 256
+    - 256
+  activation_fn: tanh
+
+save_checkpoints: true
+checkpoint_freq: 720000
+tensorboard_log: artifacts/tb_logs
