@@ -5,13 +5,15 @@ import { api } from "../api/client";
 import type { ComparisonResult, ComparisonEntry } from "../api/client";
 
 const CTRL_LABELS: Record<string, string> = {
-  ppo:          "PPO (RL Agent)",
+  ppo:          "PPO (Centralized)",
+  ippo:         "IPPO (Parameter-Shared)",
   fixed_time:   "Fixed-Time Baseline",
   max_pressure: "Max-Pressure",
 };
 
 const CTRL_COLORS: Record<string, string> = {
   ppo:          "var(--accent-cyan)",
+  ippo:         "var(--accent-purple)",
   fixed_time:   "var(--signal-yellow)",
   max_pressure: "var(--accent-indigo)",
 };
@@ -85,17 +87,18 @@ export const ComparisonPage: React.FC = () => {
       <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <h2 className="section-title">Controller Comparison</h2>
-          <p className="section-subtitle">PPO vs Fixed-Time vs Max-Pressure · InTAS Ingolstadt · 1.0× demand</p>
+          <p className="section-subtitle">PPO · IPPO · Fixed-Time · Max-Pressure · InTAS Ingolstadt · 1.0× demand</p>
         </div>
         {improvement?.waiting_time_improvement_pct !== undefined && (
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {(() => {
               const pct = improvement.waiting_time_improvement_pct;
               const isImprovement = pct > 0;
+              const label = CTRL_LABELS[improvement.controller ?? "ppo"] ?? improvement.controller;
               return (
                 <span className={`improvement-tag ${isImprovement ? "positive" : "negative"}`}>
                   {isImprovement ? <Award size={12} /> : <TrendingUp size={12} />}
-                  {Math.abs(pct).toFixed(1)}% wait time {isImprovement ? "reduction" : "increase"} vs Fixed-Time
+                  {label}: {Math.abs(pct).toFixed(1)}% wait time {isImprovement ? "reduction" : "increase"} vs Fixed-Time
                 </span>
               );
             })()}

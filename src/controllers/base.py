@@ -28,6 +28,7 @@ class ControllerResult:
     mean_speed: float = 0.0
     total_switches: int = 0
     cumulative_reward: float = 0.0
+    source_run_id: str = ""  # which training run's checkpoint produced this (RL controllers only)
 
 
 class BaseController(ABC):

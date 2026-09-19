@@ -140,7 +140,13 @@ class IPPOAgent:
             tensorboard_log=str(self.run_dir / "tb_logs"),
             device=self.device,
             verbose=1,
-            seed=self.seed,
+            # No seed= here: SB3's PPO.__init__ -> set_random_seed() calls
+            # self.env.seed(seed), and SuperSuit's ConcatVecEnv doesn't
+            # implement that VecEnv method (AttributeError). set_random_seed()
+            # a few lines up already seeds torch/numpy/random globally for
+            # deterministic weight init, and the SUMO env's own seed (below,
+            # via make_ippo_env's seed= -> --seed on the sumo subprocess) is
+            # independent of this and unaffected.
             policy_kwargs=policy_kwargs if policy_kwargs else None,
         )
         print(f"[IPPOAgent] Model built. Obs={self.model.observation_space.shape}, "

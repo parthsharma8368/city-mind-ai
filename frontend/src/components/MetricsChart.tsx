@@ -7,12 +7,14 @@ import type { ComparisonEntry } from "../api/client";
 
 const CONTROLLER_COLORS: Record<string, string> = {
   ppo:           "#22d3ee",
+  ippo:          "#a855f7",
   fixed_time:    "#f59e0b",
   max_pressure:  "#818cf8",
 };
 
 const CONTROLLER_LABELS: Record<string, string> = {
-  ppo:          "PPO (RL)",
+  ppo:          "PPO",
+  ippo:         "IPPO",
   fixed_time:   "Fixed-Time",
   max_pressure: "Max-Pressure",
 };

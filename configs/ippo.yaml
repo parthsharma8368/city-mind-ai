@@ -10,10 +10,13 @@ algorithm: PPO
 device: cpu
 
 # n_steps=720 (one real episode) x 98 agents = 70,560-sample rollout per
-# update. total_timesteps=3,600,000 -> ~36,730 real decision steps -> ~51
-# real episodes. Deliberately smaller than the centralized run's 500k/694
-# episodes for a first diagnostic read; scale up once the curve looks healthy.
-total_timesteps: 3600000
+# update. This is the real run (2026-09-19), not another short diagnostic:
+# total_timesteps=50,000,000 -> ~510,000 real decision steps -> ~708 real
+# episodes, comparable in real-episode count to the centralized run's 694,
+# but with a 70,560-sample batch per update instead of 1,440. checkpoint_freq
+# saves every ~14 real episodes so progress can be evaluated from a live
+# checkpoint without ever stopping this process.
+total_timesteps: 50000000
 n_steps: 720
 batch_size: 8820          # 70,560 / 8
 n_epochs: 10
@@ -39,5 +42,5 @@ policy_kwargs:
   activation_fn: tanh
 
 save_checkpoints: true
-checkpoint_freq: 720000
+checkpoint_freq: 1000000
 tensorboard_log: artifacts/tb_logs

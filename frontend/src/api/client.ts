@@ -69,6 +69,7 @@ export interface ComparisonEntry {
 export interface ComparisonResult {
   results: ComparisonEntry[];
   improvement?: {
+    controller?: string;
     waiting_time_improvement_pct?: number;
     throughput_improvement_pct?: number;
   };

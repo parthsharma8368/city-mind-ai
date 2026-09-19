@@ -10,7 +10,8 @@ import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { sampleAndHold, tlsFramesToStateMap } from "../utils/trajectory";
 
 const CONTROLLERS = [
-  { id: "ppo", name: "PPO (RL Centralized)", badge: "badge-blue" },
+  { id: "ppo", name: "PPO (Centralized)", badge: "badge-blue" },
+  { id: "ippo", name: "IPPO (Parameter-Shared)", badge: "badge-blue" },
   { id: "fixed_time", name: "Fixed-Time Baseline", badge: "badge-yellow" },
   { id: "max_pressure", name: "Max-Pressure Baseline", badge: "badge-green" },
 ];

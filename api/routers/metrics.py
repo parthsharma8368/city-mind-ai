@@ -43,7 +43,13 @@ def get_comparison():
     Return aggregated comparison metrics across all controllers.
     Reads from artifacts/metrics/*.json files.
     """
-    controllers = ["ppo", "fixed_time", "max_pressure"]
+    controllers = ["ppo", "ippo", "fixed_time", "max_pressure"]
+    labels = {
+        "ppo": "PPO (Centralized)",
+        "ippo": "IPPO (Parameter-Shared)",
+        "fixed_time": "Fixed-Time",
+        "max_pressure": "Max-Pressure",
+    }
     results = []
     for ctrl in controllers:
         data = _load_metric_json(ctrl)
@@ -51,7 +57,7 @@ def get_comparison():
             continue
         results.append({
             "controller": ctrl,
-            "label": {"ppo": "PPO (RL)", "fixed_time": "Fixed-Time", "max_pressure": "Max-Pressure"}.get(ctrl, ctrl),
+            "label": labels.get(ctrl, ctrl),
             "mean_waiting_time": round(float(data.get("mean_waiting_time", 0)), 2),
             "mean_queue": round(float(data.get("mean_queue", 0)), 3),
             "throughput": round(float(data.get("throughput", 0)), 4),
@@ -65,17 +71,21 @@ def get_comparison():
         # Return empty but valid response
         return {"results": [], "message": "No evaluation results found. Run run_evaluation.py first."}
 
-    # Compute improvement % relative to fixed_time baseline
+    # Compute improvement % relative to fixed_time baseline, for whichever RL
+    # controller currently has a result and (if both do) is actually better —
+    # so the headline reflects the best real evidence, not always "ppo".
     baseline = next((r for r in results if r["controller"] == "fixed_time"), None)
-    ppo = next((r for r in results if r["controller"] == "ppo"), None)
+    rl_candidates = [r for r in results if r["controller"] in ("ppo", "ippo")]
+    best_rl = min(rl_candidates, key=lambda r: r["mean_waiting_time"], default=None)
 
     improvement = {}
-    if baseline and ppo and baseline["mean_waiting_time"] > 0:
+    if baseline and best_rl and baseline["mean_waiting_time"] > 0:
+        improvement["controller"] = best_rl["controller"]
         improvement["waiting_time_improvement_pct"] = round(
-            (baseline["mean_waiting_time"] - ppo["mean_waiting_time"]) / baseline["mean_waiting_time"] * 100, 1
+            (baseline["mean_waiting_time"] - best_rl["mean_waiting_time"]) / baseline["mean_waiting_time"] * 100, 1
         )
         improvement["throughput_improvement_pct"] = round(
-            (ppo["throughput"] - baseline["throughput"]) / baseline["throughput"] * 100
+            (best_rl["throughput"] - baseline["throughput"]) / baseline["throughput"] * 100
             if baseline["throughput"] > 0 else 0, 1
         )
 

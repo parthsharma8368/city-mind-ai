@@ -27,7 +27,7 @@ export const XAIPage: React.FC = () => {
           <h2 className="section-title">Explainable AI (XAI) Analysis</h2>
           <p className="section-subtitle">
             <Brain size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
-            SHAP-based feature attribution & inter-intersection coordination analysis
+            Integrated-Gradients feature attribution & inter-intersection coordination analysis
           </p>
         </div>
 
@@ -93,8 +93,9 @@ export const XAIPage: React.FC = () => {
         <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
           <strong style={{ color: "var(--text-primary)" }}>How XAI Works in CityMind:</strong>{" "}
           The centralized PPO agent processes full network observations (queue lengths, elapsed green times,
-          downstream neighbor states). Kernel SHAP decomposes the neural policy's logits into additive feature contributions,
-          revealing whether signal timing actions are driven by immediate local queues or coordinated green-wave pressure.
+          downstream neighbor states). Integrated Gradients backpropagates from each junction's switch-decision logit
+          to every input feature along a straight-line path from a zeroed baseline, revealing whether signal timing
+          actions are driven by immediate local queues or coordinated green-wave pressure.
         </div>
       </div>
 
@@ -121,7 +122,7 @@ export const XAIPage: React.FC = () => {
                 <Sparkles size={16} color="var(--accent-cyan)" /> Inter-Intersection Coordination Heatmap
               </h3>
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-                Shows cross-correlation of SHAP attributions between controlled TLS junctions
+                Shows cross-correlation of Integrated-Gradients attributions between controlled TLS junctions
               </p>
             </div>
             <button

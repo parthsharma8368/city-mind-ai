@@ -39,7 +39,7 @@ export const ExperimentsPage: React.FC = () => {
       <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <h2 className="section-title">Experiment Tracking</h2>
-          <p className="section-subtitle">PPO training runs from artifacts/experiments/ppo/</p>
+          <p className="section-subtitle">Training runs from artifacts/experiments/{"{ppo,ippo}"}/ — metrics shown only once evaluated against that run's own checkpoint</p>
         </div>
         {!loading && <span className="badge-blue">{runs.length} runs</span>}
       </div>

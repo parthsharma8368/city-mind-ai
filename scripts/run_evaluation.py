@@ -22,6 +22,7 @@ def parse_args():
     p.add_argument("--tls-json", required=True)
     p.add_argument("--eval-config", default="configs/evaluation.yaml")
     p.add_argument("--ppo-model", default=None)
+    p.add_argument("--ippo-model", default=None)
     p.add_argument("--output-dir", default="artifacts/metrics")
     p.add_argument("--trajectory-dir", default="artifacts/trajectories")
     p.add_argument("--plot", action="store_true", help="Generate comparison plots")
@@ -38,6 +39,7 @@ def main():
         tls_metadata_json=args.tls_json,
         eval_config_path=args.eval_config,
         ppo_model_path=args.ppo_model,
+        ippo_model_path=args.ippo_model,
         output_dir=args.output_dir,
         trajectory_dir=args.trajectory_dir,
     )
