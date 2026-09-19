@@ -21,6 +21,7 @@ import yaml
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
 from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.vec_env import VecMonitor
 
 from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
 from src.environment.local_observation import LocalObservationConfig
@@ -55,6 +56,11 @@ def make_ippo_env(
     )
     vec_env = ss.pettingzoo_env_to_vec_env_v1(env)
     vec_env = ss.concat_vec_envs_v1(vec_env, num_vec_envs=1, num_cpus=0, base_class="stable_baselines3")
+    # Without this, SB3 never logs rollout/ep_rew_mean or ep_len_mean at all
+    # (those come from Monitor/VecMonitor's info["episode"], and SuperSuit's
+    # wrapping doesn't add one) — verified missing in the first real run's
+    # tensorboard log through 3.6M timesteps.
+    vec_env = VecMonitor(vec_env)
     return vec_env
 
 
@@ -160,8 +166,16 @@ class IPPOAgent:
         total_timesteps = int(self.ppo_cfg.get("total_timesteps", 3_600_000))
         checkpoint_freq = int(self.ppo_cfg.get("checkpoint_freq", 720_000))
 
+        # CheckpointCallback triggers on self.n_calls (one env.step() CALL),
+        # not num_timesteps — with a 98-way VecEnv, num_timesteps advances by
+        # 98 per call, so save_freq must be divided by n_envs or it fires 98x
+        # too rarely (SB3's own docstring warns about exactly this). Verified
+        # against the first real run: checkpoint_freq=1_000_000 without this
+        # fix produced zero checkpoints through 3.6M timesteps (51 real
+        # episodes) because n_calls never reached 1,000,000.
+        save_freq = max(checkpoint_freq // self.model.n_envs, 1)
         checkpoint_cb = CheckpointCallback(
-            save_freq=checkpoint_freq,
+            save_freq=save_freq,
             save_path=str(self.run_dir / "checkpoints"),
             name_prefix="ippo_citymind",
         )
