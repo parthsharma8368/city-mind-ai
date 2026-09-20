@@ -31,9 +31,17 @@ class FixedTimeController(BaseController):
     green-time programs from the .sumocfg / additional files.
     """
 
-    def __init__(self, step_length: float = 1.0, episode_duration: int = 3600) -> None:
+    def __init__(
+        self,
+        step_length: float = 1.0,
+        episode_duration: int = 3600,
+        sumo_binary: str = "sumo",
+        sumo_extra_args: list[str] | None = None,
+    ) -> None:
         self.step_length = step_length
         self.episode_duration = episode_duration
+        self.sumo_binary = sumo_binary
+        self.sumo_extra_args = sumo_extra_args or []
 
     @property
     def name(self) -> str:
@@ -48,13 +56,13 @@ class FixedTimeController(BaseController):
         trajectory_path: str | None = None,
     ) -> ControllerResult:
         cmd = [
-            "sumo",
+            self.sumo_binary,
             "--configuration-file", sumo_cfg,
             "--step-length", str(self.step_length),
             "--no-warnings",
             "--no-step-log",
             "--seed", str(seed),
-        ]
+        ] + self.sumo_extra_args
 
         if USING_LIBSUMO:
             traci.start(cmd)

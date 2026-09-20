@@ -87,11 +87,14 @@ export interface MetricsSummary {
   total_switches: number;
 }
 
+export type SimControllerId = "fixed_time" | "max_pressure" | "ppo" | "ippo";
+
 export interface SimulationStatus {
   gui_running: boolean;
   gui_pid?: number | null;
   latest_model?: string | null;
   xquartz_display?: string | null;
+  running_controllers?: SimControllerId[];
 }
 
 export interface LaunchResponse {
@@ -135,6 +138,7 @@ export interface WsPayload {
   timestamp: number;
   gui_running: boolean;
   gui_pid?: number | null;
+  running_controllers?: SimControllerId[];
   metrics: Record<string, {
     mean_waiting_time: number;
     mean_queue: number;
@@ -193,14 +197,18 @@ export const api = {
 
   // ── Simulation Control (XQuartz) ───────────────────────────────────────
   getSimulationStatus: () => _fetch<SimulationStatus>("/simulation/status"),
-  launchSimulationGui: (model?: string, delay?: number) =>
-    _fetch<LaunchResponse>("/simulation/launch-gui", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, delay: delay ?? 80 }),
-    }),
-  stopSimulationGui: () =>
-    _fetch<{ status: string; message: string }>("/simulation/stop-gui", { method: "POST" }),
+  // FastAPI binds these as query params (no Pydantic body on the endpoint),
+  // so they're sent on the URL, not as a JSON body — the previous version of
+  // this call sent a JSON body FastAPI was never reading.
+  launchSimulationGui: (controllerId: SimControllerId, model?: string, delay = 80, duration = 3600) => {
+    const params = new URLSearchParams({ controller: controllerId, delay: String(delay), duration: String(duration) });
+    if (model) params.set("model", model);
+    return _fetch<LaunchResponse>(`/simulation/launch-gui?${params.toString()}`, { method: "POST" });
+  },
+  stopSimulationGui: (controllerId?: SimControllerId) => {
+    const params = controllerId ? `?${new URLSearchParams({ controller: controllerId }).toString()}` : "";
+    return _fetch<{ status: string; message: string }>(`/simulation/stop-gui${params}`, { method: "POST" });
+  },
   getLatestModel: () => _fetch<{ model_path: string; run_id: string; config: Record<string, unknown> }>("/simulation/latest-model"),
 
   // ── XAI ───────────────────────────────────────────────────────────────

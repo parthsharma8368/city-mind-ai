@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -26,10 +27,15 @@ from api.security import require_api_key
 
 router = APIRouter()
 
-_gui_process: Optional[subprocess.Popen] = None
+# Keyed by controller name ("fixed_time" | "max_pressure" | "ppo" | "ippo") so
+# multiple controllers can run as separate SUMO-GUI windows at once — the
+# whole point is comparing a specific intersection live between two windows.
+_gui_processes: dict[str, subprocess.Popen] = {}
 _gui_lock = threading.Lock()
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 _ARTIFACTS_DIR = (_PROJECT_ROOT / "artifacts").resolve()
+_CONTROLLERS = ("fixed_time", "max_pressure", "ppo", "ippo")
+_MODEL_BASED_CONTROLLERS = ("ppo", "ippo")
 
 
 class LaunchResponse(BaseModel):
@@ -44,10 +50,11 @@ class StatusResponse(BaseModel):
     gui_pid: Optional[int] = None
     latest_model: Optional[str] = None
     xquartz_display: Optional[str] = None
+    running_controllers: list[str] = []
 
 
-def _find_latest_model() -> Optional[Path]:
-    experiments_dir = _PROJECT_ROOT / "artifacts" / "experiments"
+def _find_latest_model(experiments_subdir: str = "") -> Optional[Path]:
+    experiments_dir = _PROJECT_ROOT / "artifacts" / "experiments" / experiments_subdir
     candidates = list(experiments_dir.glob("**/model_final.zip"))
     if not candidates:
         candidates = list(experiments_dir.glob("**/*.zip"))
@@ -61,22 +68,22 @@ def _get_display() -> str:
     return os.environ.get("DISPLAY", ":0")
 
 
-def _is_gui_running() -> bool:
-    global _gui_process
-    if _gui_process is None:
+def _is_running(controller: str) -> bool:
+    proc = _gui_processes.get(controller)
+    if proc is None:
         return False
-    if _gui_process.poll() is not None:
-        _gui_process = None
+    if proc.poll() is not None:
+        del _gui_processes[controller]
         return False
     return True
 
 
-def _resolve_model_path(model: Optional[str]) -> Path:
+def _resolve_model_path(model: Optional[str], controller: str) -> Path:
     """Resolve a requested model path and require it to live under artifacts/."""
     if not model:
-        found = _find_latest_model()
+        found = _find_latest_model(controller)
         if found is None:
-            raise HTTPException(404, "No trained model found in artifacts/experiments/.")
+            raise HTTPException(404, f"No trained {controller} model found in artifacts/experiments/{controller}/.")
         return found
 
     candidate = (_PROJECT_ROOT / model).resolve() if not Path(model).is_absolute() else Path(model).resolve()
@@ -88,32 +95,39 @@ def _resolve_model_path(model: Optional[str]) -> Path:
 
 
 @router.post("/launch-gui", response_model=LaunchResponse, dependencies=[Depends(require_api_key)])
-def launch_gui(model: Optional[str] = None, delay: int = 80, duration: int = 3600):
-    """Launch SUMO-GUI visual simulation via XQuartz."""
-    global _gui_process
+def launch_gui(
+    controller: str = "ppo",
+    model: Optional[str] = None,
+    delay: int = 80,
+    duration: int = 3600,
+):
+    """Launch a SUMO-GUI window for one controller. Call again with a different
+    controller to open a second window and compare them live side by side."""
+    if controller not in _CONTROLLERS:
+        raise HTTPException(400, f"controller must be one of {_CONTROLLERS}")
 
     with _gui_lock:
-        if _is_gui_running():
+        if _is_running(controller):
+            proc = _gui_processes[controller]
             return LaunchResponse(
-                status="already_running",
-                pid=_gui_process.pid,
-                message="SUMO-GUI already running.",
+                status="already_running", pid=proc.pid,
+                message=f"SUMO-GUI for '{controller}' already running.",
             )
 
-        model_path = _resolve_model_path(model)
+        cmd = [sys.executable, str(_PROJECT_ROOT / "scripts" / "run_visual_demo.py"),
+               "--controller", controller, "--delay", str(delay), "--duration", str(duration)]
 
-        python_bin = sys.executable
-        demo_script = _PROJECT_ROOT / "scripts" / "run_visual_demo.py"
-
-        cmd = [python_bin, str(demo_script), "--model", str(model_path),
-               "--delay", str(delay), "--duration", str(duration)]
+        model_path: Optional[Path] = None
+        if controller in _MODEL_BASED_CONTROLLERS:
+            model_path = _resolve_model_path(model, controller)
+            cmd += ["--model", str(model_path)]
 
         env = os.environ.copy()
         if "DISPLAY" not in env:
             env["DISPLAY"] = ":0"
 
         try:
-            _gui_process = subprocess.Popen(
+            proc = subprocess.Popen(
                 cmd, cwd=str(_PROJECT_ROOT), env=env,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 start_new_session=True,
@@ -122,46 +136,64 @@ def launch_gui(model: Optional[str] = None, delay: int = 80, duration: int = 360
             raise HTTPException(500, f"Failed to launch SUMO-GUI: {exc}") from exc
 
         time.sleep(0.5)
-        if _gui_process.poll() is not None:
-            raise HTTPException(500, "SUMO-GUI process exited immediately.")
+        if proc.poll() is not None:
+            raise HTTPException(500, f"SUMO-GUI for '{controller}' exited immediately.")
 
+        _gui_processes[controller] = proc
         return LaunchResponse(
             status="launched",
-            pid=_gui_process.pid,
-            model=str(model_path),
-            message=f"SUMO-GUI launched (PID={_gui_process.pid}). XQuartz window opening. DISPLAY={env.get('DISPLAY')}",
+            pid=proc.pid,
+            model=str(model_path) if model_path else None,
+            message=f"SUMO-GUI for '{controller}' launched (PID={proc.pid}). XQuartz window opening.",
         )
 
 
 @router.post("/stop-gui", dependencies=[Depends(require_api_key)])
-def stop_gui():
-    """Terminate the running SUMO-GUI process."""
-    global _gui_process
+def stop_gui(controller: Optional[str] = None):
+    """Stop one controller's SUMO-GUI window, or every running window if controller is omitted."""
     with _gui_lock:
-        if not _is_gui_running():
-            return {"status": "not_running", "message": "No SUMO-GUI process is running."}
-        pid = _gui_process.pid
-        try:
-            _gui_process.terminate()
-            _gui_process.wait(timeout=5)
-        except Exception:
+        targets = [controller] if controller else list(_gui_processes.keys())
+        stopped = []
+        for name in targets:
+            if not _is_running(name):
+                continue
+            proc = _gui_processes[name]
+            pid = proc.pid
+            # proc.terminate() only signals this Python wrapper — the actual
+            # sumo-gui window it spawned via TraCI is a separate child process
+            # that keeps running as an orphan. launch_gui uses
+            # start_new_session=True, which makes this process its own
+            # process-group leader, so killing the *group* (negative pid)
+            # takes the sumo-gui window down with it. Verified: without this,
+            # "stop" left the window open indefinitely.
             try:
-                _gui_process.kill()
+                pgid = os.getpgid(pid)
+                os.killpg(pgid, signal.SIGTERM)
+                proc.wait(timeout=5)
             except Exception:
-                pass
-        _gui_process = None
-        return {"status": "stopped", "pid": pid, "message": f"SUMO-GUI process {pid} terminated."}
+                try:
+                    os.killpg(os.getpgid(pid), signal.SIGKILL)
+                except Exception:
+                    pass
+            del _gui_processes[name]
+            stopped.append({"controller": name, "pid": pid})
+        if not stopped:
+            return {"status": "not_running", "message": "No matching SUMO-GUI process is running."}
+        return {"status": "stopped", "stopped": stopped, "message": f"Stopped {len(stopped)} SUMO-GUI process(es)."}
 
 
 @router.get("/status", response_model=StatusResponse)
 def get_status():
     """Return current simulation status."""
+    running = [c for c in _CONTROLLERS if _is_running(c)]
     model = _find_latest_model()
+    first_pid = _gui_processes[running[0]].pid if running else None
     return StatusResponse(
-        gui_running=_is_gui_running(),
-        gui_pid=_gui_process.pid if _is_gui_running() else None,
+        gui_running=bool(running),
+        gui_pid=first_pid,
         latest_model=str(model) if model else None,
         xquartz_display=_get_display(),
+        running_controllers=running,
     )
 
 
@@ -210,11 +242,13 @@ async def simulation_ws(websocket: WebSocket):
                     }
                 except Exception:
                     pass
+            running = [c for c in _CONTROLLERS if _is_running(c)]
             payload = {
                 "type": "status",
                 "timestamp": time.time(),
-                "gui_running": _is_gui_running(),
-                "gui_pid": _gui_process.pid if _is_gui_running() else None,
+                "gui_running": bool(running),
+                "gui_pid": _gui_processes[running[0]].pid if running else None,
+                "running_controllers": running,
                 "metrics": metrics,
             }
             await websocket.send_json(payload)

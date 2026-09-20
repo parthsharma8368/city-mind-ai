@@ -57,10 +57,14 @@ class MaxPressureController(BaseController):
         step_length: float = 1.0,
         episode_duration: int = 3600,
         pressure_margin: float = 0.0,
+        sumo_binary: str = "sumo",
+        sumo_extra_args: list[str] | None = None,
     ) -> None:
         self.decision_interval = decision_interval
         self.step_length = step_length
         self.episode_duration = episode_duration
+        self.sumo_binary = sumo_binary
+        self.sumo_extra_args = sumo_extra_args or []
         # Textbook Varaiya rule: switch whenever the next phase has strictly
         # higher pressure (margin=0). A pressure_margin > 0 (require the next
         # phase to clear the current one by more than this before switching)
@@ -100,13 +104,13 @@ class MaxPressureController(BaseController):
         downstream_cache: dict[str, list[str]] = {}
 
         cmd = [
-            "sumo",
+            self.sumo_binary,
             "--configuration-file", sumo_cfg,
             "--step-length", str(self.step_length),
             "--no-warnings",
             "--no-step-log",
             "--seed", str(seed),
-        ]
+        ] + self.sumo_extra_args
 
         if USING_LIBSUMO:
             traci.start(cmd)

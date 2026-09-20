@@ -1,144 +1,140 @@
 import React, { useState, useEffect } from "react";
 import { Play, Square, Cpu, Monitor, RefreshCw } from "lucide-react";
 import { api } from "../api/client";
-import type { SimulationStatus } from "../api/client";
+import type { SimulationStatus, SimControllerId } from "../api/client";
 import { useSimulationSocket } from "../context/SimulationSocketContext";
+
+const CONTROLLERS: { id: SimControllerId; label: string }[] = [
+  { id: "fixed_time", label: "Fixed-Time" },
+  { id: "max_pressure", label: "Max-Pressure" },
+  { id: "ppo", label: "PPO" },
+  { id: "ippo", label: "IPPO" },
+];
 
 export const SimulationControl: React.FC = () => {
   const [simStatus, setSimStatus] = useState<SimulationStatus | null>(null);
-  const [launching, setLaunching] = useState(false);
-  const [stopping, setStopping] = useState(false);
+  const [pending, setPending] = useState<SimControllerId | null>(null);
   const [launchMsg, setLaunchMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { status: wsStatus, lastMessage: wsPayload } = useSimulationSocket();
 
+  const refreshStatus = () => api.getSimulationStatus().then(setSimStatus).catch(() => null);
+
   useEffect(() => {
-    api.getSimulationStatus()
-      .then(setSimStatus)
-      .catch(() => null);
+    refreshStatus();
   }, []);
 
-  // Keep gui_running/pid in sync with the shared live feed without a second socket.
+  // Keep running-controller state in sync with the shared live feed without a second socket.
   useEffect(() => {
     if (!wsPayload) return;
     setSimStatus((prev) => ({
       gui_running: wsPayload.gui_running,
       gui_pid: wsPayload.gui_pid ?? null,
+      running_controllers: wsPayload.running_controllers ?? [],
       latest_model: prev?.latest_model ?? null,
       xquartz_display: prev?.xquartz_display ?? null,
     }));
   }, [wsPayload]);
 
-  const handleLaunch = async () => {
-    setLaunching(true);
+  const runningControllers = wsPayload?.running_controllers ?? simStatus?.running_controllers ?? [];
+  const display = simStatus?.xquartz_display ?? "N/A";
+
+  const handleLaunch = async (controllerId: SimControllerId) => {
+    setPending(controllerId);
     setError(null);
     setLaunchMsg(null);
     try {
-      const res = await api.launchSimulationGui(undefined, 80);
+      const res = await api.launchSimulationGui(controllerId, undefined, 80);
       setLaunchMsg(res.message);
-      setTimeout(() => api.getSimulationStatus().then(setSimStatus).catch(() => null), 1500);
+      setTimeout(refreshStatus, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Launch failed");
+      setError(err instanceof Error ? err.message : `Launch failed for ${controllerId}`);
     } finally {
-      setLaunching(false);
+      setPending(null);
     }
   };
 
-  const handleStop = async () => {
-    setStopping(true);
+  const handleStop = async (controllerId: SimControllerId) => {
+    setPending(controllerId);
     setError(null);
     try {
-      await api.stopSimulationGui();
-      setSimStatus((prev) => prev ? { ...prev, gui_running: false, gui_pid: null } : null);
+      await api.stopSimulationGui(controllerId);
       setLaunchMsg(null);
+      setTimeout(refreshStatus, 500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Stop failed");
+      setError(err instanceof Error ? err.message : `Stop failed for ${controllerId}`);
     } finally {
-      setStopping(false);
+      setPending(null);
     }
   };
-
-  const isRunning = wsPayload?.gui_running ?? simStatus?.gui_running ?? false;
-  const display = simStatus?.xquartz_display ?? "N/A";
-  const modelPath = simStatus?.latest_model;
-  const modelShort = modelPath ? modelPath.split("/").slice(-2).join("/") : "—";
 
   return (
     <div className="glass-card" style={{ padding: "1.25rem 1.5rem" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-          <Monitor size={18} color="var(--accent-cyan)" />
+          <Monitor size={18} color="var(--accent-cyan)" aria-hidden="true" />
           <span style={{ fontWeight: 600, fontSize: "1rem" }}>SUMO-GUI Simulation Control</span>
         </div>
-        <div className="ws-indicator">
+        <div className="ws-indicator" role="status" aria-live="polite">
           {wsStatus === "connected"
-            ? <><span className="ws-dot" />Live</>
-            : <><span className="ws-dot disconnected" />Connecting…</>
+            ? <><span className="ws-dot" aria-hidden="true" />Live</>
+            : <><span className="ws-dot disconnected" aria-hidden="true" />Connecting…</>
           }
         </div>
       </div>
 
-      {/* Status Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem", marginBottom: "1rem" }}>
-        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "0.75rem 1rem", border: "1px solid var(--border-subtle)" }}>
-          <div className="metric-label">GUI Process</div>
-          <div style={{ marginTop: "0.25rem", display: "flex", alignItems: "center", gap: 6 }}>
-            {isRunning
-              ? <><span className="tls-dot green" /><span style={{ color: "var(--signal-green)", fontWeight: 600, fontSize: "0.875rem" }}>Running</span></>
-              : <><span className="tls-dot" style={{ background: "var(--text-muted)", color: "var(--text-muted)" }} /><span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>Idle</span></>
-            }
-          </div>
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "0.75rem 1rem", border: "1px solid var(--border-subtle)" }}>
-          <div className="metric-label">XQuartz Display</div>
-          <div style={{ marginTop: "0.25rem", fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--accent-cyan)" }}>
-            {display}
-          </div>
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "0.75rem 1rem", border: "1px solid var(--border-subtle)" }}>
-          <div className="metric-label">Model</div>
-          <div style={{ marginTop: "0.25rem", fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {modelShort}
-          </div>
-        </div>
+      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.9rem" }}>
+        Launch more than one controller to compare live in separate XQuartz windows — same seed and
+        scenario each time, so the same intersection can be watched side by side.
+      </p>
+
+      {/* Per-controller launch/stop grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem", marginBottom: "1rem" }}>
+        {CONTROLLERS.map(({ id, label }) => {
+          const isRunning = runningControllers.includes(id);
+          const isPending = pending === id;
+          return (
+            <div key={id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "0.75rem", border: "1px solid var(--border-subtle)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "0.5rem" }}>
+                <span
+                  className="tls-dot"
+                  style={{ background: isRunning ? "var(--signal-green)" : "var(--text-muted)" }}
+                  aria-hidden="true"
+                />
+                <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>{label}</span>
+              </div>
+              <button
+                className={`btn btn-sm ${isRunning ? "btn-danger" : "btn-success"}`}
+                style={{ width: "100%", justifyContent: "center" }}
+                onClick={() => (isRunning ? handleStop(id) : handleLaunch(id))}
+                disabled={isPending}
+                aria-pressed={isRunning}
+              >
+                {isPending
+                  ? <span className="spinner" style={{ width: 12, height: 12 }} />
+                  : isRunning
+                    ? <><Square size={12} aria-hidden="true" /> Stop</>
+                    : <><Play size={12} aria-hidden="true" /> Launch</>
+                }
+              </button>
+            </div>
+          );
+        })}
       </div>
 
-      {/* PID badge */}
-      {isRunning && (wsPayload?.gui_pid ?? simStatus?.gui_pid) && (
-        <div style={{ marginBottom: "0.75rem" }}>
-          <span className="badge-blue">
-            <Cpu size={10} /> PID {wsPayload?.gui_pid ?? simStatus?.gui_pid}
-          </span>
-        </div>
-      )}
-
-      {/* Buttons */}
-      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-        {!isRunning ? (
-          <button
-            className="btn btn-success btn-lg"
-            onClick={handleLaunch}
-            disabled={launching}
-          >
-            {launching ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Launching…</> : <><Play size={18} /> Launch SUMO-GUI (XQuartz)</>}
-          </button>
-        ) : (
-          <button
-            className="btn btn-danger btn-lg"
-            onClick={handleStop}
-            disabled={stopping}
-          >
-            {stopping ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Stopping…</> : <><Square size={18} /> Stop Simulation</>}
-          </button>
-        )}
-        <button
-          className="btn btn-sm"
-          onClick={() => api.getSimulationStatus().then(setSimStatus).catch(() => null)}
-          title="Refresh status"
-        >
-          <RefreshCw size={14} /> Refresh
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+          XQuartz Display: <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent-cyan)" }}>{display}</span>
+        </span>
+        <button className="btn btn-sm" onClick={refreshStatus} title="Refresh status">
+          <RefreshCw size={14} aria-hidden="true" /> Refresh
         </button>
+        {runningControllers.length > 0 && (
+          <span className="badge-blue">
+            <Cpu size={10} aria-hidden="true" /> {runningControllers.length} window{runningControllers.length > 1 ? "s" : ""} running
+          </span>
+        )}
       </div>
 
       {/* Messages */}
@@ -157,7 +153,7 @@ export const SimulationControl: React.FC = () => {
       {wsPayload?.metrics && Object.keys(wsPayload.metrics).length > 0 && (
         <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
           <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: "0.5rem" }}>
-            Live Metrics
+            Live Metrics (from saved evaluation results)
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px,1fr))", gap: "0.5rem" }}>
             {Object.entries(wsPayload.metrics).map(([ctrl, m]) => (
