@@ -15,7 +15,19 @@ intersection's own lanes, a normalized phase index instead of a one-hot) so
 every agent's observation is the same fixed size regardless of its own
 lane/phase count. It reads from TLSRuntimeState fields that ObservationBuilder
 already populates each decision step (raw units — see observation.py), so
-building all 98 agents' local observations costs zero extra TraCI calls.
+building all 98 agents' local observations costs zero extra TraCI calls
+beyond the downstream-lane queue lookups already required for
+downstream_queue_norm (unchanged by the neighbor features below — those come
+from OTHER agents' already-computed own-queue values, not new TraCI calls).
+
+XAI evidence (2026-09-20 IPPO analysis) found a sampled junction's decision
+was 94.1% driven by its own state and 0.1% by the single aggregate
+downstream_queue_norm below — consistent with the network's 3.02s vs 4.15s
+gap to Fixed-Time being a *missing-information* problem, not an
+architecture problem. neighbor_queue_norm_1/2 give each agent explicit
+visibility into its 2 geographically-nearest other TLS's own current
+congestion, which downstream_queue_norm (this TLS's own outflow lanes, not
+another TLS's state) never provided.
 """
 from __future__ import annotations
 
@@ -28,8 +40,10 @@ from src.scenario.tls_metadata import TLSRuntimeState, TLSSpec
 
 # phase_elapsed_norm, phase_progress_norm, mean_queue_norm, max_queue_norm,
 # mean_speed_norm, mean_density_norm, num_lanes_norm, downstream_queue_norm,
-# total_vehicles_norm, total_waiting_norm
-LOCAL_OBS_SIZE = 10
+# neighbor_queue_norm_1, neighbor_queue_norm_2, total_vehicles_norm,
+# total_waiting_norm
+LOCAL_OBS_SIZE = 12
+N_NEIGHBORS = 2
 
 
 @dataclass
@@ -60,6 +74,31 @@ def get_downstream_lanes(lane_id: str, cache: dict[str, list[str]]) -> list[str]
     return downstream
 
 
+def compute_mean_queue_norm(state: TLSRuntimeState, cfg: LocalObservationConfig) -> float:
+    """This TLS's own mean queue, normalized — the value neighbors read about each other."""
+    queue = state.lane_queue or [0.0]
+    return min(_mean(queue) / cfg.max_lane_vehicles, 1.0)
+
+
+def compute_downstream_queue_sum(
+    spec: TLSSpec, downstream_cache: dict[str, list[str]]
+) -> float:
+    """Raw (non-normalized) sum-basis for this TLS's own downstream-lane queues.
+
+    Pulled out of build_local_observation so the env can compute it once per
+    TLS per step and reuse the same TraCI calls for both the observation
+    feature and the reward's spillback penalty, instead of querying twice.
+    """
+    downstream_queues: list[float] = []
+    for lane_id in spec.controlled_lanes:
+        for dl in get_downstream_lanes(lane_id, downstream_cache):
+            try:
+                downstream_queues.append(float(traci.lane.getLastStepHaltingNumber(dl)))
+            except traci.exceptions.TraCIException:
+                pass
+    return _mean(downstream_queues)
+
+
 def build_local_observation(
     spec: TLSSpec,
     state: TLSRuntimeState,
@@ -67,6 +106,8 @@ def build_local_observation(
     downstream_cache: dict[str, list[str]],
     total_vehicles: float,
     total_waiting: float,
+    downstream_queue_sum: float | None = None,
+    neighbor_queue_norms: list[float] | None = None,
 ) -> np.ndarray:
     """
     Build this one TLS's fixed-size local observation.
@@ -74,6 +115,18 @@ def build_local_observation(
     Requires state.lane_queue / lane_vehicles / lane_speed / lane_density to
     already be populated with this step's *raw* values (ObservationBuilder.build()
     does this for every TLS in one pass before any agent's local obs is built).
+
+    downstream_queue_sum: this TLS's own raw downstream-lane queue sum,
+    precomputed once by the caller (compute_downstream_queue_sum) — computed
+    internally here if omitted, for callers (e.g. the unit tests) that don't
+    need to share it with the reward calculator too.
+
+    neighbor_queue_norms: the 2 geographically-nearest other TLS's own
+    compute_mean_queue_norm() values, precomputed by the caller (which has to
+    already know every TLS's position and mean queue to build this list —
+    see DecentralizedSumoEnv._neighbor_map). Padded/truncated to exactly
+    N_NEIGHBORS; defaults to zeros when omitted (e.g. no neighbor data
+    available, or fewer than N_NEIGHBORS TLS exist).
     """
     n_phases = len(spec.phases)
     phase_elapsed_norm = min(state.phase_elapsed / cfg.max_phase_elapsed, 1.0)
@@ -83,20 +136,18 @@ def build_local_observation(
     speed = state.lane_speed or [0.0]
     density = state.lane_density or [0.0]
 
-    mean_queue_norm = min(_mean(queue) / cfg.max_lane_vehicles, 1.0)
+    mean_queue_norm = compute_mean_queue_norm(state, cfg)
     max_queue_norm = min(max(queue) / cfg.max_lane_vehicles, 1.0)
     mean_speed_norm = min(max(_mean(speed), 0.0) / cfg.max_speed, 1.0)
     mean_density_norm = min(_mean(density), 1.0)
     num_lanes_norm = min(len(spec.controlled_lanes) / cfg.max_lanes_reference, 1.0)
 
-    downstream_queues: list[float] = []
-    for lane_id in spec.controlled_lanes:
-        for dl in get_downstream_lanes(lane_id, downstream_cache):
-            try:
-                downstream_queues.append(float(traci.lane.getLastStepHaltingNumber(dl)))
-            except traci.exceptions.TraCIException:
-                pass
-    downstream_queue_norm = min(_mean(downstream_queues) / cfg.max_lane_vehicles, 1.0)
+    if downstream_queue_sum is None:
+        downstream_queue_sum = compute_downstream_queue_sum(spec, downstream_cache)
+    downstream_queue_norm = min(downstream_queue_sum / cfg.max_lane_vehicles, 1.0)
+
+    neighbors = list(neighbor_queue_norms or [])
+    neighbors = (neighbors + [0.0] * N_NEIGHBORS)[:N_NEIGHBORS]
 
     total_vehicles_norm = min(total_vehicles / cfg.max_total_vehicles, 1.0)
     total_waiting_norm = min(total_waiting / cfg.max_waiting_time, 1.0)
@@ -110,6 +161,7 @@ def build_local_observation(
         mean_density_norm,
         num_lanes_norm,
         downstream_queue_norm,
+        *neighbors,
         total_vehicles_norm,
         total_waiting_norm,
     ], dtype=np.float32)

@@ -457,6 +457,8 @@ LOCAL_FEATURE_SPECS: List[Tuple[str, str]] = [
     ("mean_density_norm", "own"),
     ("num_lanes_norm", "own"),
     ("downstream_queue_norm", "neighbor"),
+    ("neighbor_queue_norm_1", "neighbor"),
+    ("neighbor_queue_norm_2", "neighbor"),
     ("total_vehicles_norm", "global"),
     ("total_waiting_norm", "global"),
 ]
@@ -464,9 +466,9 @@ assert len(LOCAL_FEATURE_SPECS) == LOCAL_OBS_SIZE
 
 
 def build_local_feature_descriptors(tls_id: str, tls_index: int) -> List[FeatureDescriptor]:
-    """The 10 fixed local-observation features for one TLS, as FeatureDescriptors
-    (same shape XAIExplainer uses) so the API/frontend can render either
-    explainer's output identically."""
+    """The LOCAL_OBS_SIZE fixed local-observation features for one TLS, as
+    FeatureDescriptors (same shape XAIExplainer uses) so the API/frontend can
+    render either explainer's output identically."""
     descriptors = []
     for i, (name, group) in enumerate(LOCAL_FEATURE_SPECS):
         descriptors.append(FeatureDescriptor(

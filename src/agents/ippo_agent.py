@@ -104,6 +104,7 @@ class IPPOAgent:
             waiting_delta_weight=self.env_cfg["reward"].get("waiting_delta_weight", 1.0),
             queue_weight=self.env_cfg["reward"].get("queue_weight", 0.0),
             switching_penalty=self.env_cfg["reward"].get("switching_penalty", 0.3),
+            spillback_weight=self.env_cfg["reward"].get("spillback_weight", 0.2),
         )
         safety_cfg = SafetyConfig(
             min_green=self.env_cfg["safety"].get("min_green", 10.0),

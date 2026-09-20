@@ -58,6 +58,16 @@ reward:
   waiting_delta_weight: 1.0
   queue_weight: 0.0
   switching_penalty: 0.3
+  # IPPO only (local_reward.py): penalizes an *increase* in this TLS's own
+  # downstream-lane queue, paired with local_observation.py's
+  # neighbor_queue_norm features (2026-09-20) — added after XAI attribution
+  # showed a sampled junction's decision was 94.1% driven by its own state
+  # and 0.1% by neighbor state, to test whether giving agents both explicit
+  # neighbor visibility AND an incentive to act on it narrows the gap to
+  # Fixed-Time. Not a validated final value — 0.2 is a modest, non-dominant
+  # starting point relative to waiting_delta_weight, same reasoning as
+  # switching_penalty's introduction above.
+  spillback_weight: 0.2
   # Rich reward: uncomment to activate
   # waiting_delta_weight: 1.0
   # queue_weight: 0.1

@@ -55,3 +55,28 @@ def test_switching_penalty_applies_only_when_this_agent_switched(mock_traci):
 
     assert reward_hold == 0.0
     assert reward_switch == -0.3
+
+
+@patch("src.environment.local_reward.traci")
+def test_spillback_penalty_only_fires_on_downstream_queue_increase(mock_traci):
+    """An increasing downstream queue should be penalized; a decreasing or flat one should not
+    (only the *increase* in spillback is a signal worth discouraging)."""
+    mock_traci.exceptions.TraCIException = Exception
+    spec = make_spec("A", ["a_lane"])
+    calc = LocalRewardCalculator(LocalRewardConfig(
+        waiting_delta_weight=0.0, switching_penalty=0.0, spillback_weight=0.5,
+    ))
+    calc.reset()
+    mock_traci.vehicle.getIDList.return_value = []
+    calc.refresh_lane_waiting()
+
+    reward_baseline, _ = calc.compute("A", spec, queue_sum=0.0, switched=False, downstream_queue_sum=2.0)
+    assert reward_baseline == 0.0  # first call has no prior value to compare against
+
+    reward_worse, info_worse = calc.compute("A", spec, queue_sum=0.0, switched=False, downstream_queue_sum=6.0)
+    assert reward_worse == -0.5 * 4.0  # delta of +4.0 vehicles * spillback_weight
+    assert info_worse["reward/spillback_component"] == -2.0
+
+    reward_better, info_better = calc.compute("A", spec, queue_sum=0.0, switched=False, downstream_queue_sum=1.0)
+    assert reward_better == 0.0  # a decrease is not penalized (only increases are)
+    assert info_better["reward/spillback_component"] == 0.0

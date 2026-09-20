@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
 from src.environment.local_observation import (
     LOCAL_OBS_SIZE,
     LocalObservationConfig,
@@ -68,8 +70,59 @@ def test_local_observation_reflects_own_queue_not_network(mock_traci):
     obs_busy = build_local_observation(spec, busy, cfg, {}, total_vehicles=500, total_waiting=1000)
     obs_empty = build_local_observation(spec, empty, cfg, {}, total_vehicles=500, total_waiting=1000)
 
-    # mean_queue_norm (index 2) and max_queue_norm (index 3) differ; global features (8, 9) match.
+    # mean_queue_norm (index 2) and max_queue_norm (index 3) differ; global features (10, 11) match.
     assert obs_busy[2] > obs_empty[2]
     assert obs_busy[3] > obs_empty[3]
-    assert obs_busy[8] == obs_empty[8]
-    assert obs_busy[9] == obs_empty[9]
+    assert obs_busy[10] == obs_empty[10]
+    assert obs_busy[11] == obs_empty[11]
+
+
+@patch("src.environment.local_observation.traci")
+def test_neighbor_queue_norms_land_at_the_documented_indices(mock_traci):
+    """neighbor_queue_norm_1/2 (indices 8, 9) should carry through whatever the caller passes,
+    independent of this TLS's own state — this is what lets one agent see a neighbor's congestion."""
+    mock_traci.lane.getLinks.return_value = []
+    mock_traci.exceptions.TraCIException = Exception
+
+    spec = make_spec("tls_1", n_lanes=2, n_phases=4)
+    state = TLSRuntimeState(tls_id="tls_1", current_phase=0, phase_elapsed=5.0)
+    state.lane_queue = [1.0, 1.0]
+    state.lane_speed = [5.0, 5.0]
+    state.lane_density = [0.1, 0.1]
+    cfg = LocalObservationConfig()
+
+    obs_no_neighbors = build_local_observation(spec, state, cfg, {}, total_vehicles=100, total_waiting=50)
+    assert obs_no_neighbors[8] == 0.0 and obs_no_neighbors[9] == 0.0
+
+    obs_with_neighbors = build_local_observation(
+        spec, state, cfg, {}, total_vehicles=100, total_waiting=50,
+        neighbor_queue_norms=[0.6, 0.3],
+    )
+    assert obs_with_neighbors[8] == pytest.approx(0.6, abs=1e-6)
+    assert obs_with_neighbors[9] == pytest.approx(0.3, abs=1e-6)
+    # Everything else about this TLS's own observation is unaffected by its neighbors' values.
+    assert obs_with_neighbors[2] == obs_no_neighbors[2]
+
+
+@patch("src.environment.local_observation.traci")
+def test_downstream_queue_sum_precomputed_matches_internal_computation(mock_traci):
+    """Passing a precomputed downstream_queue_sum (what the env now does, to
+    share the TraCI call with the reward's spillback penalty) must produce
+    the same normalized feature as letting build_local_observation compute
+    it internally."""
+    mock_traci.lane.getLinks.return_value = [("downstream_lane_1", 0, "", "", "", "", "", "")]
+    mock_traci.lane.getLastStepHaltingNumber.return_value = 5.0
+    mock_traci.exceptions.TraCIException = Exception
+
+    spec = make_spec("tls_1", n_lanes=1, n_phases=2)
+    state = TLSRuntimeState(tls_id="tls_1", current_phase=0, phase_elapsed=5.0)
+    state.lane_queue = [1.0]
+    state.lane_speed = [5.0]
+    state.lane_density = [0.1]
+    cfg = LocalObservationConfig()
+
+    obs_internal = build_local_observation(spec, state, cfg, {}, total_vehicles=100, total_waiting=50)
+    obs_precomputed = build_local_observation(
+        spec, state, cfg, {}, total_vehicles=100, total_waiting=50, downstream_queue_sum=5.0,
+    )
+    assert obs_internal[7] == obs_precomputed[7]

@@ -20,6 +20,7 @@ needed) exactly like scripts/run_evaluation.py's other controllers.
 from __future__ import annotations
 
 import functools
+import math
 import time
 from pathlib import Path
 from typing import Any
@@ -31,8 +32,11 @@ from pettingzoo.utils.env import ParallelEnv
 from src.environment.sumo_connection import traci, USING_LIBSUMO
 from src.environment.local_observation import (
     LOCAL_OBS_SIZE,
+    N_NEIGHBORS,
     LocalObservationConfig,
     build_local_observation,
+    compute_downstream_queue_sum,
+    compute_mean_queue_norm,
 )
 from src.environment.local_reward import LocalRewardCalculator, LocalRewardConfig
 from src.environment.metrics import MetricsCollector
@@ -88,6 +92,10 @@ class DecentralizedSumoEnv(ParallelEnv):
         self._downstream_cache: dict[str, list[str]] = {}
         self._sim_running = False
         self._step_count = 0
+        # Built lazily on first reset() (needs a live SUMO connection for
+        # traci.junction.getPosition); positions are static, so this is
+        # computed once and cached for the env instance's lifetime.
+        self._neighbor_map: dict[str, list[str]] | None = None
 
     # ──────────────────────────────────────────────────────────────────────
     # PettingZoo spaces (identical for every agent -> parameter sharing works)
@@ -119,6 +127,8 @@ class DecentralizedSumoEnv(ParallelEnv):
             self._runtime_states[spec.tls_id] = TLSRuntimeState(tls_id=spec.tls_id)
 
         self._start_sumo()
+        if self._neighbor_map is None:
+            self._neighbor_map = self._compute_neighbor_map()
         for spec in self.tls_specs:
             tid = spec.tls_id
             try:
@@ -135,11 +145,14 @@ class DecentralizedSumoEnv(ParallelEnv):
         self.obs_builder.build(self._runtime_states)
         self.local_reward.refresh_lane_waiting()
         cache = self.obs_builder.last_step_cache
+        own_queue_norms, own_downstream_sums = self._compute_per_tls_aux()
 
         observations = {
             tid: build_local_observation(
                 self.specs_by_id[tid], self._runtime_states[tid], self.obs_cfg,
                 self._downstream_cache, cache["total_vehicles"], cache["total_waiting"],
+                downstream_queue_sum=own_downstream_sums[tid],
+                neighbor_queue_norms=[own_queue_norms.get(n, 0.0) for n in self._neighbor_map.get(tid, [])],
             )
             for tid in self.agents
         }
@@ -170,6 +183,7 @@ class DecentralizedSumoEnv(ParallelEnv):
         self.obs_builder.build(self._runtime_states)
         self.local_reward.refresh_lane_waiting()
         cache = self.obs_builder.last_step_cache
+        own_queue_norms, own_downstream_sums = self._compute_per_tls_aux()
 
         sim_time = traci.simulation.getTime()
         terminated_all = self._check_terminated(sim_time)
@@ -182,9 +196,14 @@ class DecentralizedSumoEnv(ParallelEnv):
             observations[tid] = build_local_observation(
                 spec, state, self.obs_cfg, self._downstream_cache,
                 cache["total_vehicles"], cache["total_waiting"],
+                downstream_queue_sum=own_downstream_sums[tid],
+                neighbor_queue_norms=[own_queue_norms.get(n, 0.0) for n in self._neighbor_map.get(tid, [])],
             )
             queue_sum = float(sum(state.lane_queue)) if state.lane_queue else 0.0
-            reward, info = self.local_reward.compute(tid, spec, queue_sum, switched_this_step[tid])
+            reward, info = self.local_reward.compute(
+                tid, spec, queue_sum, switched_this_step[tid],
+                downstream_queue_sum=own_downstream_sums[tid],
+            )
             rewards[tid] = reward
             terminations[tid] = terminated_all
             truncations[tid] = truncated_all
@@ -207,6 +226,73 @@ class DecentralizedSumoEnv(ParallelEnv):
     def close(self) -> None:
         if self._sim_running:
             self._close_sumo()
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Neighbor coordination support (2026-09-20)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def _compute_per_tls_aux(self) -> tuple[dict[str, float], dict[str, float]]:
+        """Every agent's own mean-queue-norm and raw downstream-queue sum for
+        this step, computed once and shared: build_local_observation needs
+        them for this TLS's own features AND to answer neighbor lookups for
+        whichever *other* TLS have it as one of their 2 nearest neighbors;
+        local_reward.compute() reuses the same downstream sum for the
+        spillback penalty instead of re-querying TraCI."""
+        own_queue_norms: dict[str, float] = {}
+        own_downstream_sums: dict[str, float] = {}
+        for tid in self.agents:
+            own_queue_norms[tid] = compute_mean_queue_norm(self._runtime_states[tid], self.obs_cfg)
+            own_downstream_sums[tid] = compute_downstream_queue_sum(self.specs_by_id[tid], self._downstream_cache)
+        return own_queue_norms, own_downstream_sums
+
+    def _compute_neighbor_map(self, k: int = N_NEIGHBORS) -> dict[str, list[str]]:
+        """Each TLS's k geographically-nearest other TLS, by straight-line
+        distance between junction positions (a proximity proxy, not true
+        road-topology adjacency — same approach and same caveat as the XAI
+        empirical spillback-correlation heatmap). Requires an active SUMO
+        connection; computed once and cached since positions are static."""
+        positions: dict[str, tuple[float, float]] = {}
+        for tid in self.possible_agents:
+            try:
+                positions[tid] = traci.junction.getPosition(tid)
+                continue
+            except traci.exceptions.TraCIException:
+                pass
+            # ~8% of InTAS's tls_ids (auto-generated "gneJ..." nodes absorbed
+            # into a joined-TLS cluster) aren't recognized by the Junction
+            # API at all — verified against the live network. Every TLS's
+            # own controlled lanes definitely exist, so fall back to the
+            # average of their stop-line endpoints as an approximate
+            # position instead of leaving this TLS with zero neighbors.
+            spec = self.specs_by_id[tid]
+            endpoints = []
+            for lane_id in spec.controlled_lanes:
+                try:
+                    endpoints.append(traci.lane.getShape(lane_id)[-1])
+                except traci.exceptions.TraCIException:
+                    pass
+            if endpoints:
+                positions[tid] = (
+                    sum(p[0] for p in endpoints) / len(endpoints),
+                    sum(p[1] for p in endpoints) / len(endpoints),
+                )
+
+        neighbor_map: dict[str, list[str]] = {}
+        for tid in self.possible_agents:
+            if tid not in positions:
+                neighbor_map[tid] = []
+                continue
+            px, py = positions[tid]
+            distances = sorted(
+                (
+                    (math.hypot(px - positions[other][0], py - positions[other][1]), other)
+                    for other in self.possible_agents
+                    if other != tid and other in positions
+                ),
+                key=lambda d: d[0],
+            )
+            neighbor_map[tid] = [other for _, other in distances[:k]]
+        return neighbor_map
 
     # ──────────────────────────────────────────────────────────────────────
     # SUMO lifecycle (mirrors CentralizedSumoEnv)
