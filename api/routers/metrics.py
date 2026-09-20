@@ -95,13 +95,16 @@ def get_comparison():
 @router.get("/summary")
 def get_summary():
     """
-    Return aggregated dashboard summary — best metrics across all runs.
-    Uses latest PPO metrics as primary.
+    Return the dashboard's headline controller summary — whichever RL
+    controller (ppo or ippo) currently has the lower mean_waiting_time, not
+    always "ppo". Same best-RL selection as /comparison, so the Dashboard
+    and Comparison page never show two different "headline" results.
     """
     ppo_data = _load_metric_json("ppo")
-    fixed_data = _load_metric_json("fixed_time")
+    ippo_data = _load_metric_json("ippo")
 
-    if not ppo_data and not fixed_data:
+    candidates = [(name, data) for name, data in (("ppo", ppo_data), ("ippo", ippo_data)) if data]
+    if not candidates:
         # Fallback to reading from evaluation_results.parquet
         parquet_path = METRICS_DIR / "evaluation_results.parquet"
         if parquet_path.exists():
@@ -109,23 +112,27 @@ def get_summary():
                 df = pd.read_parquet(parquet_path, engine="pyarrow")
                 ppo_df = df[df["controller"] == "ppo"]
                 if not ppo_df.empty:
-                    ppo_data = ppo_df.iloc[0].to_dict()
+                    candidates = [("ppo", ppo_df.iloc[0].to_dict())]
             except Exception:
                 pass
 
-    if not ppo_data:
+    if not candidates:
         raise HTTPException(404, "No metrics found. Run evaluation first.")
 
+    best_name, best_data = min(
+        candidates, key=lambda item: float(item[1].get("mean_waiting_time", float("inf")))
+    )
+
     return {
-        "controller": "ppo",
-        "mean_waiting_time": round(float(ppo_data.get("mean_waiting_time", 0)), 2),
-        "mean_queue": round(float(ppo_data.get("mean_queue", 0)), 3),
-        "throughput": round(float(ppo_data.get("throughput", 0)), 4),
-        "mean_speed": round(float(ppo_data.get("mean_speed", 0)), 3),
-        "total_arrived": int(ppo_data.get("total_arrived", 0)),
-        "total_steps": int(ppo_data.get("total_steps", 0)),
-        "cumulative_reward": round(float(ppo_data.get("cumulative_reward", 0)), 1),
-        "total_switches": int(ppo_data.get("total_switches", 0)),
+        "controller": best_name,
+        "mean_waiting_time": round(float(best_data.get("mean_waiting_time", 0)), 2),
+        "mean_queue": round(float(best_data.get("mean_queue", 0)), 3),
+        "throughput": round(float(best_data.get("throughput", 0)), 4),
+        "mean_speed": round(float(best_data.get("mean_speed", 0)), 3),
+        "total_arrived": int(best_data.get("total_arrived", 0)),
+        "total_steps": int(best_data.get("total_steps", 0)),
+        "cumulative_reward": round(float(best_data.get("cumulative_reward", 0)), 1),
+        "total_switches": int(best_data.get("total_switches", 0)),
     }
 
 

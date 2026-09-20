@@ -8,6 +8,7 @@ import { api } from "../api/client";
 import type { MetricsSummary, TLSFrame } from "../api/client";
 import { useSimulationSocket } from "../context/SimulationSocketContext";
 import { sampleAndHold, tlsFramesToStateMap } from "../utils/trajectory";
+import { controllerLabel } from "../constants/controllers";
 
 export const DashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
@@ -27,12 +28,21 @@ export const DashboardPage: React.FC = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const timerRef = useRef<number | null>(null);
 
+  // Fetch the headline metrics first — /api/metrics/summary picks whichever
+  // RL controller (ppo or ippo) currently has the lower waiting time, so the
+  // Dashboard doesn't keep showing a stale "ppo" result once ippo overtakes
+  // it. The replay below follows whatever that resolves to.
   useEffect(() => {
     api.getMetricsSummary()
       .then((m) => { setMetrics(m); setMetricsError(null); })
       .catch((e: Error) => setMetricsError(e.message));
+  }, []);
 
-    api.getReplayFrames("ppo", 42, "1.0x", 0, 120)
+  const headlineController = metrics?.controller;
+
+  useEffect(() => {
+    if (!headlineController) return; // wait for /summary to resolve which controller "wins" first
+    api.getReplayFrames(headlineController, 42, "1.0x", 0, 120)
       .then((data) => {
         setFrames(data.frames);
         setTlsFrames(data.tls_frames ?? {});
@@ -43,7 +53,7 @@ export const DashboardPage: React.FC = () => {
         setReplayError(null);
       })
       .catch((e: Error) => setReplayError(e.message));
-  }, []);
+  }, [headlineController]);
 
   // Playback timer loop
   useEffect(() => {
@@ -94,14 +104,14 @@ export const DashboardPage: React.FC = () => {
     return currentVehicles.filter((v) => (v.speed || 0) < 2).length;
   }, [currentVehicles]);
 
-  // Determine display values
-  const ppoMetrics = wsPayload?.metrics?.ppo;
+  // Determine display values — follow whichever controller /summary picked as the headline.
+  const headlineWsMetrics = headlineController ? wsPayload?.metrics?.[headlineController] : undefined;
   const displayMetrics = {
-    avgWait: ppoMetrics ? ppoMetrics.mean_waiting_time : (metrics?.mean_waiting_time ?? 0),
-    avgQueue: currentVehicles.length > 0 ? liveQueuedCount : (ppoMetrics?.mean_queue ?? metrics?.mean_queue ?? 0),
-    avgSpeed: currentVehicles.length > 0 ? (liveAvgSpeedKmh / 3.6) : (ppoMetrics?.mean_speed ?? metrics?.mean_speed ?? 0),
-    vehiclesCount: currentVehicles.length > 0 ? currentVehicles.length : (ppoMetrics?.total_arrived ?? metrics?.total_arrived ?? 0),
-    arrivedCount: ppoMetrics?.total_arrived ?? metrics?.total_arrived ?? 0,
+    avgWait: headlineWsMetrics ? headlineWsMetrics.mean_waiting_time : (metrics?.mean_waiting_time ?? 0),
+    avgQueue: currentVehicles.length > 0 ? liveQueuedCount : (headlineWsMetrics?.mean_queue ?? metrics?.mean_queue ?? 0),
+    avgSpeed: currentVehicles.length > 0 ? (liveAvgSpeedKmh / 3.6) : (headlineWsMetrics?.mean_speed ?? metrics?.mean_speed ?? 0),
+    vehiclesCount: currentVehicles.length > 0 ? currentVehicles.length : (headlineWsMetrics?.total_arrived ?? metrics?.total_arrived ?? 0),
+    arrivedCount: headlineWsMetrics?.total_arrived ?? metrics?.total_arrived ?? 0,
   };
 
   const backendUnreachable = Boolean(metricsError) && Boolean(replayError);
@@ -128,7 +138,7 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-          <span className="badge-green">Policy: Centralized PPO</span>
+          <span className="badge-green">Policy: {metrics ? controllerLabel(metrics.controller) : "…"}</span>
           <span className="badge-yellow">Demand: 1.0×</span>
           {metrics && <span className="badge-blue">{metrics.total_steps.toLocaleString()} steps</span>}
         </div>
@@ -149,7 +159,7 @@ export const DashboardPage: React.FC = () => {
           <div>
             <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>Ingolstadt Traffic Network — Recorded Trajectory Replay</h3>
             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
-              Replaying the PPO policy's actual recorded run · vehicle positions and signal phases as they really occurred
+              Replaying {metrics ? controllerLabel(metrics.controller) : "the headline policy"}'s actual recorded run · vehicle positions and signal phases as they really occurred
             </p>
           </div>
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
@@ -204,7 +214,7 @@ export const DashboardPage: React.FC = () => {
         <div className="glass-card" style={{ padding: "1.25rem", marginTop: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
             <TrendingDown size={16} color="var(--accent-cyan)" aria-hidden="true" />
-            <h3 style={{ fontSize: "0.95rem", fontWeight: 600 }}>PPO Episode Statistics</h3>
+            <h3 style={{ fontSize: "0.95rem", fontWeight: 600 }}>{controllerLabel(metrics.controller)} Episode Statistics</h3>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.75rem" }}>
             {[

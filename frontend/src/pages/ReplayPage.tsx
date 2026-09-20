@@ -5,9 +5,10 @@ import {
 } from "lucide-react";
 
 import { api } from "../api/client";
-import type { TLSFrame } from "../api/client";
+import type { TLSFrame, ComparisonEntry } from "../api/client";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { sampleAndHold, tlsFramesToStateMap } from "../utils/trajectory";
+import { CONTROLLER_LABELS, CONTROLLER_COLORS } from "../constants/controllers";
 
 const CONTROLLERS = [
   { id: "ppo", name: "PPO (Centralized)", badge: "badge-blue" },
@@ -46,6 +47,16 @@ export const ReplayPage: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const timerRef = useRef<number | null>(null);
+
+  // Full-episode metrics for the table under the replay — same source of
+  // truth as the Comparison page (not recomputed from the visible 120s
+  // window), so a number here never contradicts the one shown there.
+  const [comparisonRows, setComparisonRows] = useState<ComparisonEntry[]>([]);
+  useEffect(() => {
+    api.getComparisonMetrics()
+      .then((res) => setComparisonRows(res.results))
+      .catch(() => setComparisonRows([]));
+  }, []);
 
   // Load trajectory data
   useEffect(() => {
@@ -497,6 +508,62 @@ export const ReplayPage: React.FC = () => {
             <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsCurrentStates} currentTime={currentTime} />
           </div>
         </>
+      )}
+
+      {/* Full-episode comparison table — grounds the animation in the real numbers */}
+      {comparisonRows.length > 0 && (
+        <div className="glass-card" style={{ padding: "1.25rem", marginBottom: "1.25rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.75rem", flexWrap: "wrap", gap: 4 }}>
+            <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>Comparison Metrics</span>
+            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+              Full 3600s episode (seed {seed}) — not just the {" "}
+              {(availableTimes[availableTimes.length - 1] ?? 120).toFixed(0)}s replay window above
+            </span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Controller</th>
+                  <th>Avg Wait (s)</th>
+                  <th>Avg Queue</th>
+                  <th>Throughput</th>
+                  <th>Mean Speed</th>
+                  <th>Total Arrived</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((r) => {
+                  const isActive = isSplitMode
+                    ? r.controller === "fixed_time" || r.controller === splitRlController
+                    : r.controller === controller;
+                  return (
+                    <tr key={r.controller} style={isActive ? { background: "rgba(34,211,238,0.06)" } : undefined}>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{
+                            width: 8, height: 8, borderRadius: "50%",
+                            background: CONTROLLER_COLORS[r.controller] ?? "#64748b",
+                            boxShadow: isActive ? `0 0 6px ${CONTROLLER_COLORS[r.controller] ?? "#64748b"}` : undefined,
+                          }} />
+                          <span style={{ fontWeight: isActive ? 700 : 500 }}>
+                            {CONTROLLER_LABELS[r.controller] ?? r.controller}
+                          </span>
+                          {isActive && <span className="badge-blue" style={{ fontSize: "0.65rem" }}>shown above</span>}
+                        </div>
+                      </td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_waiting_time.toFixed(2)}</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_queue.toFixed(3)}</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{(r.throughput * 100).toFixed(1)}%</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_speed.toFixed(2)} m/s</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.total_arrived.toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* Shared Synchronized Playback Controls Toolbar */}
