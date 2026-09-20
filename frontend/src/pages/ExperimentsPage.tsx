@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, type ExperimentRun, type ExperimentSummary } from "../api/client";
-import { CheckCircle2, Clock, FlaskConical } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, FlaskConical } from "lucide-react";
 
 interface RunWithSummary extends ExperimentRun {
   summary?: ExperimentSummary;
@@ -9,6 +9,7 @@ interface RunWithSummary extends ExperimentRun {
 export const ExperimentsPage: React.FC = () => {
   const [runs, setRuns] = useState<RunWithSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -25,8 +26,9 @@ export const ExperimentsPage: React.FC = () => {
           })
         );
         setRuns(runsWithSummary);
+        setError(null);
       } catch (err) {
-        console.error("Failed to load experiments", err);
+        setError(err instanceof Error ? err.message : "Failed to load experiments");
       } finally {
         setLoading(false);
       }
@@ -48,21 +50,29 @@ export const ExperimentsPage: React.FC = () => {
         <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-muted)", padding: "2rem" }}>
           <span className="spinner" /> Loading experiments…
         </div>
+      ) : error ? (
+        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
+          <AlertCircle size={32} style={{ color: "var(--signal-red)", margin: "0 auto 1rem" }} />
+          <h3 style={{ color: "var(--text-secondary)" }}>Couldn't Load Experiments</h3>
+          <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "var(--text-muted)" }}>
+            {error}
+          </p>
+        </div>
       ) : runs.length === 0 ? (
         <div className="glass-card" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
           <FlaskConical size={32} style={{ margin: "0 auto 1rem", opacity: 0.6 }} />
           <h3>No Completed Runs Found</h3>
           <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "var(--text-muted)" }}>
-            Run PPO training to populate benchmark artifacts:
+            Run training to populate benchmark artifacts:
           </p>
           <code style={{
             display: "block", marginTop: "1rem",
             padding: "0.75rem 1.25rem",
             background: "rgba(255,255,255,0.05)", borderRadius: 8,
             color: "var(--accent-cyan)", fontFamily: "var(--font-mono)",
-            fontSize: "0.8rem", textAlign: "left",
+            fontSize: "0.8rem", textAlign: "left", whiteSpace: "pre-wrap",
           }}>
-            python -m src.agents.ppo_agent --timesteps 1000000
+            {"python scripts/run_training.py --ppo-config configs/ppo.yaml\npython scripts/run_ippo_training.py --ippo-config configs/ippo.yaml"}
           </code>
         </div>
       ) : (

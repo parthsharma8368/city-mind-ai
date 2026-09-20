@@ -1,13 +1,25 @@
 import React, { useState } from "react";
-import { Brain, Info, Grid, Maximize2, Sparkles, Layers, Image as ImageIcon } from "lucide-react";
+import { AlertTriangle, Brain, Info, Grid, Maximize2, Sparkles, Layers, Image as ImageIcon } from "lucide-react";
 import { XAIPanel } from "../components/XAIPanel";
 
 const SAMPLE_DRIVER_JUNCTIONS = ["1863241632", "2033094557", "214620430"];
+
+function ImageLoadError({ label }: { label: string }) {
+  return (
+    <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>
+      <AlertTriangle size={24} color="var(--signal-yellow)" style={{ margin: "0 auto 0.5rem" }} />
+      <p style={{ fontSize: "0.85rem" }}>Couldn't load the {label}.</p>
+      <p style={{ fontSize: "0.75rem", marginTop: "0.25rem" }}>Run the XAI analyzer to generate it, then refresh.</p>
+    </div>
+  );
+}
 
 export const XAIPage: React.FC = () => {
   const [activeView, setActiveView] = useState<"attributions" | "heatmap" | "drivers">("attributions");
   const [selectedDriverJunction, setSelectedDriverJunction] = useState("1863241632");
   const [heatmapExpanded, setHeatmapExpanded] = useState(false);
+  const [heatmapFailed, setHeatmapFailed] = useState(false);
+  const [driverPlotFailed, setDriverPlotFailed] = useState(false);
 
   const heatmapUrl = "http://localhost:8000/api/xai/coordination-heatmap";
   const driverPlotUrl = `http://localhost:8000/api/xai/driver-plot/${selectedDriverJunction}`;
@@ -144,21 +156,22 @@ export const XAIPage: React.FC = () => {
             alignItems: "center",
             overflow: "hidden"
           }}>
-            <img
-              src={heatmapUrl}
-              alt="Inter-Intersection Coordination Heatmap"
-              style={{
-                maxWidth: "100%",
-                maxHeight: heatmapExpanded ? "85vh" : "500px",
-                objectFit: "contain",
-                borderRadius: 4,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-              }}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = "none";
-              }}
-            />
+            {heatmapFailed ? (
+              <ImageLoadError label="coordination heatmap" />
+            ) : (
+              <img
+                src={heatmapUrl}
+                alt="Inter-Intersection Coordination Heatmap"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: heatmapExpanded ? "85vh" : "500px",
+                  objectFit: "contain",
+                  borderRadius: 4,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                }}
+                onError={() => setHeatmapFailed(true)}
+              />
+            )}
           </div>
 
           <div style={{ marginTop: "1rem", fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
@@ -201,7 +214,7 @@ export const XAIPage: React.FC = () => {
                     background: selectedDriverJunction === jId ? "var(--accent-cyan)" : "rgba(255,255,255,0.04)",
                     color: selectedDriverJunction === jId ? "#060910" : "var(--text-secondary)",
                   }}
-                  onClick={() => setSelectedDriverJunction(jId)}
+                  onClick={() => { setSelectedDriverJunction(jId); setDriverPlotFailed(false); }}
                 >
                   TLS {jId}
                 </button>
@@ -218,18 +231,23 @@ export const XAIPage: React.FC = () => {
             justifyContent: "center",
             alignItems: "center"
           }}>
-            <img
-              key={selectedDriverJunction}
-              src={driverPlotUrl}
-              alt={`Driver plot for TLS ${selectedDriverJunction}`}
-              style={{
-                maxWidth: "100%",
-                maxHeight: "520px",
-                objectFit: "contain",
-                borderRadius: 4,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-              }}
-            />
+            {driverPlotFailed ? (
+              <ImageLoadError label={`driver plot for TLS ${selectedDriverJunction}`} />
+            ) : (
+              <img
+                key={selectedDriverJunction}
+                src={driverPlotUrl}
+                alt={`Driver plot for TLS ${selectedDriverJunction}`}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "520px",
+                  objectFit: "contain",
+                  borderRadius: 4,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                }}
+                onError={() => setDriverPlotFailed(true)}
+              />
+            )}
           </div>
         </div>
       )}

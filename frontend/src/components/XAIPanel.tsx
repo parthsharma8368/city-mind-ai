@@ -43,8 +43,16 @@ function JunctionCard({ expl }: { expl: XAIJunctionExplanation }) {
 
   return (
     <div className="glass-card" style={{ padding: "1rem 1.25rem", marginBottom: "0.75rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: expanded ? "0.75rem" : 0, cursor: "pointer" }}
-        onClick={() => setExpanded(!expanded)}>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
+          marginBottom: expanded ? "0.75rem" : 0, cursor: "pointer",
+          background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", textAlign: "left",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem", color: "var(--accent-cyan)", fontWeight: 600 }}>
             {expl.tls_id}
@@ -57,7 +65,7 @@ function JunctionCard({ expl }: { expl: XAIJunctionExplanation }) {
           </span>
         </div>
         {expanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
-      </div>
+      </button>
 
       {expanded && (
         <div style={{ animation: "fade-in 0.25s ease both" }}>

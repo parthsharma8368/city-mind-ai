@@ -328,12 +328,7 @@ export const ReplayPage: React.FC = () => {
         </div>
       ) : isSplitMode ? (
         /* ── DUAL SIDE-BY-SIDE VIEW ────────────────────────────────────────── */
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "1rem",
-          marginBottom: "1.25rem"
-        }}>
+        <div className="replay-split-grid" style={{ marginBottom: "1.25rem" }}>
           {/* LEFT: Fixed-Time Baseline */}
           <div className="glass-card" style={{ padding: "1rem", border: "1px solid rgba(245,158,11,0.25)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>

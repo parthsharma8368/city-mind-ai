@@ -15,7 +15,10 @@
 
   --text-primary:   #f0f6ff;
   --text-secondary: #8ea4c8;
-  --text-muted:     #4a5f7a;
+  /* ~5.1:1 against --bg-primary (was #4a5f7a at ~3:1, below WCAG AA's 4.5:1
+     for normal text — this color is used for real body copy in several
+     places, not just decorative labels). */
+  --text-muted:     #6c82a8;
 
   --accent-cyan:   #22d3ee;
   --accent-blue:   #3b82f6;
@@ -610,6 +613,19 @@ body {
   background: rgba(255, 255, 255, 0.06);
   padding: 0.05rem 0.35rem;
   border-radius: 4px;
+}
+
+/* Replay page's side-by-side dual view: two full-width simulation canvases
+   side by side is too cramped below ~860px, so stack them instead. */
+.replay-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 860px) {
+  .replay-split-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Respect the OS-level motion preference: this UI leans on canvas glow pulses,
