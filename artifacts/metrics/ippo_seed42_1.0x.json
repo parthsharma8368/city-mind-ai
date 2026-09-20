@@ -1,0 +1,18 @@
+{
+  "controller": "ippo",
+  "seed": 42,
+  "demand_id": "1.0x",
+  "total_steps": 720,
+  "episode_duration": 3595.0,
+  "mean_waiting_time": 4.152088308631834,
+  "total_waiting_time": 750805.0,
+  "mean_queue": 0.06714518020899979,
+  "max_queue": 11.0,
+  "throughput": 0.7467948717948718,
+  "total_arrived": 233,
+  "total_departed": 312,
+  "mean_speed": 13.015767978063119,
+  "total_switches": 22047,
+  "cumulative_reward": -104440.70000000011,
+  "source_run_id": "run_20260919_134931_seed42"
+}

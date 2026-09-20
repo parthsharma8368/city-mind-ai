@@ -16,9 +16,13 @@ const CONTROLLERS = [
   { id: "max_pressure", name: "Max-Pressure Baseline", badge: "badge-green" },
 ];
 
+const RL_CONTROLLERS = CONTROLLERS.filter((c) => c.id === "ppo" || c.id === "ippo");
+
 export const ReplayPage: React.FC = () => {
   const [isSplitMode, setIsSplitMode] = useState(true);
   const [controller, setController] = useState("ppo");
+  // Split view's right-hand panel: which RL controller to compare against Fixed-Time.
+  const [splitRlController, setSplitRlController] = useState("ppo");
   const [seed] = useState(42);
   const [demandId] = useState("1.0x");
   const [loading, setLoading] = useState(false);
@@ -28,7 +32,7 @@ export const ReplayPage: React.FC = () => {
   const [frames, setFrames] = useState<Record<string, VehiclePoint[]>>({});
   const [availableTimes, setAvailableTimes] = useState<number[]>([]);
 
-  // Split-view frames: Fixed-Time vs PPO
+  // Split-view frames: Fixed-Time vs the selected RL controller
   const [fixedFrames, setFixedFrames] = useState<Record<string, VehiclePoint[]>>({});
   const [ppoFrames, setPpoFrames] = useState<Record<string, VehiclePoint[]>>({});
 
@@ -52,10 +56,10 @@ export const ReplayPage: React.FC = () => {
       setIsPlaying(false);
       try {
         if (isSplitMode) {
-          // Fetch both Fixed-Time and PPO in parallel
+          // Fetch both Fixed-Time and the selected RL controller in parallel
           const [ftData, ppoData] = await Promise.all([
             api.getReplayFrames("fixed_time", seed, demandId, 0, 120),
-            api.getReplayFrames("ppo", seed, demandId, 0, 120),
+            api.getReplayFrames(splitRlController, seed, demandId, 0, 120),
           ]);
           if (cancelled) return;
 
@@ -108,7 +112,7 @@ export const ReplayPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [isSplitMode, controller, seed, demandId]);
+  }, [isSplitMode, controller, splitRlController, seed, demandId]);
 
   // Current simulation time
   const currentTime = availableTimes[currentTimeIndex] ?? 0;
@@ -390,16 +394,28 @@ export const ReplayPage: React.FC = () => {
             <NetworkCanvas height={390} vehicles={currentFixedVehicles} tlsStates={tlsFixedStates} currentTime={currentTime} />
           </div>
 
-          {/* RIGHT: PPO RL Agent */}
+          {/* RIGHT: RL Agent — switchable between the centralized and parameter-shared policies */}
           <div className="glass-card" style={{ padding: "1rem", border: "1px solid rgba(34,211,238,0.3)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent-cyan)" }} />
                 <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--accent-cyan)" }}>
-                  PPO Centralized RL
+                  {RL_CONTROLLERS.find((c) => c.id === splitRlController)?.name ?? splitRlController}
                 </span>
               </div>
-              <span className="badge-green" style={{ fontSize: "0.7rem" }}>Coordinated Neural Network</span>
+              <div role="group" aria-label="RL controller to compare" style={{ display: "flex", gap: 4 }}>
+                {RL_CONTROLLERS.map((c) => (
+                  <button
+                    key={c.id}
+                    className={`btn btn-sm ${splitRlController === c.id ? "btn-primary" : ""}`}
+                    style={{ padding: "0.2rem 0.55rem", fontSize: "0.7rem" }}
+                    onClick={() => setSplitRlController(c.id)}
+                    aria-pressed={splitRlController === c.id}
+                  >
+                    {c.id.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Right Telemetry */}
