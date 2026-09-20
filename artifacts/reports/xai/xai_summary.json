@@ -2,371 +2,95 @@
   {
     "tls_id": "1863241632",
     "tls_index": 0,
-    "action": 1,
-    "switch_probability": 0.5863693952560425,
-    "narrative": "Junction '1863241632' decided to SWITCH to the next phase with 58.6% confidence. This decision was primarily influenced by phase on gneJ207:phase_0 (score: +0.004) and phase on cluster_581455_7437612:phase_4 (score: +0.004). Local traffic conditions contributed 0.6% of decision weight, while neighboring junctions contributed 99.4%.",
+    "action": 0,
+    "switch_probability": 0.499755859375,
+    "narrative": "Junction '1863241632' decided to HOLD the current green phase with 50.0% confidence. This decision was primarily influenced by phase on 321324256:phase_2 (score: +0.000) and queue on 161678034#2.46_1 (score: +0.000). Local traffic conditions contributed 0.6% of decision weight, while neighboring junctions contributed 99.3%.",
     "local_influence_pct": 0.6,
-    "neighbor_influence_pct": 99.4,
+    "neighbor_influence_pct": 99.3,
     "group_breakdown": {
-      "phase": 0.3734,
-      "elapsed": 0.0564,
-      "queue": 0.62,
-      "vehicle_count": 0.5779,
-      "speed": 0.6825,
-      "density": 0.6093,
-      "global": 0.0007
+      "phase": 0.0326,
+      "elapsed": 0.005,
+      "queue": 0.0562,
+      "vehicle_count": 0.0536,
+      "speed": 0.056,
+      "density": 0.0554,
+      "global": 0.0001
     },
     "top_positive_features": [
       {
-        "feature_index": 4682,
-        "name": "gneJ207:phase_0",
+        "feature_index": 2218,
+        "name": "321324256:phase_2",
         "group": "phase",
-        "tls_id": "gneJ207",
+        "tls_id": "321324256",
         "lane_id": null,
-        "value": 0.3826174736022949,
-        "attribution": 0.003570039290934801
+        "value": 0.3618261516094208,
+        "attribution": 0.00037785270251333714
       },
       {
-        "feature_index": 4286,
-        "name": "cluster_581455_7437612:phase_4",
-        "group": "phase",
-        "tls_id": "cluster_581455_7437612",
-        "lane_id": null,
-        "value": 0.3615739047527313,
-        "attribution": 0.003567598992958665
-      },
-      {
-        "feature_index": 478,
-        "name": "243780145:phase_5",
-        "group": "phase",
-        "tls_id": "243780145",
-        "lane_id": null,
-        "value": 0.39079076051712036,
-        "attribution": 0.0034981397911906242
-      },
-      {
-        "feature_index": 3294,
-        "name": "cluster_1840464676_89130928:phase_2",
-        "group": "phase",
-        "tls_id": "cluster_1840464676_89130928",
-        "lane_id": null,
-        "value": 0.39041975140571594,
-        "attribution": 0.0034790639765560627
-      },
-      {
-        "feature_index": 2124,
-        "name": "31065768:23009002#0_1:density",
-        "group": "density",
-        "tls_id": "31065768",
-        "lane_id": "23009002#0_1",
-        "value": 0.3952330946922302,
-        "attribution": 0.003432965837419033
-      },
-      {
-        "feature_index": 1372,
-        "name": "271405446:-54154922#0_1:queue",
+        "feature_index": 1007,
+        "name": "26288878:161678034#2.46_1:queue",
         "group": "queue",
-        "tls_id": "271405446",
-        "lane_id": "-54154922#0_1",
-        "value": 0.3563155233860016,
-        "attribution": 0.003162083914503455
+        "tls_id": "26288878",
+        "lane_id": "161678034#2.46_1",
+        "value": 0.35475870966911316,
+        "attribution": 0.00036721790092997253
       },
       {
-        "feature_index": 2843,
-        "name": "cluster_1270380467_1270380469_1270380471:phase_4",
-        "group": "phase",
-        "tls_id": "cluster_1270380467_1270380469_1270380471",
-        "lane_id": null,
-        "value": 0.385278582572937,
-        "attribution": 0.0031480344478040934
-      },
-      {
-        "feature_index": 3630,
-        "name": "cluster_25579770_2633530003_2633530004_2633530005:25796398#0_2:speed",
-        "group": "speed",
-        "tls_id": "cluster_25579770_2633530003_2633530004_2633530005",
-        "lane_id": "25796398#0_2",
-        "value": 0.3250797390937805,
-        "attribution": 0.003071331884711981
-      }
-    ],
-    "top_negative_features": [
-      {
-        "feature_index": 1550,
-        "name": "279299817:266507550_2:density",
-        "group": "density",
-        "tls_id": "279299817",
-        "lane_id": "266507550_2",
-        "value": 0.3854210078716278,
-        "attribution": -0.0036472631618380547
-      },
-      {
-        "feature_index": 2139,
-        "name": "319229058:-24537982#1_1:queue",
+        "feature_index": 3508,
+        "name": "cluster_21532613_25633348:25188983#1_3:queue",
         "group": "queue",
-        "tls_id": "319229058",
-        "lane_id": "-24537982#1_1",
-        "value": 0.3574531078338623,
-        "attribution": -0.003209695452824235
-      },
-      {
-        "feature_index": 4200,
-        "name": "cluster_494830315_cluster_283155103_285141680_3300414849_3300414850_3300414851_792810590_792810596_792810637:phase_1",
-        "group": "phase",
-        "tls_id": "cluster_494830315_cluster_283155103_285141680_3300414849_3300414850_3300414851_792810590_792810596_792810637",
-        "lane_id": null,
-        "value": 0.3549878001213074,
-        "attribution": -0.00310865743085742
-      },
-      {
-        "feature_index": 2381,
-        "name": "498468294:-233673410#5_2:queue",
-        "group": "queue",
-        "tls_id": "498468294",
-        "lane_id": "-233673410#5_2",
-        "value": 0.35726869106292725,
-        "attribution": -0.002784713404253125
-      },
-      {
-        "feature_index": 3652,
-        "name": "cluster_266813213_335525545:phase_2",
-        "group": "phase",
-        "tls_id": "cluster_266813213_335525545",
-        "lane_id": null,
-        "value": 0.3482659161090851,
-        "attribution": -0.0027699486818164587
-      },
-      {
-        "feature_index": 3578,
-        "name": "cluster_25579770_2633530003_2633530004_2633530005:257907860#1.168_1:queue",
-        "group": "queue",
-        "tls_id": "cluster_25579770_2633530003_2633530004_2633530005",
-        "lane_id": "257907860#1.168_1",
-        "value": 0.32249242067337036,
-        "attribution": -0.002657125238329172
-      },
-      {
-        "feature_index": 1634,
-        "name": "281967823:51856495#0_1:queue",
-        "group": "queue",
-        "tls_id": "281967823",
-        "lane_id": "51856495#0_1",
-        "value": 0.37815335392951965,
-        "attribution": -0.0026266276836395264
-      },
-      {
-        "feature_index": 2260,
-        "name": "321325405:194377108#0.135_0:vcount",
-        "group": "vehicle_count",
-        "tls_id": "321325405",
-        "lane_id": "194377108#0.135_0",
-        "value": 0.33216390013694763,
-        "attribution": -0.002607407746836543
-      }
-    ]
-  },
-  {
-    "tls_id": "2033094557",
-    "tls_index": 1,
-    "action": 1,
-    "switch_probability": 0.616597592830658,
-    "narrative": "Junction '2033094557' decided to SWITCH to the next phase with 61.7% confidence. This decision was primarily influenced by speed on 172519650_4 (score: +0.003) and speed on -150746347#0_1 (score: +0.003). Local traffic conditions contributed 0.5% of decision weight, while neighboring junctions contributed 99.5%.",
-    "local_influence_pct": 0.5,
-    "neighbor_influence_pct": 99.5,
-    "group_breakdown": {
-      "phase": 0.3017,
-      "elapsed": 0.0444,
-      "queue": 0.4771,
-      "vehicle_count": 0.4875,
-      "speed": 0.6605,
-      "density": 0.46,
-      "global": 0.0004
-    },
-    "top_positive_features": [
-      {
-        "feature_index": 3096,
-        "name": "cluster_1443568606_1834131515_1834131519_1834131548_1834131550:172519650_4:speed",
-        "group": "speed",
-        "tls_id": "cluster_1443568606_1834131515_1834131519_1834131548_1834131550",
-        "lane_id": "172519650_4",
-        "value": 0.39310207962989807,
-        "attribution": 0.0029718871228396893
-      },
-      {
-        "feature_index": 891,
-        "name": "25579808:-150746347#0_1:speed",
-        "group": "speed",
-        "tls_id": "25579808",
-        "lane_id": "-150746347#0_1",
-        "value": 0.35670894384384155,
-        "attribution": 0.002956617623567581
-      },
-      {
-        "feature_index": 4848,
-        "name": "gneJ214:172515812#0_1:speed",
-        "group": "speed",
-        "tls_id": "gneJ214",
-        "lane_id": "172515812#0_1",
-        "value": 0.32905474305152893,
-        "attribution": 0.0027358666993677616
-      },
-      {
-        "feature_index": 4708,
-        "name": "gneJ207:164051413_1:speed",
-        "group": "speed",
-        "tls_id": "gneJ207",
-        "lane_id": "164051413_1",
-        "value": 0.34607598185539246,
-        "attribution": 0.0026347506791353226
-      },
-      {
-        "feature_index": 2002,
-        "name": "30965809:205182378#8_1:speed",
-        "group": "speed",
-        "tls_id": "30965809",
-        "lane_id": "205182378#8_1",
-        "value": 0.37187638878822327,
-        "attribution": 0.0026011676527559757
-      },
-      {
-        "feature_index": 3541,
-        "name": "cluster_21532613_25633348:354967544#2_2:speed",
-        "group": "speed",
         "tls_id": "cluster_21532613_25633348",
-        "lane_id": "354967544#2_2",
-        "value": 0.342707097530365,
-        "attribution": 0.0025784154422581196
+        "lane_id": "25188983#1_3",
+        "value": 0.3542163670063019,
+        "attribution": 0.0002658665180206299
       },
       {
-        "feature_index": 2458,
-        "name": "89127267:315358252#0_3:speed",
-        "group": "speed",
-        "tls_id": "89127267",
-        "lane_id": "315358252#0_3",
-        "value": 0.24666935205459595,
-        "attribution": 0.0025112240109592676
-      },
-      {
-        "feature_index": 2552,
-        "name": "89129156:32978638#1_1:speed",
-        "group": "speed",
-        "tls_id": "89129156",
-        "lane_id": "32978638#1_1",
-        "value": 0.34247055649757385,
-        "attribution": 0.00248634978197515
-      }
-    ],
-    "top_negative_features": [
-      {
-        "feature_index": 4695,
-        "name": "gneJ207:104010354_1:queue",
+        "feature_index": 1911,
+        "name": "30965800:266607804#2_2:queue",
         "group": "queue",
-        "tls_id": "gneJ207",
-        "lane_id": "104010354_1",
-        "value": 0.363974392414093,
-        "attribution": -0.002590747317299247
+        "tls_id": "30965800",
+        "lane_id": "266607804#2_2",
+        "value": 0.3629952371120453,
+        "attribution": 0.0002649622911121696
       },
       {
-        "feature_index": 3115,
-        "name": "cluster_1443568606_1834131515_1834131519_1834131548_1834131550:172519650_4:density",
-        "group": "density",
-        "tls_id": "cluster_1443568606_1834131515_1834131519_1834131548_1834131550",
-        "lane_id": "172519650_4",
-        "value": 0.3632410168647766,
-        "attribution": -0.002551815938204527
-      },
-      {
-        "feature_index": 2471,
-        "name": "89129103:phase_1",
-        "group": "phase",
-        "tls_id": "89129103",
-        "lane_id": null,
-        "value": 0.3892086446285248,
-        "attribution": -0.002441947115585208
-      },
-      {
-        "feature_index": 441,
-        "name": "243749571:315358257#0.43_1:vcount",
-        "group": "vehicle_count",
-        "tls_id": "243749571",
-        "lane_id": "315358257#0.43_1",
-        "value": 0.39599186182022095,
-        "attribution": -0.0024347843136638403
-      },
-      {
-        "feature_index": 2380,
-        "name": "498468294:-233673410#5_2:queue",
+        "feature_index": 3952,
+        "name": "cluster_30503255_335525526:31342349#3_3:queue",
         "group": "queue",
-        "tls_id": "498468294",
-        "lane_id": "-233673410#5_2",
-        "value": 0.3467267155647278,
-        "attribution": -0.0024265556130558252
+        "tls_id": "cluster_30503255_335525526",
+        "lane_id": "31342349#3_3",
+        "value": 0.3924071788787842,
+        "attribution": 0.000261510576820001
       },
       {
-        "feature_index": 3483,
-        "name": "cluster_21532613_25633348:phase_1",
-        "group": "phase",
-        "tls_id": "cluster_21532613_25633348",
-        "lane_id": null,
-        "value": 0.3763922452926636,
-        "attribution": -0.0023923988919705153
+        "feature_index": 385,
+        "name": "243641585:-201201945#0.78_2:queue",
+        "group": "queue",
+        "tls_id": "243641585",
+        "lane_id": "-201201945#0.78_2",
+        "value": 0.34104427695274353,
+        "attribution": 0.00026115236687473953
       },
       {
-        "feature_index": 4857,
-        "name": "gneJ214:29458640#0_2:speed",
+        "feature_index": 2950,
+        "name": "cluster_13876325_281116670:-31342351#1_1:speed",
         "group": "speed",
-        "tls_id": "gneJ214",
-        "lane_id": "29458640#0_2",
-        "value": 0.38141924142837524,
-        "attribution": -0.002349924761801958
-      },
-      {
-        "feature_index": 2936,
-        "name": "cluster_13876325_281116670:4942575#2_2:vcount",
-        "group": "vehicle_count",
         "tls_id": "cluster_13876325_281116670",
-        "lane_id": "4942575#2_2",
-        "value": 0.3341895043849945,
-        "attribution": -0.0023298754822462797
+        "lane_id": "-31342351#1_1",
+        "value": 0.34825190901756287,
+        "attribution": 0.0002567620831541717
+      },
+      {
+        "feature_index": 1590,
+        "name": "281435582:-144655547#0_1:queue",
+        "group": "queue",
+        "tls_id": "281435582",
+        "lane_id": "-144655547#0_1",
+        "value": 0.30773085355758667,
+        "attribution": 0.0002486692101228982
       }
-    ]
-  },
-  {
-    "tls_id": "214620430",
-    "tls_index": 2,
-    "action": 1,
-    "switch_probability": 0.5700166821479797,
-    "narrative": "Junction '214620430' decided to SWITCH to the next phase with 57.0% confidence. This decision was primarily influenced by speed on -201089423#1_1 (score: +0.004) and speed on 205182378#8_1 (score: +0.004). Local traffic conditions contributed 1.5% of decision weight, while neighboring junctions contributed 98.5%.",
-    "local_influence_pct": 1.5,
-    "neighbor_influence_pct": 98.5,
-    "group_breakdown": {
-      "phase": 0.4248,
-      "elapsed": 0.0655,
-      "queue": 0.6973,
-      "vehicle_count": 0.7019,
-      "speed": 0.7408,
-      "density": 0.6834,
-      "global": 0.001
-    },
-    "top_positive_features": [
-      {
-        "feature_index": 2304,
-        "name": "32564122:-201089423#1_1:speed",
-        "group": "speed",
-        "tls_id": "32564122",
-        "lane_id": "-201089423#1_1",
-        "value": 0.3795261085033417,
-        "attribution": 0.004441976547241211
-      },
-      {
-        "feature_index": 2002,
-        "name": "30965809:205182378#8_1:speed",
-        "group": "speed",
-        "tls_id": "30965809",
-        "lane_id": "205182378#8_1",
-        "value": 0.37187638878822327,
-        "attribution": 0.0038985805585980415
-      },
+    ],
+    "top_negative_features": [
       {
         "feature_index": 720,
         "name": "249721581:phase_0",
@@ -374,72 +98,108 @@
         "tls_id": "249721581",
         "lane_id": null,
         "value": 0.3815021514892578,
-        "attribution": 0.0036642805207520723
+        "attribution": -0.0002965917228721082
       },
       {
-        "feature_index": 3526,
-        "name": "cluster_21532613_25633348:25188983#1_2:vcount",
-        "group": "vehicle_count",
-        "tls_id": "cluster_21532613_25633348",
-        "lane_id": "25188983#1_2",
-        "value": 0.39192304015159607,
-        "attribution": 0.003452116623520851
-      },
-      {
-        "feature_index": 2186,
-        "name": "320621276:phase_1",
+        "feature_index": 4327,
+        "name": "gneJ137:phase_2",
         "group": "phase",
-        "tls_id": "320621276",
+        "tls_id": "gneJ137",
         "lane_id": null,
-        "value": 0.3613613545894623,
-        "attribution": 0.0032660833094269037
+        "value": 0.39475637674331665,
+        "attribution": -0.00028890479006804526
       },
       {
-        "feature_index": 405,
-        "name": "243641585:-201201945#0.78_2:speed",
-        "group": "speed",
-        "tls_id": "243641585",
-        "lane_id": "-201201945#0.78_2",
-        "value": 0.3686569631099701,
-        "attribution": 0.0032232608646154404
-      },
-      {
-        "feature_index": 2077,
-        "name": "31065768:phase_2",
-        "group": "phase",
-        "tls_id": "31065768",
-        "lane_id": null,
-        "value": 0.23537179827690125,
-        "attribution": 0.0031548093538731337
-      },
-      {
-        "feature_index": 4648,
-        "name": "gneJ205:266567294#0_1:vcount",
+        "feature_index": 204,
+        "name": "21532605:71809618#5_2:vcount",
         "group": "vehicle_count",
-        "tls_id": "gneJ205",
-        "lane_id": "266567294#0_1",
-        "value": 0.36191293597221375,
-        "attribution": 0.003098326502367854
-      }
-    ],
-    "top_negative_features": [
+        "tls_id": "21532605",
+        "lane_id": "71809618#5_2",
+        "value": 0.2819287180900574,
+        "attribution": -0.00026466240524314344
+      },
       {
-        "feature_index": 2255,
-        "name": "321325405:194377108#0.135_1:queue",
+        "feature_index": 4695,
+        "name": "gneJ207:104010354_1:queue",
         "group": "queue",
-        "tls_id": "321325405",
-        "lane_id": "194377108#0.135_1",
-        "value": 0.27153170108795166,
-        "attribution": -0.003480966202914715
+        "tls_id": "gneJ207",
+        "lane_id": "104010354_1",
+        "value": 0.363974392414093,
+        "attribution": -0.00026347037055529654
       },
       {
-        "feature_index": 4811,
-        "name": "gneJ210:51857517#1_1:density",
-        "group": "density",
+        "feature_index": 3567,
+        "name": "cluster_25579770_2633530003_2633530004_2633530005:phase_0",
+        "group": "phase",
+        "tls_id": "cluster_25579770_2633530003_2633530004_2633530005",
+        "lane_id": null,
+        "value": 0.3001636862754822,
+        "attribution": -0.00025430056848563254
+      },
+      {
+        "feature_index": 2379,
+        "name": "498468294:-233673410#5_1:queue",
+        "group": "queue",
+        "tls_id": "498468294",
+        "lane_id": "-233673410#5_1",
+        "value": 0.3395141065120697,
+        "attribution": -0.00025377990095876157
+      },
+      {
+        "feature_index": 390,
+        "name": "243641585:174800513_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "243641585",
+        "lane_id": "174800513_1",
+        "value": 0.39715152978897095,
+        "attribution": -0.0002466397709213197
+      },
+      {
+        "feature_index": 1022,
+        "name": "26288878:-24970784#3_1:speed",
+        "group": "speed",
+        "tls_id": "26288878",
+        "lane_id": "-24970784#3_1",
+        "value": 0.3773188591003418,
+        "attribution": -0.00024359289091080427
+      }
+    ]
+  },
+  {
+    "tls_id": "2033094557",
+    "tls_index": 1,
+    "action": 0,
+    "switch_probability": 0.49892738461494446,
+    "narrative": "Junction '2033094557' decided to HOLD the current green phase with 50.1% confidence. This decision was primarily influenced by phase on gneJ210:phase_2 (score: +0.000) and vehicle_count on 23166741#5_2 (score: +0.000). Local traffic conditions contributed 0.4% of decision weight, while neighboring junctions contributed 99.5%.",
+    "local_influence_pct": 0.4,
+    "neighbor_influence_pct": 99.5,
+    "group_breakdown": {
+      "phase": 0.0334,
+      "elapsed": 0.006,
+      "queue": 0.0568,
+      "vehicle_count": 0.0557,
+      "speed": 0.0557,
+      "density": 0.0573,
+      "global": 0.0001
+    },
+    "top_positive_features": [
+      {
+        "feature_index": 4754,
+        "name": "gneJ210:phase_2",
+        "group": "phase",
         "tls_id": "gneJ210",
-        "lane_id": "51857517#1_1",
-        "value": 0.35618287324905396,
-        "attribution": -0.0031393941026180983
+        "lane_id": null,
+        "value": 0.35843369364738464,
+        "attribution": 0.0003827071050181985
+      },
+      {
+        "feature_index": 389,
+        "name": "243641585:23166741#5_2:vcount",
+        "group": "vehicle_count",
+        "tls_id": "243641585",
+        "lane_id": "23166741#5_2",
+        "value": 0.3420504331588745,
+        "attribution": 0.0003355785447638482
       },
       {
         "feature_index": 3294,
@@ -448,52 +208,292 @@
         "tls_id": "cluster_1840464676_89130928",
         "lane_id": null,
         "value": 0.39041975140571594,
-        "attribution": -0.0030854034703224897
+        "attribution": 0.0003066213394049555
       },
       {
-        "feature_index": 3939,
-        "name": "cluster_30503250_675201183:30399663#0_3:density",
+        "feature_index": 1480,
+        "name": "279014956:175761129#1_1:density",
         "group": "density",
-        "tls_id": "cluster_30503250_675201183",
-        "lane_id": "30399663#0_3",
-        "value": 0.22544343769550323,
-        "attribution": -0.0029345150105655193
+        "tls_id": "279014956",
+        "lane_id": "175761129#1_1",
+        "value": 0.3453502655029297,
+        "attribution": 0.0002955297823064029
       },
       {
-        "feature_index": 2178,
-        "name": "319229058:-32009683#1_2:density",
+        "feature_index": 1881,
+        "name": "30624898:386687232#0_2:density",
         "group": "density",
-        "tls_id": "319229058",
-        "lane_id": "-32009683#1_2",
-        "value": 0.3082451820373535,
-        "attribution": -0.0029028283897787333
+        "tls_id": "30624898",
+        "lane_id": "386687232#0_2",
+        "value": 0.3619968891143799,
+        "attribution": 0.00027451463392935693
       },
       {
-        "feature_index": 4223,
-        "name": "cluster_494830315_cluster_283155103_285141680_3300414849_3300414850_3300414851_792810590_792810596_792810637:32009826#1_1:queue",
+        "feature_index": 498,
+        "name": "243780145:266561174#0_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "243780145",
+        "lane_id": "266561174#0_1",
+        "value": 0.3923184275627136,
+        "attribution": 0.00027028078329749405
+      },
+      {
+        "feature_index": 4423,
+        "name": "gneJ143:10425609#1_3:density",
+        "group": "density",
+        "tls_id": "gneJ143",
+        "lane_id": "10425609#1_3",
+        "value": 0.31859689950942993,
+        "attribution": 0.0002700896584428847
+      },
+      {
+        "feature_index": 390,
+        "name": "243641585:174800513_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "243641585",
+        "lane_id": "174800513_1",
+        "value": 0.39715152978897095,
+        "attribution": 0.0002690873225219548
+      }
+    ],
+    "top_negative_features": [
+      {
+        "feature_index": 3340,
+        "name": "cluster_1863241547_1863241548_1976170214:phase_0",
+        "group": "phase",
+        "tls_id": "cluster_1863241547_1863241548_1976170214",
+        "lane_id": null,
+        "value": 0.36673837900161743,
+        "attribution": -0.0003776066587306559
+      },
+      {
+        "feature_index": 3473,
+        "name": "cluster_2018192363_25579774_324961472:257907859#1_2:density",
+        "group": "density",
+        "tls_id": "cluster_2018192363_25579774_324961472",
+        "lane_id": "257907859#1_2",
+        "value": 0.30989187955856323,
+        "attribution": -0.00035446794936433434
+      },
+      {
+        "feature_index": 2425,
+        "name": "89127267:elapsed",
+        "group": "elapsed",
+        "tls_id": "89127267",
+        "lane_id": null,
+        "value": 0.3700249493122101,
+        "attribution": -0.0002891024632845074
+      },
+      {
+        "feature_index": 2073,
+        "name": "30965815:-48742425#0_1:density",
+        "group": "density",
+        "tls_id": "30965815",
+        "lane_id": "-48742425#0_1",
+        "value": 0.3633490204811096,
+        "attribution": -0.0002868911833502352
+      },
+      {
+        "feature_index": 272,
+        "name": "2330725114:170018165#2.175_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "2330725114",
+        "lane_id": "170018165#2.175_1",
+        "value": 0.3601216971874237,
+        "attribution": -0.0002841150271706283
+      },
+      {
+        "feature_index": 1838,
+        "name": "30624898:-136436466_2:queue",
+        "group": "queue",
+        "tls_id": "30624898",
+        "lane_id": "-136436466_2",
+        "value": 0.37842509150505066,
+        "attribution": -0.00026967786834575236
+      },
+      {
+        "feature_index": 3282,
+        "name": "cluster_1835799604_30965824:29458647#0_1:speed",
+        "group": "speed",
+        "tls_id": "cluster_1835799604_30965824",
+        "lane_id": "29458647#0_1",
+        "value": 0.35649219155311584,
+        "attribution": -0.0002659297315403819
+      },
+      {
+        "feature_index": 4127,
+        "name": "cluster_32564118_371775504:phase_2",
+        "group": "phase",
+        "tls_id": "cluster_32564118_371775504",
+        "lane_id": null,
+        "value": 0.383777379989624,
+        "attribution": -0.00025462073972448707
+      }
+    ]
+  },
+  {
+    "tls_id": "214620430",
+    "tls_index": 2,
+    "action": 0,
+    "switch_probability": 0.4984002113342285,
+    "narrative": "Junction '214620430' decided to HOLD the current green phase with 50.2% confidence. This decision was primarily influenced by speed on -42738708_1 (score: +0.000) and phase on 296125095:phase_1 (score: +0.000). Local traffic conditions contributed 1.4% of decision weight, while neighboring junctions contributed 98.5%.",
+    "local_influence_pct": 1.4,
+    "neighbor_influence_pct": 98.5,
+    "group_breakdown": {
+      "phase": 0.0313,
+      "elapsed": 0.0059,
+      "queue": 0.0543,
+      "vehicle_count": 0.054,
+      "speed": 0.0569,
+      "density": 0.0523,
+      "global": 0.0002
+    },
+    "top_positive_features": [
+      {
+        "feature_index": 1104,
+        "name": "26423915:-42738708_1:speed",
+        "group": "speed",
+        "tls_id": "26423915",
+        "lane_id": "-42738708_1",
+        "value": 0.3984723389148712,
+        "attribution": 0.0003255015180911869
+      },
+      {
+        "feature_index": 1728,
+        "name": "296125095:phase_1",
+        "group": "phase",
+        "tls_id": "296125095",
+        "lane_id": null,
+        "value": 0.3441910743713379,
+        "attribution": 0.0003221376391593367
+      },
+      {
+        "feature_index": 1664,
+        "name": "281967823:27825654#0_1:speed",
+        "group": "speed",
+        "tls_id": "281967823",
+        "lane_id": "27825654#0_1",
+        "value": 0.3976474106311798,
+        "attribution": 0.0002813478058669716
+      },
+      {
+        "feature_index": 529,
+        "name": "248066503:phase_1",
+        "group": "phase",
+        "tls_id": "248066503",
+        "lane_id": null,
+        "value": 0.3594167232513428,
+        "attribution": 0.00028006211505271494
+      },
+      {
+        "feature_index": 3431,
+        "name": "cluster_2018192363_25579774_324961472:266507552#0_1:queue",
+        "group": "queue",
+        "tls_id": "cluster_2018192363_25579774_324961472",
+        "lane_id": "266507552#0_1",
+        "value": 0.3972037434577942,
+        "attribution": 0.00027547861100174487
+      },
+      {
+        "feature_index": 4218,
+        "name": "cluster_494830315_cluster_283155103_285141680_3300414849_3300414850_3300414851_792810590_792810596_792810637:64464408_3:queue",
         "group": "queue",
         "tls_id": "cluster_494830315_cluster_283155103_285141680_3300414849_3300414850_3300414851_792810590_792810596_792810637",
-        "lane_id": "32009826#1_1",
-        "value": 0.3429773151874542,
-        "attribution": -0.002898437436670065
+        "lane_id": "64464408_3",
+        "value": 0.30679312348365784,
+        "attribution": 0.000272497592959553
       },
       {
-        "feature_index": 4471,
-        "name": "gneJ144:-18909061#1_2:speed",
-        "group": "speed",
-        "tls_id": "gneJ144",
-        "lane_id": "-18909061#1_2",
-        "value": 0.39745983481407166,
-        "attribution": -0.002815698040649295
+        "feature_index": 3137,
+        "name": "cluster_148517293_2108758054:-266607802#0_3:vcount",
+        "group": "vehicle_count",
+        "tls_id": "cluster_148517293_2108758054",
+        "lane_id": "-266607802#0_3",
+        "value": 0.3213752210140228,
+        "attribution": 0.0002701044431887567
       },
       {
-        "feature_index": 2247,
-        "name": "321325405:phase_0",
-        "group": "phase",
-        "tls_id": "321325405",
+        "feature_index": 806,
+        "name": "250713433:-201278216#1_1:density",
+        "group": "density",
+        "tls_id": "250713433",
+        "lane_id": "-201278216#1_1",
+        "value": 0.3803101181983948,
+        "attribution": 0.0002601275919005275
+      }
+    ],
+    "top_negative_features": [
+      {
+        "feature_index": 2434,
+        "name": "89127267:315358252#0_2:queue",
+        "group": "queue",
+        "tls_id": "89127267",
+        "lane_id": "315358252#0_2",
+        "value": 0.38834065198898315,
+        "attribution": -0.0002935304946731776
+      },
+      {
+        "feature_index": 3358,
+        "name": "cluster_1863241547_1863241548_1976170214:128361109#4_2:queue",
+        "group": "queue",
+        "tls_id": "cluster_1863241547_1863241548_1976170214",
+        "lane_id": "128361109#4_2",
+        "value": 0.34654927253723145,
+        "attribution": -0.0002439119853079319
+      },
+      {
+        "feature_index": 4116,
+        "name": "cluster_308989441_476075007_476075018:266507542_0:density",
+        "group": "density",
+        "tls_id": "cluster_308989441_476075007_476075018",
+        "lane_id": "266507542_0",
+        "value": 0.3751804232597351,
+        "attribution": -0.00024362474505323917
+      },
+      {
+        "feature_index": 1852,
+        "name": "30624898:-136436466_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "30624898",
+        "lane_id": "-136436466_1",
+        "value": 0.3584109842777252,
+        "attribution": -0.00023684470215812325
+      },
+      {
+        "feature_index": 3434,
+        "name": "cluster_2018192363_25579774_324961472:33280102#5_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "cluster_2018192363_25579774_324961472",
+        "lane_id": "33280102#5_1",
+        "value": 0.31221911311149597,
+        "attribution": -0.00023651414085179567
+      },
+      {
+        "feature_index": 3822,
+        "name": "cluster_276507127_335525534:-25367735#1_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "cluster_276507127_335525534",
+        "lane_id": "-25367735#1_1",
+        "value": 0.34171435236930847,
+        "attribution": -0.0002314863377250731
+      },
+      {
+        "feature_index": 4585,
+        "name": "gneJ153:-201950261#0_1:vcount",
+        "group": "vehicle_count",
+        "tls_id": "gneJ153",
+        "lane_id": "-201950261#0_1",
+        "value": 0.38969168066978455,
+        "attribution": -0.00023141704150475562
+      },
+      {
+        "feature_index": 2325,
+        "name": "336359379:elapsed",
+        "group": "elapsed",
+        "tls_id": "336359379",
         "lane_id": null,
-        "value": 0.34941205382347107,
-        "attribution": -0.0028117934707552195
+        "value": 0.3865181505680084,
+        "attribution": -0.00023043194960337132
       }
     ]
   }

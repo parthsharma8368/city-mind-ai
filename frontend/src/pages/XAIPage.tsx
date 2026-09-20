@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AlertTriangle, Brain, Info, Grid, Maximize2, Sparkles, Layers, Image as ImageIcon } from "lucide-react";
 import { XAIPanel } from "../components/XAIPanel";
+import { api, API_BASE } from "../api/client";
+import type { XAIMeta } from "../api/client";
+import { CONTROLLER_LABELS } from "../constants/controllers";
 
 const SAMPLE_DRIVER_JUNCTIONS = ["1863241632", "2033094557", "214620430"];
+const XAI_CONTROLLERS = ["ppo", "ippo"] as const;
 
 function ImageLoadError({ label }: { label: string }) {
   return (
@@ -15,14 +19,21 @@ function ImageLoadError({ label }: { label: string }) {
 }
 
 export const XAIPage: React.FC = () => {
+  const [controller, setController] = useState<typeof XAI_CONTROLLERS[number]>("ppo");
+  const [meta, setMeta] = useState<XAIMeta | null>(null);
   const [activeView, setActiveView] = useState<"attributions" | "heatmap" | "drivers">("attributions");
   const [selectedDriverJunction, setSelectedDriverJunction] = useState("1863241632");
   const [heatmapExpanded, setHeatmapExpanded] = useState(false);
   const [heatmapFailed, setHeatmapFailed] = useState(false);
   const [driverPlotFailed, setDriverPlotFailed] = useState(false);
 
-  const heatmapUrl = "http://localhost:8000/api/xai/coordination-heatmap";
-  const driverPlotUrl = `http://localhost:8000/api/xai/driver-plot/${selectedDriverJunction}`;
+  useEffect(() => {
+    api.getXAIMeta(controller).then(setMeta).catch(() => setMeta(null));
+  }, [controller]);
+
+  const heatmapUrl = `${API_BASE}/xai/coordination-heatmap?controller=${controller}`;
+  const driverPlotUrl = `${API_BASE}/xai/driver-plot/${selectedDriverJunction}?controller=${controller}`;
+  const isEmpirical = meta?.coordination_evidence_type === "empirical_correlation";
 
   return (
     <div style={{ animation: "fade-in 0.4s ease both" }}>
@@ -41,6 +52,29 @@ export const XAIPage: React.FC = () => {
             <Brain size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
             Integrated-Gradients feature attribution & inter-intersection coordination analysis
           </p>
+        </div>
+
+        {/* Controller Toggle */}
+        <div role="group" aria-label="Controller to explain" style={{
+          display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 20, padding: 3,
+          border: "1px solid var(--border-subtle)",
+        }}>
+          {XAI_CONTROLLERS.map((id) => (
+            <button
+              key={id}
+              className={`btn btn-sm ${controller === id ? "btn-primary" : ""}`}
+              style={{
+                borderRadius: 18, padding: "0.35rem 0.9rem", fontSize: "0.8rem",
+                background: controller === id ? "var(--accent-cyan)" : "transparent",
+                color: controller === id ? "#060910" : "var(--text-secondary)",
+                fontWeight: controller === id ? 700 : 500,
+              }}
+              onClick={() => { setController(id); setHeatmapFailed(false); setDriverPlotFailed(false); }}
+              aria-pressed={controller === id}
+            >
+              {CONTROLLER_LABELS[id] ?? id}
+            </button>
+          ))}
         </div>
 
         {/* View Switcher Tabs */}
@@ -104,17 +138,27 @@ export const XAIPage: React.FC = () => {
         <Info size={16} color="var(--accent-blue)" style={{ flexShrink: 0, marginTop: 2 }} />
         <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
           <strong style={{ color: "var(--text-primary)" }}>How XAI Works in CityMind:</strong>{" "}
-          The centralized PPO agent processes full network observations (queue lengths, elapsed green times,
-          downstream neighbor states). Integrated Gradients backpropagates from each junction's switch-decision logit
-          to every input feature along a straight-line path from a zeroed baseline, revealing whether signal timing
-          actions are driven by immediate local queues or coordinated green-wave pressure.
+          {meta?.explains ?? (controller === "ippo"
+            ? "IPPO — one shared policy invoked independently per intersection, each seeing only its own local observation."
+            : "The centralized PPO agent processes full network observations (queue lengths, elapsed green times, downstream neighbor states).")}
+          {" "}Integrated Gradients backpropagates from each junction's switch-decision logit to every input feature
+          along a straight-line path from a zeroed baseline, revealing whether signal timing actions are driven by
+          immediate local queues or downstream pressure.
+          {controller === "ippo" && (
+            <>
+              {" "}<strong style={{ color: "var(--text-primary)" }}>Note:</strong> IPPO's per-junction attribution
+              (Junction Attributions / Driver Plots tabs) reflects only that junction's own 10-dimensional observation —
+              there's no explicit neighboring-junction identity in it, only one aggregate downstream-queue signal. The
+              Coordination Heatmap tab below is computed differently for this reason — see its own description.
+            </>
+          )}
         </div>
       </div>
 
       {/* ── View 1: Feature Attributions per Junction ──────────────────────── */}
       {activeView === "attributions" && (
         <div>
-          <XAIPanel maxItems={20} />
+          <XAIPanel maxItems={20} controller={controller} />
         </div>
       )}
 
@@ -131,10 +175,15 @@ export const XAIPage: React.FC = () => {
           }}>
             <div>
               <h3 style={{ fontSize: "1rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                <Sparkles size={16} color="var(--accent-cyan)" /> Inter-Intersection Coordination Heatmap
+                <Sparkles size={16} color="var(--accent-cyan)" /> {meta?.coordination_evidence_label ?? "Inter-Intersection Coordination Heatmap"}
+                {meta && (
+                  <span className={isEmpirical ? "badge-yellow" : "badge-blue"} style={{ fontSize: "0.65rem", marginLeft: 4 }}>
+                    {isEmpirical ? "Empirical" : "Model Attribution"}
+                  </span>
+                )}
               </h3>
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-                Shows cross-correlation of Integrated-Gradients attributions between controlled TLS junctions
+                {meta?.coordination_evidence_description ?? "Shows cross-correlation of Integrated-Gradients attributions between controlled TLS junctions"}
               </p>
             </div>
             <button
@@ -176,8 +225,9 @@ export const XAIPage: React.FC = () => {
 
           <div style={{ marginTop: "1rem", fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
             <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>Key Insight: </span>
-            Strong off-diagonal intensity indicates cooperative emergent behavior where upstream junctions
-            hold or cycle phases to meter vehicles arriving at bottleneck intersections downstream.
+            {isEmpirical
+              ? "This measures correlated switch timing between geographically-nearby junctions in the recorded episode — real behavioral evidence, but not the same as PPO's model-attribution matrix above, since IPPO's architecture has no gradient path between one junction's decision and a specific neighbor's state. Sparse, weak correlation here is expected and consistent with IPPO agents acting largely independently — a case for the coordination-focused RL alternatives (MAPPO, CoLight) as a next step."
+              : "Strong off-diagonal intensity indicates cooperative emergent behavior where upstream junctions hold or cycle phases to meter vehicles arriving at bottleneck intersections downstream."}
           </div>
         </div>
       )}

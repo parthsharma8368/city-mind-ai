@@ -2,7 +2,7 @@
  * CityMind AI — API client for FastAPI backend.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 export const WS_SIMULATION = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/ws/simulation";
 const API_KEY = import.meta.env.VITE_API_KEY;
 
@@ -132,6 +132,14 @@ export interface XAIJunctionExplanation {
   }>;
 }
 
+export interface XAIMeta {
+  controller: string;
+  explains: string;
+  coordination_evidence_type: "model_attribution" | "empirical_correlation";
+  coordination_evidence_label: string;
+  coordination_evidence_description: string;
+}
+
 export interface WsPayload {
   type: string;
   timestamp: number;
@@ -208,8 +216,9 @@ export const api = {
   },
 
   // ── XAI ───────────────────────────────────────────────────────────────
-  getXAISummary: () => _fetch<XAIJunctionExplanation[]>("/xai/summary"),
-  getXAIJunction: (tlsId: string) => _fetch<XAIJunctionExplanation>(`/xai/explain/${tlsId}`),
+  getXAISummary: (controller: string = "ppo") => _fetch<XAIJunctionExplanation[]>(`/xai/summary?controller=${controller}`),
+  getXAIJunction: (tlsId: string, controller: string = "ppo") => _fetch<XAIJunctionExplanation>(`/xai/explain/${tlsId}?controller=${controller}`),
+  getXAIMeta: (controller: string = "ppo") => _fetch<XAIMeta>(`/xai/meta?controller=${controller}`),
 
   // ── Replay ────────────────────────────────────────────────────────────
   getReplayFrames: (controller: string, seed = 42, demandId = "1.0x", startTime = 0, endTime = 60) => {

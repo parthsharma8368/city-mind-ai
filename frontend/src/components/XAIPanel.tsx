@@ -106,17 +106,17 @@ function JunctionCard({ expl }: { expl: XAIJunctionExplanation }) {
   );
 }
 
-export const XAIPanel: React.FC<{ maxItems?: number }> = ({ maxItems = 10 }) => {
+export const XAIPanel: React.FC<{ maxItems?: number; controller?: string }> = ({ maxItems = 10, controller = "ppo" }) => {
   const [data, setData] = useState<XAIJunctionExplanation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getXAISummary()
-      .then((d) => setData(d.slice(0, maxItems)))
+    api.getXAISummary(controller)
+      .then((d) => { setData(d.slice(0, maxItems)); setError(null); })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [maxItems]);
+  }, [maxItems, controller]);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-muted)", padding: "2rem" }}>
@@ -132,7 +132,7 @@ export const XAIPanel: React.FC<{ maxItems?: number }> = ({ maxItems = 10 }) => 
         Run the XAI analyzer to generate explanations:
       </p>
       <code style={{ display: "block", marginTop: "0.75rem", padding: "0.6rem 1rem", background: "rgba(255,255,255,0.05)", borderRadius: 6, fontSize: "0.8rem", color: "var(--accent-cyan)", fontFamily: "var(--font-mono)", textAlign: "left" }}>
-        python scripts/run_xai.py --model artifacts/experiments/ppo/[run]/model_final.zip
+        python scripts/run_xai.py --controller {controller} --model artifacts/experiments/{controller}/[run]/model_final.zip
       </code>
     </div>
   );
