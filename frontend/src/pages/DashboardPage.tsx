@@ -6,8 +6,8 @@ import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { SimulationControl } from "../components/SimulationControl";
 import { api } from "../api/client";
 import type { MetricsSummary, TLSFrame } from "../api/client";
-import { useSimulationSocket } from "../context/SimulationSocketContext";
-import { sampleAndHold, tlsFramesToStateMap } from "../utils/trajectory";
+import { useSimulationSocket } from "../context/simulationSocketStore";
+import { sampleAndHold, tlsFramesToStateMap, meanSpeedMs, countQueued, msToKmh } from "../utils/trajectory";
 import { controllerLabel } from "../constants/controllers";
 
 export const DashboardPage: React.FC = () => {
@@ -94,27 +94,24 @@ export const DashboardPage: React.FC = () => {
   );
 
   // Telemetry derived from active simulation vehicles
-  const liveAvgSpeedKmh = useMemo(() => {
-    if (currentVehicles.length === 0) return 0;
-    const sum = currentVehicles.reduce((acc, v) => acc + (v.speed || 0), 0);
-    return (sum / currentVehicles.length) * 3.6;
-  }, [currentVehicles]);
-
-  const liveQueuedCount = useMemo(() => {
-    return currentVehicles.filter((v) => (v.speed || 0) < 2).length;
-  }, [currentVehicles]);
+  const liveAvgSpeedMs = useMemo(() => meanSpeedMs(currentVehicles), [currentVehicles]);
+  const liveQueuedCount = useMemo(() => countQueued(currentVehicles), [currentVehicles]);
 
   // Determine display values — follow whichever controller /summary picked as the headline.
   const headlineWsMetrics = headlineController ? wsPayload?.metrics?.[headlineController] : undefined;
   const displayMetrics = {
     avgWait: headlineWsMetrics ? headlineWsMetrics.mean_waiting_time : (metrics?.mean_waiting_time ?? 0),
     avgQueue: currentVehicles.length > 0 ? liveQueuedCount : (headlineWsMetrics?.mean_queue ?? metrics?.mean_queue ?? 0),
-    avgSpeed: currentVehicles.length > 0 ? (liveAvgSpeedKmh / 3.6) : (headlineWsMetrics?.mean_speed ?? metrics?.mean_speed ?? 0),
+    avgSpeed: currentVehicles.length > 0 ? liveAvgSpeedMs : (headlineWsMetrics?.mean_speed ?? metrics?.mean_speed ?? 0),
     vehiclesCount: currentVehicles.length > 0 ? currentVehicles.length : (headlineWsMetrics?.total_arrived ?? metrics?.total_arrived ?? 0),
     arrivedCount: headlineWsMetrics?.total_arrived ?? metrics?.total_arrived ?? 0,
   };
 
-  const backendUnreachable = Boolean(metricsError) && Boolean(replayError);
+  // The replay fetch only ever runs once /summary has already succeeded (see
+  // the effect above), so metricsError and replayError can never both be set
+  // at once — "can't reach the API at all" is exactly what a failed /summary
+  // means. A replay-only failure gets its own inline message below instead.
+  const backendUnreachable = Boolean(metricsError);
 
   return (
     <div style={{ animation: "fade-in 0.4s ease both" }}>
@@ -222,7 +219,7 @@ export const DashboardPage: React.FC = () => {
               { label: "Signal Switches", value: metrics.total_switches.toLocaleString() },
               { label: "Cum. Reward", value: metrics.cumulative_reward.toFixed(1) },
               { label: "Throughput", value: `${(metrics.throughput * 100).toFixed(1)}%` },
-              { label: "Mean Speed", value: `${(metrics.mean_speed * 3.6).toFixed(1)} km/h` },
+              { label: "Mean Speed", value: `${msToKmh(metrics.mean_speed).toFixed(1)} km/h` },
               { label: "Total Arrived", value: metrics.total_arrived.toLocaleString() },
             ].map(({ label, value }) => (
               <div key={label} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: "0.75rem 1rem", border: "1px solid var(--border-subtle)" }}>

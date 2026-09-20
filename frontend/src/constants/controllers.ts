@@ -17,6 +17,18 @@ export const CONTROLLER_COLORS: Record<string, string> = {
   max_pressure: "var(--accent-indigo)",
 };
 
+// Resolved hex twins of CONTROLLER_COLORS (must match styles/index.css's
+// --accent-cyan/--accent-purple/--signal-yellow/--accent-indigo exactly).
+// SVG `fill` attributes — e.g. recharts' <Cell fill>  — don't reliably
+// resolve CSS custom properties the way DOM `style` does, so chart code
+// needs a resolved value instead of the var(--...) token.
+export const CONTROLLER_HEX: Record<string, string> = {
+  ppo: "#22d3ee",
+  ippo: "#a855f7",
+  fixed_time: "#f59e0b",
+  max_pressure: "#818cf8",
+};
+
 export function controllerLabel(id: string): string {
   return CONTROLLER_LABELS[id] ?? id;
 }

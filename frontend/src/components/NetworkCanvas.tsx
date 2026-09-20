@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { api } from "../api/client";
 import type { NetworkGeoJSON } from "../api/client";
+import { isQueuedSpeed } from "../utils/trajectory";
 
 export interface VehiclePoint {
   vehicle_id: string;
@@ -188,7 +189,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         if (vx < -10 || vx > W + 10 || vy < -10 || vy > H + 10) continue;
 
         ctx.beginPath();
-        const isQueue = veh.speed < 2;
+        const isQueue = isQueuedSpeed(veh.speed);
         // Queued (<2 m/s): Hot Pink/Magenta (#ec4899), Moderate (2-8 m/s): Lavender (#a855f7), Cruising (>8 m/s): Cyan (#38bdf8)
         const carColor = isQueue ? "#ec4899" : veh.speed > 8 ? "#38bdf8" : "#a855f7";
 

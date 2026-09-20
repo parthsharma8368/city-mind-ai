@@ -4,20 +4,11 @@
  * badge and the SimulationControl panel both read from here instead of each
  * opening their own socket / faking their own status).
  */
-import React, { createContext, useContext } from "react";
-import { useWebSocket, type WsStatus } from "../hooks/useWebSocket";
+import React from "react";
+import { useWebSocket } from "../hooks/useWebSocket";
 import { WS_SIMULATION } from "../api/client";
 import type { WsPayload } from "../api/client";
-
-interface SimulationSocketValue {
-  status: WsStatus;
-  lastMessage: WsPayload | null;
-}
-
-const SimulationSocketContext = createContext<SimulationSocketValue>({
-  status: "disconnected",
-  lastMessage: null,
-});
+import { SimulationSocketContext } from "./simulationSocketStore";
 
 export const SimulationSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { status, lastMessage } = useWebSocket<WsPayload>({ url: WS_SIMULATION });
@@ -27,7 +18,3 @@ export const SimulationSocketProvider: React.FC<{ children: React.ReactNode }> =
     </SimulationSocketContext.Provider>
   );
 };
-
-export function useSimulationSocket(): SimulationSocketValue {
-  return useContext(SimulationSocketContext);
-}

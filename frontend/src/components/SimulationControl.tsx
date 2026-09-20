@@ -2,14 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Play, Square, Cpu, Monitor, RefreshCw } from "lucide-react";
 import { api } from "../api/client";
 import type { SimulationStatus, SimControllerId } from "../api/client";
-import { useSimulationSocket } from "../context/SimulationSocketContext";
+import { useSimulationSocket } from "../context/simulationSocketStore";
+import { CONTROLLER_LABELS } from "../constants/controllers";
 
-const CONTROLLERS: { id: SimControllerId; label: string }[] = [
-  { id: "fixed_time", label: "Fixed-Time" },
-  { id: "max_pressure", label: "Max-Pressure" },
-  { id: "ppo", label: "PPO" },
-  { id: "ippo", label: "IPPO" },
-];
+const CONTROLLER_IDS: SimControllerId[] = ["fixed_time", "max_pressure", "ppo", "ippo"];
 
 export const SimulationControl: React.FC = () => {
   const [simStatus, setSimStatus] = useState<SimulationStatus | null>(null);
@@ -25,18 +21,10 @@ export const SimulationControl: React.FC = () => {
     refreshStatus();
   }, []);
 
-  // Keep running-controller state in sync with the shared live feed without a second socket.
-  useEffect(() => {
-    if (!wsPayload) return;
-    setSimStatus((prev) => ({
-      gui_running: wsPayload.gui_running,
-      gui_pid: wsPayload.gui_pid ?? null,
-      running_controllers: wsPayload.running_controllers ?? [],
-      latest_model: prev?.latest_model ?? null,
-      xquartz_display: prev?.xquartz_display ?? null,
-    }));
-  }, [wsPayload]);
-
+  // running_controllers/gui_running/gui_pid come live from the websocket
+  // when connected; simStatus (from the one-time REST fetch above) is only
+  // needed as a fallback before the socket connects, and for the REST-only
+  // fields (latest_model, xquartz_display) the websocket never carries.
   const runningControllers = wsPayload?.running_controllers ?? simStatus?.running_controllers ?? [];
   const display = simStatus?.xquartz_display ?? "N/A";
 
@@ -91,7 +79,8 @@ export const SimulationControl: React.FC = () => {
 
       {/* Per-controller launch/stop grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem", marginBottom: "1rem" }}>
-        {CONTROLLERS.map(({ id, label }) => {
+        {CONTROLLER_IDS.map((id) => {
+          const label = CONTROLLER_LABELS[id] ?? id;
           const isRunning = runningControllers.includes(id);
           const isPending = pending === id;
           return (
@@ -110,9 +99,11 @@ export const SimulationControl: React.FC = () => {
                 onClick={() => (isRunning ? handleStop(id) : handleLaunch(id))}
                 disabled={isPending}
                 aria-pressed={isRunning}
+                aria-busy={isPending}
+                aria-label={isPending ? `${isRunning ? "Stopping" : "Launching"} ${label}…` : undefined}
               >
                 {isPending
-                  ? <span className="spinner" style={{ width: 12, height: 12 }} />
+                  ? <span className="spinner" aria-hidden="true" style={{ width: 12, height: 12 }} />
                   : isRunning
                     ? <><Square size={12} aria-hidden="true" /> Stop</>
                     : <><Play size={12} aria-hidden="true" /> Launch</>

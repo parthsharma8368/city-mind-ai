@@ -3,20 +3,7 @@ import { BarChart3, TrendingDown, TrendingUp, Award } from "lucide-react";
 import { ComparisonBarChart } from "../components/MetricsChart";
 import { api } from "../api/client";
 import type { ComparisonResult, ComparisonEntry } from "../api/client";
-
-const CTRL_LABELS: Record<string, string> = {
-  ppo:          "PPO (Centralized)",
-  ippo:         "IPPO (Parameter-Shared)",
-  fixed_time:   "Fixed-Time Baseline",
-  max_pressure: "Max-Pressure",
-};
-
-const CTRL_COLORS: Record<string, string> = {
-  ppo:          "var(--accent-cyan)",
-  ippo:         "var(--accent-purple)",
-  fixed_time:   "var(--signal-yellow)",
-  max_pressure: "var(--accent-indigo)",
-};
+import { CONTROLLER_LABELS as CTRL_LABELS, CONTROLLER_COLORS as CTRL_COLORS } from "../constants/controllers";
 
 type MetricKey = "mean_waiting_time" | "mean_queue" | "throughput" | "mean_speed";
 
@@ -94,7 +81,9 @@ export const ComparisonPage: React.FC = () => {
             {(() => {
               const pct = improvement.waiting_time_improvement_pct;
               const isImprovement = pct > 0;
-              const label = CTRL_LABELS[improvement.controller ?? "ppo"] ?? improvement.controller;
+              const label = improvement.controller
+                ? CTRL_LABELS[improvement.controller] ?? improvement.controller
+                : "RL controller";
               return (
                 <span className={`improvement-tag ${isImprovement ? "positive" : "negative"}`}>
                   {isImprovement ? <Award size={12} /> : <TrendingUp size={12} />}

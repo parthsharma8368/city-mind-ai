@@ -7,17 +7,11 @@ import {
 import { api } from "../api/client";
 import type { TLSFrame, ComparisonEntry } from "../api/client";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
-import { sampleAndHold, tlsFramesToStateMap } from "../utils/trajectory";
+import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued } from "../utils/trajectory";
 import { CONTROLLER_LABELS, CONTROLLER_COLORS } from "../constants/controllers";
 
-const CONTROLLERS = [
-  { id: "ppo", name: "PPO (Centralized)", badge: "badge-blue" },
-  { id: "ippo", name: "IPPO (Parameter-Shared)", badge: "badge-blue" },
-  { id: "fixed_time", name: "Fixed-Time Baseline", badge: "badge-yellow" },
-  { id: "max_pressure", name: "Max-Pressure Baseline", badge: "badge-green" },
-];
-
-const RL_CONTROLLERS = CONTROLLERS.filter((c) => c.id === "ppo" || c.id === "ippo");
+const CONTROLLER_IDS = ["ppo", "ippo", "fixed_time", "max_pressure"] as const;
+const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ppo" || id === "ippo");
 
 export const ReplayPage: React.FC = () => {
   const [isSplitMode, setIsSplitMode] = useState(true);
@@ -160,37 +154,16 @@ export const ReplayPage: React.FC = () => {
   );
 
   // Single Mode Telemetry
-  const avgSpeedKmh = useMemo(() => {
-    if (currentVehicles.length === 0) return 0;
-    const sum = currentVehicles.reduce((acc, v) => acc + (v.speed || 0), 0);
-    return (sum / currentVehicles.length) * 3.6;
-  }, [currentVehicles]);
-
-  const queuedCount = useMemo(() => {
-    return currentVehicles.filter((v) => (v.speed || 0) < 2).length;
-  }, [currentVehicles]);
+  const avgSpeedKmh = useMemo(() => meanSpeedKmh(currentVehicles), [currentVehicles]);
+  const queuedCount = useMemo(() => countQueued(currentVehicles), [currentVehicles]);
 
   // Split Mode Telemetry: Fixed
-  const fixedSpeedKmh = useMemo(() => {
-    if (currentFixedVehicles.length === 0) return 0;
-    const sum = currentFixedVehicles.reduce((acc, v) => acc + (v.speed || 0), 0);
-    return (sum / currentFixedVehicles.length) * 3.6;
-  }, [currentFixedVehicles]);
-
-  const fixedQueued = useMemo(() => {
-    return currentFixedVehicles.filter((v) => (v.speed || 0) < 2).length;
-  }, [currentFixedVehicles]);
+  const fixedSpeedKmh = useMemo(() => meanSpeedKmh(currentFixedVehicles), [currentFixedVehicles]);
+  const fixedQueued = useMemo(() => countQueued(currentFixedVehicles), [currentFixedVehicles]);
 
   // Split Mode Telemetry: PPO
-  const ppoSpeedKmh = useMemo(() => {
-    if (currentPpoVehicles.length === 0) return 0;
-    const sum = currentPpoVehicles.reduce((acc, v) => acc + (v.speed || 0), 0);
-    return (sum / currentPpoVehicles.length) * 3.6;
-  }, [currentPpoVehicles]);
-
-  const ppoQueued = useMemo(() => {
-    return currentPpoVehicles.filter((v) => (v.speed || 0) < 2).length;
-  }, [currentPpoVehicles]);
+  const ppoSpeedKmh = useMemo(() => meanSpeedKmh(currentPpoVehicles), [currentPpoVehicles]);
+  const ppoQueued = useMemo(() => countQueued(currentPpoVehicles), [currentPpoVehicles]);
 
   // Playback loop
   useEffect(() => {
@@ -281,21 +254,21 @@ export const ReplayPage: React.FC = () => {
 
           {!isSplitMode && (
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-              {CONTROLLERS.map((c) => (
+              {CONTROLLER_IDS.map((id) => (
                 <button
-                  key={c.id}
-                  className={`btn btn-sm ${controller === c.id ? "btn-primary" : ""}`}
+                  key={id}
+                  className={`btn btn-sm ${controller === id ? "btn-primary" : ""}`}
                   style={{
                     borderRadius: 20,
                     padding: "0.35rem 0.8rem",
                     fontSize: "0.78rem",
-                    border: controller === c.id ? "1px solid var(--accent-cyan)" : "1px solid var(--border-subtle)",
-                    background: controller === c.id ? "rgba(34,211,238,0.15)" : "rgba(255,255,255,0.03)",
-                    color: controller === c.id ? "var(--accent-cyan)" : "var(--text-secondary)",
+                    border: controller === id ? "1px solid var(--accent-cyan)" : "1px solid var(--border-subtle)",
+                    background: controller === id ? "rgba(34,211,238,0.15)" : "rgba(255,255,255,0.03)",
+                    color: controller === id ? "var(--accent-cyan)" : "var(--text-secondary)",
                   }}
-                  onClick={() => setController(c.id)}
+                  onClick={() => setController(id)}
                 >
-                  {c.name}
+                  {CONTROLLER_LABELS[id] ?? id}
                 </button>
               ))}
             </div>
@@ -367,7 +340,7 @@ export const ReplayPage: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--signal-yellow)" }} />
                 <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--signal-yellow)" }}>
-                  Fixed-Time Baseline
+                  {CONTROLLER_LABELS.fixed_time}
                 </span>
               </div>
               <span className="badge-yellow" style={{ fontSize: "0.7rem" }}>Static Schedules</span>
@@ -411,19 +384,19 @@ export const ReplayPage: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent-cyan)" }} />
                 <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--accent-cyan)" }}>
-                  {RL_CONTROLLERS.find((c) => c.id === splitRlController)?.name ?? splitRlController}
+                  {CONTROLLER_LABELS[splitRlController] ?? splitRlController}
                 </span>
               </div>
               <div role="group" aria-label="RL controller to compare" style={{ display: "flex", gap: 4 }}>
-                {RL_CONTROLLERS.map((c) => (
+                {RL_CONTROLLER_IDS.map((id) => (
                   <button
-                    key={c.id}
-                    className={`btn btn-sm ${splitRlController === c.id ? "btn-primary" : ""}`}
+                    key={id}
+                    className={`btn btn-sm ${splitRlController === id ? "btn-primary" : ""}`}
                     style={{ padding: "0.2rem 0.55rem", fontSize: "0.7rem" }}
-                    onClick={() => setSplitRlController(c.id)}
-                    aria-pressed={splitRlController === c.id}
+                    onClick={() => setSplitRlController(id)}
+                    aria-pressed={splitRlController === id}
                   >
-                    {c.id.toUpperCase()}
+                    {id.toUpperCase()}
                   </button>
                 ))}
               </div>

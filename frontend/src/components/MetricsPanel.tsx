@@ -1,5 +1,6 @@
 import type React from "react";
 import { Clock, TrendingDown, Gauge, Car } from "lucide-react";
+import { msToKmh } from "../utils/trajectory";
 
 interface MetricsPanelProps {
   avgWait: number;
@@ -42,7 +43,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({
           <span className="metric-label">Network Speed</span>
           <Gauge size={16} color="var(--signal-green)" />
         </div>
-        <div className="metric-value">{(avgSpeed * 3.6).toFixed(1)} km/h</div>
+        <div className="metric-value">{msToKmh(avgSpeed).toFixed(1)} km/h</div>
         <span className="metric-subtext">Mean traffic velocity</span>
       </div>
 

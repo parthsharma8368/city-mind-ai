@@ -8,7 +8,8 @@ import { ExperimentsPage } from "./pages/ExperimentsPage";
 import { ComparisonPage } from "./pages/ComparisonPage";
 import { XAIPage } from "./pages/XAIPage";
 import { ReplayPage } from "./pages/ReplayPage";
-import { SimulationSocketProvider, useSimulationSocket } from "./context/SimulationSocketContext";
+import { SimulationSocketProvider } from "./context/SimulationSocketContext";
+import { useSimulationSocket } from "./context/simulationSocketStore";
 
 const NAV_ITEMS = [
   { to: "/",             label: "Dashboard",    icon: <Activity size={16} aria-hidden="true" /> },
@@ -47,7 +48,7 @@ export function App() {
             <div>
               <h1 style={{ fontSize: "1.1rem", fontWeight: 700, letterSpacing: "-0.02em" }}>CityMind AI</h1>
               <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", letterSpacing: "0.02em" }}>
-                Centralized RL Traffic Intelligence
+                Multi-Agent RL Traffic Intelligence
               </p>
             </div>
           </div>
@@ -94,10 +95,10 @@ export function App() {
           fontSize: "0.75rem",
           color: "var(--text-muted)",
         }}>
-          <span>CityMind AI — Centralized Multi-Intersection RL Traffic Control</span>
+          <span>CityMind AI — Multi-Intersection RL Traffic Control (PPO + IPPO)</span>
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Cpu size={12} aria-hidden="true" /> PPO · SB3 · SUMO 1.27.1
+              <Cpu size={12} aria-hidden="true" /> PPO · IPPO · SB3 · SUMO 1.27.1
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <Monitor size={12} aria-hidden="true" /> Local visual demo via XQuartz

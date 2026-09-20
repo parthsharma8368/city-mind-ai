@@ -178,8 +178,6 @@ async function _fetch<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   // ── Network ────────────────────────────────────────────────────────────
   getNetworkGeoJSON: () => _fetch<NetworkGeoJSON>("/network/geojson"),
-  getNetworkMetadata: () => _fetch<Record<string, unknown>>("/network/network_metadata"),
-  getScenarioSummary: () => _fetch<Record<string, unknown>>("/network/summary"),
   getTLSMetadata: () => _fetch<Array<{
     tls_id: string;
     program_id: string;
@@ -209,14 +207,12 @@ export const api = {
     const params = controllerId ? `?${new URLSearchParams({ controller: controllerId }).toString()}` : "";
     return _fetch<{ status: string; message: string }>(`/simulation/stop-gui${params}`, { method: "POST" });
   },
-  getLatestModel: () => _fetch<{ model_path: string; run_id: string; config: Record<string, unknown> }>("/simulation/latest-model"),
 
   // ── XAI ───────────────────────────────────────────────────────────────
   getXAISummary: () => _fetch<XAIJunctionExplanation[]>("/xai/summary"),
   getXAIJunction: (tlsId: string) => _fetch<XAIJunctionExplanation>(`/xai/explain/${tlsId}`),
 
   // ── Replay ────────────────────────────────────────────────────────────
-  getAvailableTrajectories: () => _fetch<{ trajectories: string[] }>("/replay/available"),
   getReplayFrames: (controller: string, seed = 42, demandId = "1.0x", startTime = 0, endTime = 60) => {
     const params = new URLSearchParams({
       controller,
@@ -231,8 +227,4 @@ export const api = {
       frame_count: number;
     }>(`/replay/frames?${params.toString()}`);
   },
-
-  // ── Comparison ─────────────────────────────────────────────────────────
-  getComparisonSummary: (demandId = "1.0x") =>
-    _fetch<{ results: ComparisonEntry[] }>(`/comparison/summary?demand_id=${demandId}`),
 };

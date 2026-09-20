@@ -23,6 +23,7 @@ export function useWebSocket<T = unknown>({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  const connectRef = useRef<() => void>(() => {});
 
   const connect = useCallback(() => {
     if (!mountedRef.current || !enabled) return;
@@ -55,10 +56,15 @@ export function useWebSocket<T = unknown>({
       if (!mountedRef.current) return;
       setStatus("disconnected");
       wsRef.current = null;
-      // Auto-reconnect
-      reconnectTimeout.current = setTimeout(connect, reconnectDelayMs);
+      // Auto-reconnect — go through the ref (always up to date, set below)
+      // rather than closing over `connect` directly.
+      reconnectTimeout.current = setTimeout(() => connectRef.current(), reconnectDelayMs);
     };
   }, [url, onMessage, reconnectDelayMs, enabled]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     mountedRef.current = true;
