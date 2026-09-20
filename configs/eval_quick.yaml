@@ -1,29 +1,9 @@
-controllers:
-- name: fixed_time
-  type: fixed_time
-- name: max_pressure
-  type: max_pressure
-- model_path: null
-  name: ppo
-  type: ppo
+# Quick/smoke-test evaluation protocol — only the keys below are actually
+# read by EvaluationRunner (src/evaluation/evaluate.py); see evaluation.yaml.
 decision_interval: 5
 demand_scales:
 - 1.0
 episode_duration: 1800
-metrics:
-  primary:
-  - average_travel_time
-  - average_waiting_time
-  - total_waiting_time
-  - average_queue_length
-  - max_queue_length
-  - throughput
-  - total_stops
-  secondary:
-  - signal_switch_count
-  - total_departed
-  - total_arrived
-  - average_speed
 output_dir: artifacts/metrics
 report_dir: artifacts/reports
 save_trajectories: true

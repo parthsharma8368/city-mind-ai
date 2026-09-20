@@ -33,12 +33,17 @@ def get_trajectory_frames(
     parquet_path = TRAJECTORY_DIR / f"{controller}_seed{seed}_{demand_id}.parquet"
     csv_path = TRAJECTORY_DIR / f"{controller}_seed{seed}_{demand_id}.csv"
 
-    if parquet_path.exists():
-        df = pd.read_parquet(parquet_path)
-    elif csv_path.exists():
-        df = pd.read_csv(csv_path)
-    else:
-        raise HTTPException(404, f"Trajectory not found for {controller} (seed={seed}, demand={demand_id})")
+    try:
+        if parquet_path.exists():
+            df = pd.read_parquet(parquet_path)
+        elif csv_path.exists():
+            df = pd.read_csv(csv_path)
+        else:
+            raise HTTPException(404, f"Trajectory not found for {controller} (seed={seed}, demand={demand_id})")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(500, f"Could not read trajectory for {controller}: {exc}") from exc
 
     mask = (df["time"] >= start_time) & (df["time"] <= end_time)
     subset = df[mask]

@@ -10,29 +10,30 @@ METADATA_DIR = _PROJECT_ROOT / "artifacts" / "scenario"
 GEOJSON_PATH = _PROJECT_ROOT / "data" / "processed" / "network.geojson"
 
 
+def _load_json_or_404(path: Path, missing_detail: str):
+    if not path.exists():
+        raise HTTPException(404, missing_detail)
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        raise HTTPException(500, f"{path.name} is not valid JSON: {exc}") from exc
+
+
 @router.get("/tls_metadata")
 def get_tls_metadata():
     path = METADATA_DIR / "tls_metadata.json"
-    if not path.exists():
-        raise HTTPException(404, "TLS metadata not found. Run inspect_intas.py first.")
-    return json.loads(path.read_text())
+    return _load_json_or_404(path, "TLS metadata not found. Run inspect_intas.py first.")
 
 @router.get("/network_metadata")
 def get_network_metadata():
     path = METADATA_DIR / "network_metadata.json"
-    if not path.exists():
-        raise HTTPException(404, "Network metadata not found.")
-    return json.loads(path.read_text())
+    return _load_json_or_404(path, "Network metadata not found.")
 
 @router.get("/summary")
 def get_scenario_summary():
     path = METADATA_DIR / "scenario_summary.json"
-    if not path.exists():
-        raise HTTPException(404, "Scenario summary not found.")
-    return json.loads(path.read_text())
+    return _load_json_or_404(path, "Scenario summary not found.")
 
 @router.get("/geojson")
 def get_network_geojson():
-    if not GEOJSON_PATH.exists():
-        raise HTTPException(404, "Network GeoJSON not found. Run inspect_intas.py first.")
-    return json.loads(GEOJSON_PATH.read_text())
+    return _load_json_or_404(GEOJSON_PATH, "Network GeoJSON not found. Run inspect_intas.py first.")

@@ -21,7 +21,12 @@ def _resolve_run_dir(run_id: str) -> Path:
     if not _SAFE_RUN_ID.match(run_id):
         raise HTTPException(400, f"Invalid run_id: {run_id!r}")
     for root in EXPERIMENTS_ROOTS.values():
-        candidate = root / run_id
+        candidate = (root / run_id).resolve()
+        # The regex above already blocks "/", but a bare ".." is still a
+        # valid token that resolves to the parent directory - confirm the
+        # resolved path is still actually inside root before trusting it.
+        if root.resolve() not in candidate.parents and candidate != root.resolve():
+            continue
         if candidate.exists():
             return candidate
     # Fall back to the ppo root so the 404 message is stable when neither has it.
@@ -121,7 +126,6 @@ def get_experiment_summary(run_id: str):
             "demand_id": data.get("demand_id"),
             "total_steps": data.get("total_steps", 0),
             "final_sim_time": data.get("episode_duration", 3600.0),
-            "average_travel_time": data.get("mean_waiting_time", 0),
             "average_waiting_time": data.get("mean_waiting_time", 0),
             "total_waiting_time": data.get("total_waiting_time", 0),
             "average_queue_length": data.get("mean_queue", 0),

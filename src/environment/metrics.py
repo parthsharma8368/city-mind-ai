@@ -61,12 +61,6 @@ class EpisodeSummary:
     # Speed
     mean_speed: float = 0.0
 
-    # Travel time (from SUMO vehicle tripinfo, collected at episode end)
-    mean_travel_time: float = 0.0
-
-    # Stops
-    total_stops: int = 0
-
     # Signal
     total_switches: int = 0
 

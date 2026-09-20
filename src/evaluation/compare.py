@@ -38,7 +38,7 @@ def plot_comparison_bars(
 
         fig, ax = plt.subplots(figsize=(10, 6))
         controllers = agg["controller"].unique()
-        colors = {"fixed_time": "#E74C3C", "max_pressure": "#F39C12", "ppo": "#27AE60"}
+        colors = {"fixed_time": "#E74C3C", "max_pressure": "#F39C12", "ppo": "#27AE60", "ippo": "#9B59B6"}
         x = np.arange(len(agg["demand_id"].unique()))
         width = 0.25
 

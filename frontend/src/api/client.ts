@@ -34,7 +34,6 @@ export interface ExperimentSummary {
   demand_id: number | string;
   total_steps: number;
   final_sim_time: number;
-  average_travel_time: number;
   average_waiting_time: number;
   total_waiting_time: number;
   average_queue_length: number;

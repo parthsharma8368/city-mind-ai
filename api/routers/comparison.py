@@ -3,11 +3,22 @@ from __future__ import annotations
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 import pandas as pd
-from api.models import ComparisonResult
 
 router = APIRouter()
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
+_CONTROLLERS = {"fixed_time", "max_pressure", "ppo", "ippo"}
+_METRICS = {"mean_waiting_time", "mean_queue", "throughput", "mean_speed", "total_arrived", "cumulative_reward", "total_switches"}
+
+
+def _read_parquet_or_404(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        raise HTTPException(404, "Evaluation results not found. Run run_evaluation.py first.")
+    try:
+        return pd.read_parquet(path)
+    except Exception as exc:
+        raise HTTPException(500, f"Could not read {path.name}: {exc}") from exc
+
 
 @router.get("/summary")
 def get_comparison_summary(
@@ -15,11 +26,7 @@ def get_comparison_summary(
 ):
     """Return mean metrics per controller for a given demand level."""
     path = METRICS_DIR / "evaluation_results.parquet"
-    if not path.exists():
-        raise HTTPException(404, "Evaluation results not found. Run run_evaluation.py first.")
-
-
-    df = pd.read_parquet(path)
+    df = _read_parquet_or_404(path)
     if demand_id != "all":
         df = df[df["demand_id"] == demand_id]
 
@@ -46,17 +53,23 @@ def get_improvement(
     demand_id: str = "1.0x",
 ):
     """Compute % improvement of target vs baseline."""
+    if baseline not in _CONTROLLERS or target not in _CONTROLLERS:
+        raise HTTPException(400, f"baseline/target must be one of {sorted(_CONTROLLERS)}")
+    if metric not in _METRICS:
+        raise HTTPException(400, f"metric must be one of {sorted(_METRICS)}")
+
     path = METRICS_DIR / "evaluation_results.parquet"
-    if not path.exists():
-        raise HTTPException(404, "Evaluation results not found.")
-
-
-    df = pd.read_parquet(path)
+    df = _read_parquet_or_404(path)
     if demand_id != "all":
         df = df[df["demand_id"] == demand_id]
 
-    baseline_mean = df[df["controller"] == baseline][metric].mean()
-    target_mean = df[df["controller"] == target][metric].mean()
+    baseline_rows = df[df["controller"] == baseline][metric]
+    target_rows = df[df["controller"] == target][metric]
+    if baseline_rows.empty or target_rows.empty:
+        raise HTTPException(404, f"No evaluation rows for baseline={baseline!r} / target={target!r} at demand_id={demand_id!r}.")
+
+    baseline_mean = baseline_rows.mean()
+    target_mean = target_rows.mean()
     improvement = (baseline_mean - target_mean) / baseline_mean * 100 if baseline_mean else 0
 
     return {
