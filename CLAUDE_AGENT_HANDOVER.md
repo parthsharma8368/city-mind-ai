@@ -1,3 +1,5 @@
+> **Historical document (pre-IPPO).** Written during the SUMO/TraCI performance investigation and the original centralized-PPO XAI engine build, before the parameter-shared IPPO architecture existed — its XAI section describes only the old 4,876-dimensional centralized observation space. The TraCI performance findings and operational commands below are still accurate for PPO; for IPPO's equivalents (`run_ippo_training.py`, IPPO's XAI support) and current results, see [`README.md`](README.md).
+
 # 🤝 CLAUDE AGENT HANDOVER & OPERATIONAL BRIEFING
 **Project**: CityMind AI — Centralized Deep-RL Traffic Signal Intelligence Platform  
 **Target City**: InTAS Ingolstadt Network (98 TLS, 1042 Controlled Lanes, 22 Route Files)  

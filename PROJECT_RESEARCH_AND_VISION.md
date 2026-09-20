@@ -1,3 +1,5 @@
+> **Historical document (pre-2026-09-19).** This is the original pre-implementation research proposal — written before the project scaled from InTAS's ~20-intersection subset to the full 98-intersection network, and before the parameter-shared IPPO architecture (built to fix a credit-assignment failure in the centralized design below) existed. Several ideas here — the full DQN/DoubleDQN/DuelingDQN/A2C training matrix across multiple demand levels, an explicit Actuated baseline — were superseded by the centralized-vs-decentralized PPO comparison actually run. See [`README.md`](README.md) for current results and architecture.
+
 # CityMind AI — Centralized Reinforcement Learning for Traffic Signal Control
 
 **Document:** Initial research, project purpose, vision, dataset/environment, training and evaluation plan  
