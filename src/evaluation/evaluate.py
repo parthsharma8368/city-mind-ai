@@ -27,6 +27,7 @@ import yaml
 
 from src.controllers.base import ControllerResult
 from src.controllers.fixed_time import FixedTimeController
+from src.controllers.sumo_actuated import SumoActuatedController
 from src.controllers.max_pressure import MaxPressureController
 
 
@@ -66,7 +67,14 @@ class EvaluationRunner:
 
         self.seeds: list[int] = self.cfg.get("seeds", [42])
         self.demand_scales: list[float] = self.cfg.get("demand_scales", [1.0])
+        # episode_duration is a DURATION in seconds (e.g. 3600 = 1 hour);
+        # begin_time is the absolute sim-time the episode starts at (e.g.
+        # 25200 = 07:00:00). self.absolute_end (begin_time + episode_duration)
+        # is what every controller's own loop-termination check compares
+        # against, and begin_time is passed to SUMO via --begin.
         self.episode_duration: int = int(self.cfg.get("episode_duration", 3600))
+        self.begin_time: int = int(self.cfg.get("begin_time", 0))
+        self.absolute_end: int = self.begin_time + self.episode_duration
 
     def run_all(self) -> list[ControllerResult]:
         """Run all (controller, seed, demand) combinations."""
@@ -82,10 +90,28 @@ class EvaluationRunner:
                 print(f"\nSeed: {seed}")
                 print("-" * 40)
 
-                # Fixed-time baseline
-                print("[1/3] Fixed-time baseline ...")
+                begin_args = ["--begin", str(self.begin_time)] if self.begin_time else []
+
+                # SUMO-actuated baseline (InTAS's own programs, unmodified —
+                # this is what this project previously, inaccurately, called
+                # "fixed_time"; see sumo_actuated.py)
+                print("[1/4] SUMO-actuated baseline ...")
+                sa = SumoActuatedController(
+                    episode_duration=self.absolute_end, sumo_extra_args=begin_args
+                )
+                sa_traj = str(self.trajectory_dir / f"sumo_actuated_seed{seed}_{demand_id}.parquet")
+                sa_result = sa.run_episode(
+                    self.sumo_cfg, self.tls_metadata_json, seed, demand_id, trajectory_path=sa_traj
+                )
+                results.append(sa_result)
+                self._save_result(sa_result)
+                print(f"  → mean_waiting={sa_result.mean_waiting_time:.2f}s, "
+                      f"throughput={sa_result.throughput:.3f}")
+
+                # Fixed-time baseline (genuinely static programs)
+                print("[2/4] Fixed-time (static) baseline ...")
                 ft = FixedTimeController(
-                    episode_duration=self.episode_duration
+                    episode_duration=self.absolute_end, sumo_extra_args=begin_args
                 )
                 ft_traj = str(self.trajectory_dir / f"fixed_time_seed{seed}_{demand_id}.parquet")
                 ft_result = ft.run_episode(
@@ -97,8 +123,10 @@ class EvaluationRunner:
                       f"throughput={ft_result.throughput:.3f}")
 
                 # Max-Pressure baseline
-                print("[2/3] Max-Pressure baseline ...")
-                mp = MaxPressureController(episode_duration=self.episode_duration)
+                print("[3/4] Max-Pressure baseline ...")
+                mp = MaxPressureController(
+                    episode_duration=self.absolute_end, sumo_extra_args=begin_args
+                )
                 mp_traj = str(self.trajectory_dir / f"max_pressure_seed{seed}_{demand_id}.parquet")
                 mp_result = mp.run_episode(
                     self.sumo_cfg, self.tls_metadata_json, seed, demand_id, trajectory_path=mp_traj
@@ -110,7 +138,7 @@ class EvaluationRunner:
 
                 # PPO (if model provided)
                 if self.ppo_model_path:
-                    print("[3/4] PPO evaluation ...")
+                    print("[4/5] PPO evaluation ...")
                     ppo_result = self._run_ppo_episode(seed, demand_id)
                     results.append(ppo_result)
                     self._save_result(ppo_result)
@@ -119,7 +147,7 @@ class EvaluationRunner:
 
                 # IPPO (if model provided)
                 if self.ippo_model_path:
-                    print("[4/4] IPPO evaluation ...")
+                    print("[5/5] IPPO evaluation ...")
                     ippo_result = self._run_ippo_episode(seed, demand_id)
                     results.append(ippo_result)
                     self._save_result(ippo_result)
@@ -149,7 +177,8 @@ class EvaluationRunner:
             tls_metadata_json=self.tls_metadata_json,
             seed=seed,
             demand_id=demand_id,
-            episode_duration=self.episode_duration,
+            episode_duration=self.absolute_end,
+            begin_time=self.begin_time,
             record_trajectories=True,
         )
 
@@ -206,8 +235,8 @@ class EvaluationRunner:
             tls_metadata_json=self.tls_metadata_json,
             seed=seed,
             demand_id=demand_id,
-            episode_duration=self.episode_duration,
-            sumo_extra_args=["--end", str(self.episode_duration)],
+            episode_duration=self.absolute_end,
+            sumo_extra_args=["--begin", str(self.begin_time), "--end", str(self.absolute_end)],
         )
 
         observations, _ = env.reset()

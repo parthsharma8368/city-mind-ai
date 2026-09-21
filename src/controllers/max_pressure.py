@@ -49,8 +49,8 @@ class MaxPressureController(BaseController):
 
     def __init__(
         self,
-        min_green: float = 10.0,
-        max_green: float = 90.0,
+        min_green: float = 5.0,
+        max_green: float = 60.0,
         yellow_duration: float = 3.0,
         all_red_duration: float = 1.0,
         decision_interval: int = 5,

@@ -22,12 +22,33 @@ class PhaseSpec:
 
     @property
     def is_green(self) -> bool:
-        """True if this phase contains at least one Green signal."""
-        return "G" in self.state or "g" in self.state
+        """True if this is a stable green phase the safety layer may hold or
+        target — i.e. at least one green signal AND no yellow signal.
+
+        German actuated programs commonly retain a permissive movement
+        (lowercase g) through their own yellow-clearance phase, e.g.
+        "yyggrrrryyygrrrr" or "rryyyyg". The old definition ("G" or "g"
+        present) counted these transitional phases as legal cycle targets
+        too — measured on 2026-09-21: 85 of 388 phases the old definition
+        called "green" across 65/98 InTAS TLS actually contained a yellow
+        signal. Landing on one of them as a target forced a 10s min_green
+        hold on what should have been a ~3-5s clearance, and was the
+        single largest contributor to the ~1s gap between every trained
+        policy (~4.0-4.15s) and the SUMO-actuated baseline (3.07s) found
+        by the RL-strategy ceiling test the same day. Excluding yellow
+        drops the true green-target count to 303/608.
+        """
+        s_lower = self.state.lower()
+        return ("g" in s_lower) and ("y" not in s_lower)
 
     @property
     def is_yellow(self) -> bool:
-        return "y" in self.state.lower() and "G" not in self.state
+        """True if this phase contains a yellow signal — a clearance /
+        transition phase, which may still show a residual green movement
+        (see is_green's docstring). Any phase with a yellow signal is a
+        transition regardless of what else is present, so this and
+        is_green are mutually exclusive by construction."""
+        return "y" in self.state.lower()
 
     @property
     def is_all_red(self) -> bool:
@@ -73,6 +94,15 @@ class TLSRuntimeState:
     yellow_pending: bool = False
     yellow_target_phase: int = -1
     yellow_elapsed: float = 0.0
+    # Which native phase index is currently being displayed to SUMO while
+    # yellow_pending is True (2026-09-21 mechanics fix). Distinct from
+    # current_phase, which stays frozen at the pre-switch green phase for
+    # the whole transition — exactly as before this fix — so observation
+    # features, reward switch-counting, and metrics all still see exactly
+    # one phase change per logical switch, whether the program's own
+    # sequence needs zero, one, or two intermediate clearance phases.
+    transition_display_phase: int = -1
+    transition_queue: list[int] = field(default_factory=list)
 
     # Collected per-step (reset each step)
     lane_queue: list[float] = field(default_factory=list)    # halting vehicles per lane

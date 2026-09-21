@@ -7,8 +7,19 @@ sumo:
   route_files: []        # populated dynamically
   additional_files: []   # tls programs, etc.
   step_length: 1.0       # simulation timestep in seconds
-  begin: 0
-  end: 3600              # 1-hour episode; extend to 86400 for full day
+  # begin/end define the training/eval episode window (2026-09-21: now
+  # actually wired into ippo_agent.py/ppo_agent.py — previously declared
+  # here but unused, every episode silently ran 0-3600s = midnight-1am
+  # regardless of this file). Moved to the 07:00-08:00 morning peak: at
+  # midnight the network carries only ~1,486 vehicles across 98
+  # intersections (mean queue 0.05/lane) — essentially nothing to
+  # coordinate — versus ~14,516 at peak (mean queue 0.43/lane, 9x). A
+  # ceiling test the same day (hand policies run through this project's
+  # own env) showed every trained policy at midnight converges to within
+  # 0.05s of the best a POLICY-FREE hand rule can score (~4.0s) — there is
+  # no more room for learning to matter in that window.
+  begin: 25200            # 07:00:00
+  end: 28800               # 08:00:00 (1-hour episode)
   no_warnings: true
   lateral_resolution: 0.0
 
@@ -38,12 +49,26 @@ action:
   # alternative: MultiDiscrete with per-TLS phase choices
 
 # ─── Safety Layer ────────────────────────────────────────────────────────────
+# min_green/max_green are FALLBACKS (2026-09-21 mechanics fix): SafetyLayer
+# now prefers each green phase's own program-authored min_dur/max_dur when
+# they're distinct from its nominal duration (a real actuated program's
+# authored range — 76/98 InTAS TLS), and only falls back to these values for
+# the 22 static-program TLS and any phase without a distinct min/max. 10/90
+# were tighter than many of the network's own actuated minimums (some
+# protected-turn phases are 5-7s) and were the single largest contributor to
+# the ~1s gap between every trained policy and the SUMO-actuated baseline
+# measured by the RL-strategy ceiling test the same day — 5/60 matches the
+# RESCO/sumo-rl convention instead.
+# yellow_duration/all_red_duration are no longer the primary clearance
+# timing — SafetyLayer walks each TLS's own authored transition phases
+# (real yellow, plus a real all-red only where the program has one) instead
+# of synthesizing a state string. Kept as a defensive floor only.
 safety:
-  min_green: 10           # seconds
-  max_green: 90           # seconds
-  yellow_duration: 3      # seconds
-  all_red_duration: 1     # seconds (0 to disable)
-  min_red: 0              # seconds before green allowed again
+  min_green: 5             # seconds — fallback; see comment above
+  max_green: 60            # seconds — fallback; see comment above
+  yellow_duration: 3       # seconds — defensive floor, not primary timing
+  all_red_duration: 1      # seconds — defensive floor, not primary timing
+  min_red: 0                # seconds before green allowed again
 
 # ─── Reward ──────────────────────────────────────────────────────────────────
 # switching_penalty was 0.0 in the run evaluated on 2026-09-17/18 (500k
@@ -68,6 +93,13 @@ reward:
   # starting point relative to waiting_delta_weight, same reasoning as
   # switching_penalty's introduction above.
   spillback_weight: 0.2
+  # Ablation arm added 2026-09-21 (RL-strategy Phase 1): 0.0 = disabled
+  # (this run's default). Penalizes |Varaiya pressure| per intersection —
+  # see local_observation.compute_intersection_pressure and
+  # local_reward.py's docstring. Set to e.g. 0.1-0.3 for the pressure-reward
+  # ablation run against this same waiting-delta-based default; not yet a
+  # validated value either way.
+  pressure_weight: 0.0
   # Rich reward: uncomment to activate
   # waiting_delta_weight: 1.0
   # queue_weight: 0.1

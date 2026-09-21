@@ -26,11 +26,31 @@ from src.scenario.tls_metadata import TLSRuntimeState, TLSSpec
 
 @dataclass
 class SafetyConfig:
-    """Timing constraints for legal signal transitions."""
-    min_green: float = 10.0      # seconds
-    max_green: float = 90.0      # seconds
-    yellow_duration: float = 3.0 # seconds
-    all_red_duration: float = 1.0 # seconds (0.0 to skip all-red)
+    """Timing constraints for legal signal transitions.
+
+    min_green/max_green are FALLBACKS only (2026-09-21 mechanics fix): when
+    a TLS's current green phase carries its own program-authored min_dur/
+    max_dur distinct from its nominal duration (i.e. it came from a SUMO
+    "actuated" program, 76/98 InTAS TLS), that per-phase value is used
+    instead — see SafetyLayer._green_bounds(). These fallbacks apply to the
+    22 static-program TLS (whose min_dur/max_dur default to their fixed
+    duration, so the per-phase check intentionally skips them) and cap the
+    RESCO/sumo-rl convention (5s min, permissive max) rather than the old
+    10s/90s values, which were tighter than most of the network's own
+    actuated minimums (median program green min_dur is 7-10s but many
+    protected-turn phases are 5-7s).
+
+    yellow_duration/all_red_duration are no longer the primary clearance
+    timing source — SafetyLayer now walks each TLS's own authored
+    transition phases (its real yellow, and an all-red only where the
+    program has one) instead of synthesizing a state string. They remain
+    as a defensive floor for the rare degenerate case of a zero-duration
+    transition phase in the source data.
+    """
+    min_green: float = 5.0       # seconds — fallback when no per-phase min_dur applies
+    max_green: float = 60.0      # seconds — fallback when no per-phase max_dur applies
+    yellow_duration: float = 3.0 # seconds — defensive floor, not the primary timing source
+    all_red_duration: float = 1.0 # seconds — defensive floor, not the primary timing source
     min_red: float = 0.0          # seconds (rarely needed)
 
 
@@ -101,56 +121,115 @@ class SafetyLayer:
 
         current_phase = spec.phases[state.current_phase]
 
-        # ── Case 1: currently in yellow clearance ─────────────────────────
+        # ── Case 1: mid-transition — walking the TLS's own authored
+        # sequence of intermediate phases (native yellow, plus a native
+        # all-red only for the few programs that define one) ─────────────
         if state.yellow_pending:
             state.yellow_elapsed += dt
-            yellow_needed = self.cfg.yellow_duration
-            ar_needed = self.cfg.all_red_duration
+            active = spec.phases[state.transition_display_phase]
+            sub_duration = active.duration if active.duration > 0 else (
+                self.cfg.all_red_duration if active.is_all_red else self.cfg.yellow_duration
+            )
 
-            if state.yellow_elapsed < yellow_needed:
-                # Still in yellow — do nothing, SUMO holds the yellow state
+            if state.yellow_elapsed < sub_duration:
+                return  # still displaying this native sub-phase
+
+            if state.transition_queue:
+                next_idx = state.transition_queue.pop(0)
+                state.transition_display_phase = next_idx
+                state.yellow_elapsed = 0.0
+                self._apply_phase(tls_id, spec, next_idx)
                 return
 
-            if state.yellow_elapsed < yellow_needed + ar_needed and ar_needed > 0:
-                # Apply all-red if not yet done
-                if state.yellow_elapsed - dt < yellow_needed:
-                    # Transition to all-red now
-                    self._apply_all_red(tls_id, spec, state)
-                return
-
-            # Yellow + all-red complete → switch to target green phase
+            # Transition complete → switch to target green phase
             state.yellow_pending = False
             target = state.yellow_target_phase
             state.current_phase = target
             state.phase_elapsed = 0.0
             state.last_switch_time = sim_time
+            state.transition_display_phase = -1
             self._apply_phase(tls_id, spec, target)
             return
 
-        # ── Case 2: currently in a green/red phase ────────────────────────
+        # ── Case 2: currently in a stable green/red phase ─────────────────
         state.phase_elapsed += dt
+
+        min_green, max_green = self._green_bounds(current_phase)
 
         # Force advance if max_green exceeded
         force_advance = (
             current_phase.is_green
-            and state.phase_elapsed >= self.cfg.max_green
+            and state.phase_elapsed >= max_green
         )
         # Policy requests advance
         wants_advance = (action == 1)
         # Respect minimum green
         can_advance = (
             not current_phase.is_green
-            or state.phase_elapsed >= self.cfg.min_green
+            or state.phase_elapsed >= min_green
         )
 
         if (wants_advance or force_advance) and can_advance:
             target = spec.next_green_phase(state.current_phase)
             if target != state.current_phase:
-                # Begin yellow transition
-                state.yellow_pending = True
-                state.yellow_target_phase = target
-                state.yellow_elapsed = 0.0
-                self._apply_yellow(tls_id, spec, state)
+                queue = self._build_transition_queue(spec, state.current_phase, target)
+                if queue:
+                    first = queue.pop(0)
+                    state.yellow_pending = True
+                    state.yellow_target_phase = target
+                    state.yellow_elapsed = 0.0
+                    state.transition_queue = queue
+                    state.transition_display_phase = first
+                    self._apply_phase(tls_id, spec, first)
+                else:
+                    # Zero-hop: the program's own phase sequence allows a
+                    # direct switch between these two green phases with no
+                    # authored clearance step (e.g. adding a protected
+                    # movement that doesn't conflict with what's already
+                    # green) — verified against tls_metadata.json this is
+                    # true for 3/303 real green phases network-wide, not a
+                    # data gap to paper over with an invented yellow.
+                    state.current_phase = target
+                    state.phase_elapsed = 0.0
+                    state.last_switch_time = sim_time
+                    self._apply_phase(tls_id, spec, target)
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Per-phase timing / native transition helpers (2026-09-21)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _green_bounds(self, phase) -> tuple[float, float]:
+        """(min_green, max_green) for this green phase: use the program's
+        own min_dur/max_dur when they're distinct from the phase's nominal
+        duration (a real actuated program's authored range), else fall back
+        to self.cfg. The loader defaults min_dur/max_dur to duration itself
+        for phases with no XML minDur/maxDur attribute (SUMO "static"
+        programs, 22/98 TLS) — for those this correctly falls back to the
+        permissive config value instead of locking the RL/MP action to the
+        original fixed cycle."""
+        min_green = (
+            phase.min_dur if 0 < phase.min_dur < phase.duration else self.cfg.min_green
+        )
+        max_green = (
+            phase.max_dur if phase.max_dur > phase.duration else self.cfg.max_green
+        )
+        return min_green, max_green
+
+    def _build_transition_queue(self, spec: TLSSpec, current_idx: int, target_idx: int) -> list[int]:
+        """Native intermediate phase indices between current_idx and
+        target_idx, in program order. Normally this is exactly the
+        program's own yellow-clearance phase (1 hop); occasionally
+        yellow-then-all-red (2 hops, 5/303 real greens); occasionally none
+        (3/303 — see the zero-hop comment above)."""
+        n = len(spec.phases)
+        queue: list[int] = []
+        j = (current_idx + 1) % n
+        hops = 0
+        while j != target_idx and hops < n:
+            queue.append(j)
+            j = (j + 1) % n
+            hops += 1
+        return queue
 
     # ──────────────────────────────────────────────────────────────────────────
     # SUMO signal application helpers
@@ -161,23 +240,6 @@ class SafetyLayer:
         """Write a full phase state string to SUMO via TraCI."""
         state_str = spec.phases[phase_idx].state
         traci.trafficlight.setRedYellowGreenState(tls_id, state_str)
-
-    @staticmethod
-    def _apply_yellow(tls_id: str, spec: TLSSpec, state: TLSRuntimeState) -> None:
-        """
-        Derive a yellow state from the current green phase by replacing 'G'→'y',
-        'g'→'y'. Red signals remain red.
-        """
-        current_str = spec.phases[state.current_phase].state
-        yellow_str = current_str.replace("G", "y").replace("g", "y")
-        traci.trafficlight.setRedYellowGreenState(tls_id, yellow_str)
-
-    @staticmethod
-    def _apply_all_red(tls_id: str, spec: TLSSpec, state: TLSRuntimeState) -> None:
-        """Apply all-red state (replace all non-r with 'r')."""
-        current_str = spec.phases[state.current_phase].state
-        ar_str = "".join("r" if c != "s" else "s" for c in current_str.lower())
-        traci.trafficlight.setRedYellowGreenState(tls_id, ar_str)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Diagnostics

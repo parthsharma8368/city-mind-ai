@@ -17,6 +17,12 @@ demand_scales:
   # - 1.5
 
 # Episode settings (mirrors environment.yaml)
+# begin_time is the absolute sim-time the episode starts at; episode_duration
+# is a DURATION added to it (2026-09-21: moved from midnight, 0-3600s, to the
+# 07:00-08:00 morning peak — see environment.yaml's sumo.begin/end comment
+# for the measured reason). Use configs/evaluation_midnight.yaml for the
+# original low-traffic window (historical comparison only).
+begin_time: 25200          # 07:00:00
 episode_duration: 3600     # seconds (1 hour)
 decision_interval: 5
 

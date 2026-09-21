@@ -46,9 +46,14 @@ def make_env(
     safety_config: SafetyConfig | None = None,
     decision_interval: int = 5,
     episode_duration: int = 3600,
+    begin_time: int = 0,
     record_trajectories: bool = False,
 ) -> Monitor:
-    """Factory for a single monitored CentralizedSumoEnv."""
+    """Factory for a single monitored CentralizedSumoEnv.
+
+    episode_duration is the ABSOLUTE simulation end-time, not a duration
+    relative to begin_time (matches make_ippo_env's convention).
+    """
     env = CentralizedSumoEnv(
         sumo_cfg=sumo_cfg,
         tls_metadata_json=tls_metadata_json,
@@ -62,7 +67,7 @@ def make_env(
         safety_config=safety_config,
         record_trajectories=record_trajectories,
         episode_duration=episode_duration,
-        sumo_extra_args=["--end", str(episode_duration)],
+        sumo_extra_args=["--begin", str(begin_time), "--end", str(episode_duration)],
     )
     return Monitor(env)
 
@@ -131,8 +136,8 @@ class PPOAgent:
             switching_penalty=env_cfg["reward"].get("switching_penalty", 0.0),
         )
         saf_cfg = SafetyConfig(
-            min_green=env_cfg["safety"].get("min_green", 10.0),
-            max_green=env_cfg["safety"].get("max_green", 90.0),
+            min_green=env_cfg["safety"].get("min_green", 5.0),
+            max_green=env_cfg["safety"].get("max_green", 60.0),
             yellow_duration=env_cfg["safety"].get("yellow_duration", 3.0),
             all_red_duration=env_cfg["safety"].get("all_red_duration", 1.0),
         )
@@ -143,6 +148,7 @@ class PPOAgent:
         set_random_seed(self.seed)
         obs_cfg, rwd_cfg, saf_cfg = self._build_sub_configs()
 
+        sumo_cfg_dict = self.env_cfg.get("sumo", {})
         env = make_env(
             sumo_cfg=self.sumo_cfg,
             tls_metadata_json=self.tls_metadata_json,
@@ -152,6 +158,8 @@ class PPOAgent:
             reward_config=rwd_cfg,
             safety_config=saf_cfg,
             decision_interval=self.env_cfg.get("decision_interval", 5),
+            episode_duration=int(sumo_cfg_dict.get("end", 3600)),
+            begin_time=int(sumo_cfg_dict.get("begin", 0)),
         )
 
         ppo = self.ppo_cfg
