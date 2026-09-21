@@ -37,6 +37,13 @@ class LocalRewardConfig:
     queue_weight: float = 0.0
     switching_penalty: float = 0.3
     spillback_weight: float = 0.2
+    # Ablation arm added 2026-09-21 (RL-strategy Phase 1): 0.0 = disabled
+    # (default, preserves existing behavior exactly). Penalizes |pressure|
+    # (see local_observation.compute_intersection_pressure) instead of, or
+    # alongside, the waiting-delta term — the MPLight/PressLight-style
+    # signal, tried because it's dense, bounded, and already contains the
+    # spillback effect the hand-added spillback_weight term approximates.
+    pressure_weight: float = 0.0
     reward_clip: float | None = 50.0  # per-agent rewards are much smaller-scale than the network-wide sum
 
 
@@ -71,6 +78,7 @@ class LocalRewardCalculator:
         queue_sum: float,
         switched: bool,
         downstream_queue_sum: float = 0.0,
+        pressure: float = 0.0,
     ) -> tuple[float, dict]:
         current_waiting = sum(self._lane_waiting.get(lane, 0.0) for lane in spec.controlled_lanes)
         prev_waiting = self._prev_tls_waiting.get(tls_id, current_waiting)
@@ -84,7 +92,9 @@ class LocalRewardCalculator:
         delta_downstream = downstream_queue_sum - prev_downstream
         r_spillback = -self.cfg.spillback_weight * max(0.0, delta_downstream)
 
-        reward = r_waiting + r_queue + r_switch + r_spillback
+        r_pressure = -self.cfg.pressure_weight * abs(pressure)
+
+        reward = r_waiting + r_queue + r_switch + r_spillback + r_pressure
 
         if self.cfg.reward_clip is not None:
             reward = max(-abs(self.cfg.reward_clip), min(abs(self.cfg.reward_clip), reward))
@@ -97,6 +107,7 @@ class LocalRewardCalculator:
             "reward/queue_component": r_queue,
             "reward/switch_component": r_switch,
             "reward/spillback_component": r_spillback,
+            "reward/pressure_component": r_pressure,
             "metrics/local_waiting": current_waiting,
         }
         return float(reward), info

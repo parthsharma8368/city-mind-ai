@@ -6,13 +6,18 @@
 #
 # n_steps=5 x 98 agents = 490-sample rollout; total_timesteps=980 -> 2
 # policy updates. batch_size=98 divides 490 evenly (5 minibatches).
+# num_vec_envs=2 (2026-09-21): also exercises the multi-instance SuperSuit
+# path (2 separate SUMO subprocesses, see make_ippo_env's docstring) before
+# any real multi-instance training run — n_envs becomes 98*2=196, rollout
+# = 5*196=980, batch_size=98 still divides evenly (10 minibatches).
 algorithm: PPO
 device: cpu
 
-total_timesteps: 980
+total_timesteps: 1960
 n_steps: 5
 batch_size: 98
 n_epochs: 2
+num_vec_envs: 2
 
 gamma: 0.99
 gae_lambda: 0.95

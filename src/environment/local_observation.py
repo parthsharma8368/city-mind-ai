@@ -80,6 +80,43 @@ def compute_mean_queue_norm(state: TLSRuntimeState, cfg: LocalObservationConfig)
     return min(_mean(queue) / cfg.max_lane_vehicles, 1.0)
 
 
+def compute_intersection_pressure(
+    spec: TLSSpec, state: TLSRuntimeState, downstream_cache: dict[str, list[str]]
+) -> float:
+    """Total Varaiya pressure for this intersection right now: this TLS's
+    own total queue minus the total queue on the lanes it feeds into,
+    summed over every controlled lane — the standard MPLight/PressLight
+    per-step reward signal (max_pressure.py's _phase_pressure is the
+    discrete phase-choice variant of the same idea, computed only over one
+    candidate phase's movements rather than the whole intersection).
+
+    Added 2026-09-21 (RL-strategy Phase 1) as an ablation arm against the
+    existing waiting-delta reward — see LocalRewardConfig.pressure_weight.
+    Positive pressure means this TLS's own approaches are more congested
+    than what they feed into (the ordinary case: serve more). Large
+    negative pressure means the opposite — this TLS is pushing traffic
+    into lanes more congested than its own (spillback) — so the reward
+    penalizes |pressure| in either direction, not just positive pressure:
+    a good policy keeps upstream and downstream roughly balanced.
+
+    NOTE: re-walks the same downstream lanes compute_downstream_queue_sum
+    visits for the observation's downstream_queue_norm feature (a second
+    TraCI query pass) — get_downstream_lanes's per-lane cache still avoids
+    re-querying the STRUCTURE (traci.lane.getLinks), only the per-step
+    occupancy values are queried twice. Acceptable for now; a lane-
+    subscription rewrite (noted in the RL-strategy plan) would remove
+    this."""
+    upstream = float(sum(state.lane_queue)) if state.lane_queue else 0.0
+    downstream = 0.0
+    for lane_id in spec.controlled_lanes:
+        for dl in get_downstream_lanes(lane_id, downstream_cache):
+            try:
+                downstream += float(traci.lane.getLastStepHaltingNumber(dl))
+            except traci.exceptions.TraCIException:
+                pass
+    return upstream - downstream
+
+
 def compute_downstream_queue_sum(
     spec: TLSSpec, downstream_cache: dict[str, list[str]]
 ) -> float:

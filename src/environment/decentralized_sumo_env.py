@@ -36,6 +36,7 @@ from src.environment.local_observation import (
     LocalObservationConfig,
     build_local_observation,
     compute_downstream_queue_sum,
+    compute_intersection_pressure,
     compute_mean_queue_norm,
 )
 from src.environment.local_reward import LocalRewardCalculator, LocalRewardConfig
@@ -145,7 +146,7 @@ class DecentralizedSumoEnv(ParallelEnv):
         self.obs_builder.build(self._runtime_states)
         self.local_reward.refresh_lane_waiting()
         cache = self.obs_builder.last_step_cache
-        own_queue_norms, own_downstream_sums = self._compute_per_tls_aux()
+        own_queue_norms, own_downstream_sums, _own_pressures = self._compute_per_tls_aux()
 
         observations = {
             tid: build_local_observation(
@@ -183,7 +184,7 @@ class DecentralizedSumoEnv(ParallelEnv):
         self.obs_builder.build(self._runtime_states)
         self.local_reward.refresh_lane_waiting()
         cache = self.obs_builder.last_step_cache
-        own_queue_norms, own_downstream_sums = self._compute_per_tls_aux()
+        own_queue_norms, own_downstream_sums, own_pressures = self._compute_per_tls_aux()
 
         sim_time = traci.simulation.getTime()
         terminated_all = self._check_terminated(sim_time)
@@ -203,6 +204,7 @@ class DecentralizedSumoEnv(ParallelEnv):
             reward, info = self.local_reward.compute(
                 tid, spec, queue_sum, switched_this_step[tid],
                 downstream_queue_sum=own_downstream_sums[tid],
+                pressure=own_pressures[tid],
             )
             rewards[tid] = reward
             terminations[tid] = terminated_all
@@ -231,19 +233,25 @@ class DecentralizedSumoEnv(ParallelEnv):
     # Neighbor coordination support (2026-09-20)
     # ──────────────────────────────────────────────────────────────────────
 
-    def _compute_per_tls_aux(self) -> tuple[dict[str, float], dict[str, float]]:
-        """Every agent's own mean-queue-norm and raw downstream-queue sum for
-        this step, computed once and shared: build_local_observation needs
-        them for this TLS's own features AND to answer neighbor lookups for
-        whichever *other* TLS have it as one of their 2 nearest neighbors;
-        local_reward.compute() reuses the same downstream sum for the
-        spillback penalty instead of re-querying TraCI."""
+    def _compute_per_tls_aux(self) -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
+        """Every agent's own mean-queue-norm, raw downstream-queue sum, and
+        Varaiya pressure for this step, computed once and shared:
+        build_local_observation needs the first two for this TLS's own
+        features AND to answer neighbor lookups for whichever *other* TLS
+        have it as one of their 2 nearest neighbors; local_reward.compute()
+        reuses the downstream sum for the spillback penalty and the
+        pressure value for the pressure-reward ablation arm (2026-09-21),
+        instead of re-querying TraCI for either."""
         own_queue_norms: dict[str, float] = {}
         own_downstream_sums: dict[str, float] = {}
+        own_pressures: dict[str, float] = {}
         for tid in self.agents:
-            own_queue_norms[tid] = compute_mean_queue_norm(self._runtime_states[tid], self.obs_cfg)
-            own_downstream_sums[tid] = compute_downstream_queue_sum(self.specs_by_id[tid], self._downstream_cache)
-        return own_queue_norms, own_downstream_sums
+            state = self._runtime_states[tid]
+            spec = self.specs_by_id[tid]
+            own_queue_norms[tid] = compute_mean_queue_norm(state, self.obs_cfg)
+            own_downstream_sums[tid] = compute_downstream_queue_sum(spec, self._downstream_cache)
+            own_pressures[tid] = compute_intersection_pressure(spec, state, self._downstream_cache)
+        return own_queue_norms, own_downstream_sums, own_pressures
 
     def _compute_neighbor_map(self, k: int = N_NEIGHBORS) -> dict[str, list[str]]:
         """Each TLS's k geographically-nearest other TLS, by straight-line

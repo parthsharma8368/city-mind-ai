@@ -39,8 +39,31 @@ def make_ippo_env(
     safety_config: SafetyConfig | None = None,
     decision_interval: int = 5,
     episode_duration: int = 3600,
+    begin_time: int = 0,
+    num_vec_envs: int = 1,
 ):
-    """Build DecentralizedSumoEnv and wrap it as an SB3-compatible VecEnv (98 parallel agents, one SUMO instance)."""
+    """Build DecentralizedSumoEnv and wrap it as an SB3-compatible VecEnv
+    (98 agents x num_vec_envs parallel SUMO instances).
+
+    episode_duration is the ABSOLUTE simulation end-time (matches
+    DecentralizedSumoEnv's own termination check), not a duration relative
+    to begin_time — e.g. for the 07:00-08:00 peak window pass
+    begin_time=25200, episode_duration=28800.
+
+    num_vec_envs (2026-09-21, RL-strategy Phase 1): number of independent
+    SUMO instances to run in parallel, each a full 98-agent episode.
+    num_cpus is deliberately always set equal to num_vec_envs, never less —
+    verified against SuperSuit's source (vector_constructors.py /
+    multiproc_vec.py): num_cpus < num_vec_envs packs more than one env copy
+    into the same OS subprocess's ConcatVecEnv, and this project's SUMO
+    connection is libsumo (sumo_connection.py), a single-connection-per-
+    PROCESS in-memory binding, not a socket protocol — a second env's
+    traci.start() inside the same process would clobber the first env's
+    connection instead of opening an independent one. One SUMO instance per
+    OS process (num_cpus == num_vec_envs) is required for correctness, not
+    just performance, and is what spawns genuinely separate libsumo
+    bindings via multiprocessing.Process (see ProcConcatVec).
+    """
     env = DecentralizedSumoEnv(
         sumo_cfg=sumo_cfg,
         tls_metadata_json=tls_metadata_json,
@@ -52,10 +75,12 @@ def make_ippo_env(
         reward_config=reward_config,
         safety_config=safety_config,
         episode_duration=episode_duration,
-        sumo_extra_args=["--end", str(episode_duration)],
+        sumo_extra_args=["--begin", str(begin_time), "--end", str(episode_duration)],
     )
     vec_env = ss.pettingzoo_env_to_vec_env_v1(env)
-    vec_env = ss.concat_vec_envs_v1(vec_env, num_vec_envs=1, num_cpus=0, base_class="stable_baselines3")
+    vec_env = ss.concat_vec_envs_v1(
+        vec_env, num_vec_envs=num_vec_envs, num_cpus=num_vec_envs, base_class="stable_baselines3"
+    )
     # Without this, SB3 never logs rollout/ep_rew_mean or ep_len_mean at all
     # (those come from Monitor/VecMonitor's info["episode"], and SuperSuit's
     # wrapping doesn't add one) — verified missing in the first real run's
@@ -105,13 +130,19 @@ class IPPOAgent:
             queue_weight=self.env_cfg["reward"].get("queue_weight", 0.0),
             switching_penalty=self.env_cfg["reward"].get("switching_penalty", 0.3),
             spillback_weight=self.env_cfg["reward"].get("spillback_weight", 0.2),
+            pressure_weight=self.env_cfg["reward"].get("pressure_weight", 0.0),
         )
         safety_cfg = SafetyConfig(
-            min_green=self.env_cfg["safety"].get("min_green", 10.0),
-            max_green=self.env_cfg["safety"].get("max_green", 90.0),
+            min_green=self.env_cfg["safety"].get("min_green", 5.0),
+            max_green=self.env_cfg["safety"].get("max_green", 60.0),
             yellow_duration=self.env_cfg["safety"].get("yellow_duration", 3.0),
             all_red_duration=self.env_cfg["safety"].get("all_red_duration", 1.0),
         )
+
+        sumo_cfg_dict = self.env_cfg.get("sumo", {})
+        begin_time = int(sumo_cfg_dict.get("begin", 0))
+        end_time = int(sumo_cfg_dict.get("end", 3600))
+        num_vec_envs = int(self.ppo_cfg.get("num_vec_envs", 1))
 
         env = make_ippo_env(
             sumo_cfg=self.sumo_cfg,
@@ -121,6 +152,9 @@ class IPPOAgent:
             reward_config=reward_cfg,
             safety_config=safety_cfg,
             decision_interval=self.env_cfg.get("decision_interval", 5),
+            episode_duration=end_time,
+            begin_time=begin_time,
+            num_vec_envs=num_vec_envs,
         )
 
         ppo = self.ppo_cfg

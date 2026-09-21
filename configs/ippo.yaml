@@ -1,25 +1,36 @@
 # ─── IPPO (parameter-shared) Hyperparameters ─────────────────────────────────
-# One shared policy, invoked once per TLS per decision step (98 agents/step,
-# one SUMO instance). SB3 counts total_timesteps across all agents, so one
-# real decision step of simulation contributes ~98 to the counter — the
-# same total_timesteps budget as the centralized run covers far fewer real
-# simulated seconds, but with 98x the (obs, action, reward) samples per
-# gradient step and — the actual point of this design — a reward that's
-# attributable to the specific agent that earned it.
+# One shared policy, invoked once per TLS per decision step (98 agents x
+# num_vec_envs parallel SUMO instances per step). SB3 counts total_timesteps
+# across all agents AND all parallel instances, so one real decision step
+# across the whole run contributes 98*num_vec_envs to the counter.
 algorithm: PPO
 device: cpu
 
-# n_steps=720 (one real episode) x 98 agents = 70,560-sample rollout per
-# update. This is the real run (2026-09-19), not another short diagnostic:
-# total_timesteps=50,000,000 -> ~510,000 real decision steps -> ~708 real
-# episodes, comparable in real-episode count to the centralized run's 694,
-# but with a 70,560-sample batch per update instead of 1,440. checkpoint_freq
-# saves every ~14 real episodes so progress can be evaluated from a live
-# checkpoint without ever stopping this process.
-total_timesteps: 50000000
+# 2026-09-21 (RL-strategy Phase 1) — repaired safety-layer mechanics +
+# 07:00-08:00 peak window (environment.yaml) + num_vec_envs=6 parallel SUMO
+# instances (98*6=588 "agents" per step; ippo_agent.py's make_ippo_env,
+# verified safe/correct via a live 2-instance smoke test the same day —
+# see make_ippo_env's docstring for why num_cpus must always equal
+# num_vec_envs with libsumo). Reward/observation formulation deliberately
+# UNCHANGED from the 2026-09-20 neighbor-obs+spillback run (still 4.09s at
+# the old midnight window) — isolates the mechanics+peak+parallelism
+# effect on its own before layering in the pressure-reward ablation
+# (environment.yaml's reward.pressure_weight).
+#
+# n_steps=720 (one real episode per instance) x 588 = 423,360-sample
+# rollout per update. total_timesteps=36,000,000 -> ~85 rounds of 6
+# parallel real episodes = ~510 real episodes total, comparable in count
+# to the original 50M-step single-instance run's ~708 (that one covered
+# more real episodes per wall-clock hour only because midnight episodes
+# are ~3x faster than peak-hour ones; parallelism buys back most of that).
+# checkpoint_freq=4,000,000 saves roughly every 9-10 rounds (~57-60 real
+# episodes) so progress can be evaluated from a live checkpoint without
+# ever stopping this process.
+total_timesteps: 36000000
 n_steps: 720
-batch_size: 8820          # 70,560 / 8
+batch_size: 52920          # 423,360 / 8
 n_epochs: 10
+num_vec_envs: 6
 
 gamma: 0.99
 gae_lambda: 0.95
@@ -42,5 +53,5 @@ policy_kwargs:
   activation_fn: tanh
 
 save_checkpoints: true
-checkpoint_freq: 1000000
+checkpoint_freq: 4000000
 tensorboard_log: artifacts/tb_logs
