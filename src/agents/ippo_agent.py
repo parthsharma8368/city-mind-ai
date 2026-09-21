@@ -224,6 +224,19 @@ class IPPOAgent:
         self.model.save(str(model_path))
         print(f"\n[IPPOAgent] Model saved: {model_path}")
         self._save_config_artifact(total_timesteps)
+
+        # Without this, num_vec_envs>1's ProcConcatVec worker subprocesses
+        # (each holding its own SUMO instance) are simply orphaned when this
+        # function returns — SB3 does not close the env on save/exit.
+        # Found live 2026-09-21: a finished 2-instance smoke run's Python
+        # parent and both SUMO children were still alive, idle, minutes
+        # after "Model saved" printed. self.model.env is the VecMonitor
+        # wrapper; .close() propagates through VecMonitor -> SB3VecEnvWrapper
+        # -> ProcConcatVec, which sends each subprocess a shutdown signal.
+        try:
+            self.model.env.close()
+        except Exception as e:
+            print(f"[IPPOAgent] Warning: env.close() raised {e!r} (non-fatal, training already complete)")
         return self.model
 
     def _save_config_artifact(self, total_timesteps: int) -> None:
