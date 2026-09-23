@@ -1,0 +1,23 @@
+{
+  "controller": "max_pressure",
+  "seed": 777,
+  "demand_id": "1.0x",
+  "total_steps": 721,
+  "episode_duration": 3600.0,
+  "mean_waiting_time": 12.530057170006607,
+  "total_waiting_time": 26108018.0,
+  "mean_queue": 0.4619151405361035,
+  "max_queue": 22.0,
+  "throughput": 0.7602479941648432,
+  "total_arrived": 10423,
+  "total_departed": 13710,
+  "mean_speed": 7.832178973913476,
+  "total_switches": 11963,
+  "cumulative_reward": 0.0,
+  "source_run_id": "",
+  "total_teleports": 52,
+  "backlog": 3709,
+  "trips_completed": 10423,
+  "mean_trip_duration": 673.5791039048258,
+  "mean_trip_timeloss": 338.6847922862892
+}

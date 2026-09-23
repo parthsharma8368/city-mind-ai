@@ -7,8 +7,12 @@ import pandas as pd
 router = APIRouter()
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
-_CONTROLLERS = {"fixed_time", "max_pressure", "ppo", "ippo"}
-_METRICS = {"mean_waiting_time", "mean_queue", "throughput", "mean_speed", "total_arrived", "cumulative_reward", "total_switches"}
+_CONTROLLERS = {"fixed_time", "sumo_actuated", "max_pressure", "ppo", "ippo"}
+_METRICS = {
+    "mean_waiting_time", "mean_queue", "throughput", "mean_speed", "total_arrived",
+    "cumulative_reward", "total_switches", "backlog", "total_teleports",
+    "trips_completed", "mean_trip_timeloss",
+}
 
 
 def _read_parquet_or_404(path: Path) -> pd.DataFrame:

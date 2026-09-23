@@ -49,6 +49,8 @@ class EpisodeSummary:
     total_departed: int = 0
     total_arrived: int = 0
     throughput: float = 0.0    # arrived / departed
+    total_teleports: int = 0
+    backlog: int = 0           # vehicles still in the network when the episode ended
 
     # Waiting
     mean_waiting_time: float = 0.0
@@ -89,6 +91,10 @@ class MetricsCollector:
         self._demand_id: str = ""
         self._departed_start: int = 0
         self._tracked_lanes: list[str] | None = None
+        self._pending_departed: int = 0
+        self._pending_arrived: int = 0
+        self._pending_teleports: int = 0
+        self._backlog: int = 0
 
     def reset(self, controller: str, seed: int, demand_id: str) -> None:
         self._records = []
@@ -96,10 +102,38 @@ class MetricsCollector:
         self._seed = seed
         self._demand_id = demand_id
         self._tracked_lanes = None
+        self._pending_departed = 0
+        self._pending_arrived = 0
+        self._pending_teleports = 0
+        self._backlog = 0
         try:
             self._departed_start = traci.simulation.getDepartedNumber()
         except Exception:
             self._departed_start = 0
+
+    def tick(self) -> None:
+        """Call once immediately after every traci.simulationStep().
+
+        getDepartedNumber()/getArrivedNumber()/getStartingTeleportNumber()
+        report counts SINCE THE LAST CALL, not cumulative totals. Callers
+        that only invoke record_step() every N raw steps (the decision
+        interval) but call simulationStep() every raw step were dropping
+        (N-1)/N of all departures and arrivals — this accumulator makes
+        counting correct regardless of how often record_step() is called.
+        """
+        try:
+            self._pending_departed += traci.simulation.getDepartedNumber()
+            self._pending_arrived += traci.simulation.getArrivedNumber()
+            self._pending_teleports += traci.simulation.getStartingTeleportNumber()
+        except Exception:
+            pass
+
+    def record_backlog(self) -> None:
+        """Call once, right before closing SUMO, to record vehicles still in-network."""
+        try:
+            self._backlog = traci.simulation.getMinExpectedNumber()
+        except Exception:
+            self._backlog = 0
 
     def record_step(
         self,
@@ -112,8 +146,14 @@ class MetricsCollector:
     ) -> StepRecord:
         """Read TraCI values (or reuse cached values) and create a step record."""
         try:
-            departed = traci.simulation.getDepartedNumber()
-            arrived = traci.simulation.getArrivedNumber()
+            # Drain the tick() accumulator rather than calling
+            # getDepartedNumber()/getArrivedNumber() fresh here: those are
+            # "since last call" counters, and tick() is what has been
+            # calling them once per raw simulationStep() in between.
+            departed = self._pending_departed
+            arrived = self._pending_arrived
+            self._pending_departed = 0
+            self._pending_arrived = 0
 
             if cached_metrics is not None:
                 n_vehicles = int(cached_metrics.get("total_vehicles", 0))
@@ -214,6 +254,8 @@ class MetricsCollector:
             total_departed=total_dep,
             total_arrived=total_arr,
             throughput=throughput,
+            total_teleports=self._pending_teleports,
+            backlog=self._backlog,
             mean_waiting_time=float(np.mean([r.average_waiting_time for r in recs])),
             total_waiting_time_sum=float(sum(r.total_waiting_time for r in recs)),
             mean_queue=float(np.mean([r.average_queue for r in recs])),

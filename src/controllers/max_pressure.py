@@ -31,6 +31,7 @@ from src.environment.sumo_connection import traci, USING_LIBSUMO
 from src.controllers.base import BaseController, ControllerResult
 from src.environment.metrics import MetricsCollector
 from src.environment.safety import SafetyLayer, SafetyConfig
+from src.evaluation.tripinfo import parse_tripinfo
 from src.scenario.tls_metadata import TLSSpec, TLSRuntimeState, PhaseSpec, load_tls_specs
 
 
@@ -93,6 +94,7 @@ class MaxPressureController(BaseController):
         seed: int = 42,
         demand_id: str = "1.0x",
         trajectory_path: str | None = None,
+        tripinfo_path: str | None = None,
     ) -> ControllerResult:
         tls_specs = load_tls_specs(Path(tls_metadata_json))
         specs_by_id: dict[str, TLSSpec] = {s.tls_id: s for s in tls_specs}
@@ -103,6 +105,9 @@ class MaxPressureController(BaseController):
         safety.register_states(runtime_states)
         downstream_cache: dict[str, list[str]] = {}
 
+        if tripinfo_path:
+            Path(tripinfo_path).parent.mkdir(parents=True, exist_ok=True)
+
         cmd = [
             self.sumo_binary,
             "--configuration-file", sumo_cfg,
@@ -110,7 +115,7 @@ class MaxPressureController(BaseController):
             "--no-warnings",
             "--no-step-log",
             "--seed", str(seed),
-        ] + self.sumo_extra_args
+        ] + (["--tripinfo-output", str(tripinfo_path)] if tripinfo_path else []) + self.sumo_extra_args
 
         if USING_LIBSUMO:
             traci.start(cmd)
@@ -151,6 +156,7 @@ class MaxPressureController(BaseController):
                         total_switches += 1
 
                 traci.simulationStep()
+                collector.tick()
 
                 if step % self.decision_interval == 0:
                     # No states= here: this keeps max-pressure on the same raw,
@@ -182,6 +188,7 @@ class MaxPressureController(BaseController):
                 if sim_time >= self.episode_duration:
                     break
         finally:
+            collector.record_backlog()
             traci.close()
 
         if trajectory_path and trajectory_rows:
@@ -190,6 +197,7 @@ class MaxPressureController(BaseController):
             pd.DataFrame(trajectory_rows).to_parquet(trajectory_path, index=False)
 
         summary = collector.summarize()
+        trip_summary = parse_tripinfo(tripinfo_path) if tripinfo_path else None
         return ControllerResult(
             controller="max_pressure",
             seed=seed,
@@ -205,6 +213,11 @@ class MaxPressureController(BaseController):
             total_departed=summary.total_departed,
             mean_speed=summary.mean_speed,
             total_switches=total_switches,
+            total_teleports=summary.total_teleports,
+            backlog=summary.backlog,
+            trips_completed=trip_summary.trips_completed if trip_summary else 0,
+            mean_trip_duration=trip_summary.mean_trip_duration if trip_summary else 0.0,
+            mean_trip_timeloss=trip_summary.mean_trip_timeloss if trip_summary else 0.0,
         )
 
     # ──────────────────────────────────────────────────────────────────────────

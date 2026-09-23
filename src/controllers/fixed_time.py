@@ -27,6 +27,7 @@ from src.environment.sumo_connection import traci, USING_LIBSUMO
 
 from src.controllers.base import BaseController, ControllerResult
 from src.environment.metrics import MetricsCollector
+from src.evaluation.tripinfo import parse_tripinfo
 
 STATIC_PROGRAM_ID = "static_fixed"
 DEFAULT_STATIC_ADD_FILE = "artifacts/scenario/static_programs.add.xml"
@@ -69,6 +70,7 @@ class FixedTimeController(BaseController):
         seed: int = 42,
         demand_id: str = "1.0x",
         trajectory_path: str | None = None,
+        tripinfo_path: str | None = None,
     ) -> ControllerResult:
         if not Path(self.static_add_file).exists():
             raise FileNotFoundError(
@@ -84,6 +86,9 @@ class FixedTimeController(BaseController):
         scenario_additionals = self._scenario_additional_files(sumo_cfg)
         combined_additionals = ",".join(scenario_additionals + [self.static_add_file])
 
+        if tripinfo_path:
+            Path(tripinfo_path).parent.mkdir(parents=True, exist_ok=True)
+
         cmd = [
             self.sumo_binary,
             "--configuration-file", sumo_cfg,
@@ -92,7 +97,7 @@ class FixedTimeController(BaseController):
             "--no-step-log",
             "--seed", str(seed),
             "--additional-files", combined_additionals,
-        ] + self.sumo_extra_args
+        ] + (["--tripinfo-output", str(tripinfo_path)] if tripinfo_path else []) + self.sumo_extra_args
 
         if USING_LIBSUMO:
             traci.start(cmd)
@@ -116,6 +121,7 @@ class FixedTimeController(BaseController):
         try:
             while traci.simulation.getMinExpectedNumber() > 0:
                 traci.simulationStep()
+                collector.tick()
                 sim_time = traci.simulation.getTime()
                 if step % 5 == 0:
                     collector.record_step(step, sim_time, 0.0, 0)
@@ -141,6 +147,7 @@ class FixedTimeController(BaseController):
                 if sim_time >= self.episode_duration:
                     break
         finally:
+            collector.record_backlog()
             traci.close()
 
         if trajectory_path and trajectory_rows:
@@ -149,6 +156,7 @@ class FixedTimeController(BaseController):
             pd.DataFrame(trajectory_rows).to_parquet(trajectory_path, index=False)
 
         summary = collector.summarize()
+        trip_summary = parse_tripinfo(tripinfo_path) if tripinfo_path else None
         return ControllerResult(
             controller="fixed_time",
             seed=seed,
@@ -164,6 +172,11 @@ class FixedTimeController(BaseController):
             total_departed=summary.total_departed,
             mean_speed=summary.mean_speed,
             total_switches=0,
+            total_teleports=summary.total_teleports,
+            backlog=summary.backlog,
+            trips_completed=trip_summary.trips_completed if trip_summary else 0,
+            mean_trip_duration=trip_summary.mean_trip_duration if trip_summary else 0.0,
+            mean_trip_timeloss=trip_summary.mean_trip_timeloss if trip_summary else 0.0,
         )
 
     @staticmethod

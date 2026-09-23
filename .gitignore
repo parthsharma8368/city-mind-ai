@@ -45,6 +45,8 @@ artifacts/models/*
 !artifacts/models/.gitkeep
 artifacts/trajectories/*
 !artifacts/trajectories/.gitkeep
+artifacts/metrics/tripinfo/*
+!artifacts/metrics/tripinfo/.gitkeep
 artifacts/experiments/
 experiments/
 *.zip

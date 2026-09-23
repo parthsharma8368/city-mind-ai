@@ -1,0 +1,23 @@
+{
+  "controller": "ppo",
+  "seed": 777,
+  "demand_id": "1.0x",
+  "total_steps": 720,
+  "episode_duration": 3595.0,
+  "mean_waiting_time": 7.868304220470024,
+  "total_waiting_time": 17143009.0,
+  "mean_queue": 0.5976247600767755,
+  "max_queue": 25.0,
+  "throughput": 0.7231186849645604,
+  "total_arrived": 9590,
+  "total_departed": 13262,
+  "mean_speed": 10.28751402919415,
+  "total_switches": 31278,
+  "cumulative_reward": -46136.0,
+  "source_run_id": "run_20260917_174650_seed42",
+  "total_teleports": 26,
+  "backlog": 4086,
+  "trips_completed": 9590,
+  "mean_trip_duration": 672.3018769551617,
+  "mean_trip_timeloss": 355.3320865484885
+}

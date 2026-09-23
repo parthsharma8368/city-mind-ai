@@ -221,6 +221,7 @@ class CentralizedSumoEnv(gym.Env):
 
             # Advance simulation by one step
             traci.simulationStep()
+            self.metrics.tick()
 
             # Record trajectory if needed
             if self.record_trajectories:
@@ -298,6 +299,10 @@ class CentralizedSumoEnv(gym.Env):
 
     def _close_sumo(self) -> None:
         """Safely close TraCI/libsumo connection."""
+        try:
+            self.metrics.record_backlog()
+        except Exception:
+            pass
         try:
             traci.close()
         except Exception:

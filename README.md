@@ -17,16 +17,21 @@ The project trained and evaluated **two RL architectures** against the same two 
 
 ---
 
-## 📊 Results (seed 42, 1.0× demand)
+## 📊 Results (07:00-08:00 peak demand, mean ± std over 3 seeds)
 
-| Controller | Mean Wait (s) | Mean Queue | Throughput | Mean Speed (m/s) | Total Arrived |
-|---|---|---|---|---|---|
-| Fixed-Time (baseline) | **3.02** | 0.048 | 82.7% | 10.53 | 268 |
-| **IPPO (Parameter-Shared)** | 4.15 | 0.067 | 74.7% | **13.02** | 233 |
-| PPO (Centralized) | 13.47 | 0.108 | 81.4% | 12.76 | 253 |
-| Max-Pressure | 37.38 | 0.143 | 74.2% | 6.74 | 242 |
+Two corrections behind this table, both load-bearing: earlier results were measured on a **midnight window** (1,486 departures/hour vs. peak's 14,500+) against a baseline mislabeled "fixed-time" that was actually **SUMO's own calibrated vehicle-actuated control** (`sumo_actuated` below) — a materially higher bar than a real fixed timer (`fixed_time` below, InTAS's own static programs). Separately, every controller's per-step departure/arrival counters were undercounting by roughly 5× (sampled once every 5 simulation seconds using TraCI's since-last-call counters, without accumulating the 4 seconds in between) — fixed alongside adding trip-level metrics (`trips_completed`, `mean_trip_timeloss`, from SUMO's own `--tripinfo-output`) and backlog/teleport counts, which is what surfaced the finding below in the first place.
 
-Switching from a centralized policy to a parameter-shared decentralized one (IPPO) cut mean waiting time from 13.47s to 4.15s — a 3.2× improvement — and pushed mean speed above every other controller, including the professionally-tuned fixed-time baseline. It still trails fixed-time on raw wait time; each IPPO agent only ever sees and optimizes its own intersection, with no explicit coordination channel between neighbors. See [`PROJECT_RESEARCH_AND_VISION.md`](PROJECT_RESEARCH_AND_VISION.md) and the in-app XAI Analysis page for the coordination-side evidence, and the RL-alternatives write-up for concrete next steps (MAPPO, CoLight, PressLight, FRAP) that add an explicit coordination mechanism on top of this result.
+| Controller | Trips Completed | Mean TimeLoss (s) | Backlog | Teleports | Mean Wait (s) | Switches |
+|---|---|---|---|---|---|---|
+| **SUMO-Actuated (calibrated)** | **11,600** | **284.4 ± 1.3** | **3,257** | 7.7 | 6.06 ± 0.06 | 0 |
+| Fixed-Time (static) | 11,454 | 301.8 ± 5.4 | 3,472 | 7.7 | 6.97 ± 0.18 | 0 |
+| Max-Pressure | 10,408 | 342.9 ± 4.9 | 3,755 | 50.3 | 12.62 ± 0.21 | ~11,962 |
+| PPO (Centralized) | 9,546 | 354.7 ± 0.6 | 4,112 | 19.0 | 7.61 ± 0.25 | ~31,265 |
+| IPPO (Parameter-Shared) | 9,520 | 347.8 ± 2.1 | 4,086 | 10.0 | **5.26 ± 0.13** | ~40,342 |
+
+**Neither RL policy beats the baselines** — on trips completed or mean trip timeloss (the two metrics sourced from completed trips, not in-network sampling), both rank last. IPPO's mean waiting time *looks* best (5.26s vs. actuated's 6.06s), but that number is measured only over vehicles currently in the network — and IPPO completes 18% fewer trips than actuated control while leaving 26% more vehicles stuck in the network at episode end (backlog). That combination is starvation, not faster service: some vehicles get through quickly while a growing pool never clears. The mechanism is visible in the switch count — IPPO's shared policy changes phase roughly 40,000 times across the hour (98 agents × 720 decisions ≈ 57% of all opportunities), well past anything a real signal engineer would run, which resets in-network waiting-time counters without moving the queue that matters.
+
+The root cause is the action space, not the algorithm: every controller here (RL and baseline alike) can only keep or advance to the *next* phase in a fixed cycle — never jump straight to whichever approach is actually congested. Three independent training runs (centralized PPO, IPPO, IPPO with neighbor observations) converged to the same result under this constraint. The planned fix is a phase-selection action space (pick any of the intersection's green phases, action-masked per intersection) with a pressure-based reward in place of raw waiting-time delta — see [`PROJECT_RESEARCH_AND_VISION.md`](PROJECT_RESEARCH_AND_VISION.md) for the full diagnosis and plan. That work has not been trained yet; the honest state of this repo today is "no RL controller beats calibrated actuated control," reported directly rather than around.
 
 ---
 

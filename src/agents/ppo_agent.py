@@ -48,12 +48,18 @@ def make_env(
     episode_duration: int = 3600,
     begin_time: int = 0,
     record_trajectories: bool = False,
+    tripinfo_path: str | None = None,
 ) -> Monitor:
     """Factory for a single monitored CentralizedSumoEnv.
 
     episode_duration is the ABSOLUTE simulation end-time, not a duration
     relative to begin_time (matches make_ippo_env's convention).
     """
+    sumo_extra_args = ["--begin", str(begin_time), "--end", str(episode_duration)]
+    if tripinfo_path:
+        from pathlib import Path as _Path
+        _Path(tripinfo_path).parent.mkdir(parents=True, exist_ok=True)
+        sumo_extra_args += ["--tripinfo-output", str(tripinfo_path)]
     env = CentralizedSumoEnv(
         sumo_cfg=sumo_cfg,
         tls_metadata_json=tls_metadata_json,
@@ -67,7 +73,7 @@ def make_env(
         safety_config=safety_config,
         record_trajectories=record_trajectories,
         episode_duration=episode_duration,
-        sumo_extra_args=["--begin", str(begin_time), "--end", str(episode_duration)],
+        sumo_extra_args=sumo_extra_args,
     )
     return Monitor(env)
 

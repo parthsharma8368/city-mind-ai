@@ -1,0 +1,23 @@
+{
+  "controller": "ippo",
+  "seed": 123,
+  "demand_id": "1.0x",
+  "total_steps": 720,
+  "episode_duration": 3595.0,
+  "mean_waiting_time": 5.1315308229188785,
+  "total_waiting_time": 11454278.0,
+  "mean_queue": 0.5227793772659415,
+  "max_queue": 25.0,
+  "throughput": 0.715011757566563,
+  "total_arrived": 9426,
+  "total_departed": 13183,
+  "mean_speed": 10.540945250199503,
+  "total_switches": 40349,
+  "cumulative_reward": -217729.7265683815,
+  "source_run_id": "run_20260921_194748_seed42",
+  "total_teleports": 5,
+  "backlog": 4179,
+  "trips_completed": 9426,
+  "mean_trip_duration": 664.6444939528963,
+  "mean_trip_timeloss": 346.64109484404867
+}

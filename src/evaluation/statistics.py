@@ -23,6 +23,8 @@ def aggregate_by_controller(df: pd.DataFrame) -> pd.DataFrame:
         "mean_queue", "max_queue",
         "throughput", "total_arrived", "total_departed",
         "mean_speed", "total_switches",
+        "total_teleports", "backlog",
+        "trips_completed", "mean_trip_duration", "mean_trip_timeloss",
     ]
     agg = {}
     for col in numeric_cols:
@@ -50,18 +52,20 @@ def print_comparison_table(df: pd.DataFrame) -> None:
 
     for demand_id, group in agg.groupby("demand_id"):
         print(f"\nDemand: {demand_id}")
-        print(f"{'Controller':<20} {'Avg Wait':>12} {'±':>4} {'Avg Queue':>12} {'±':>4} {'Throughput':>12} {'±':>4}")
-        print("-" * 80)
+        print(f"{'Controller':<16} {'Trips':>8} {'TimeLoss':>10} {'±':>6} "
+              f"{'Backlog':>9} {'Teleports':>10} {'Avg Wait':>10} {'±':>6}")
+        print("-" * 90)
         for _, row in group.iterrows():
+            trips_m = row.get("trips_completed_mean", 0.0)
+            tl_m = row.get("mean_trip_timeloss_mean", 0.0)
+            tl_s = row.get("mean_trip_timeloss_std", 0.0)
+            backlog_m = row.get("backlog_mean", 0.0)
+            tel_m = row.get("total_teleports_mean", 0.0)
             wt_m = row.get("mean_waiting_time_mean", 0.0)
             wt_s = row.get("mean_waiting_time_std", 0.0)
-            q_m  = row.get("mean_queue_mean", 0.0)
-            q_s  = row.get("mean_queue_std", 0.0)
-            tp_m = row.get("throughput_mean", 0.0)
-            tp_s = row.get("throughput_std", 0.0)
-            print(f"{row['controller']:<20} {wt_m:>12.2f} {wt_s:>4.2f} "
-                  f"{q_m:>12.2f} {q_s:>4.2f} {tp_m:>12.4f} {tp_s:>4.4f}")
-    print("="*80 + "\n")
+            print(f"{row['controller']:<16} {trips_m:>8.0f} {tl_m:>10.2f} {tl_s:>6.2f} "
+                  f"{backlog_m:>9.1f} {tel_m:>10.1f} {wt_m:>10.2f} {wt_s:>6.2f}")
+    print("="*90 + "\n")
 
 
 def compute_improvement_over_baseline(

@@ -6,12 +6,19 @@ traffic lights in real time on the Ingolstadt map.
 
 Usage:
   python scripts/run_visual_demo.py --controller fixed_time
+  python scripts/run_visual_demo.py --controller sumo_actuated
   python scripts/run_visual_demo.py --controller max_pressure
   python scripts/run_visual_demo.py --controller ppo   [--model path/to/model_final.zip]
   python scripts/run_visual_demo.py --controller ippo  [--model path/to/model_final.zip]
 
+Defaults to the 07:00-08:00 peak window (--begin 25200 --duration 3600),
+matching configs/evaluation.yaml — every trained model was evaluated on
+this window, so this is the scenario its numbers actually describe.
+
 Run two of these side by side (different --controller, same --seed) to
-compare a specific intersection live between two SUMO-GUI windows.
+compare a specific intersection live between two SUMO-GUI windows — e.g.
+--controller ippo vs --controller sumo_actuated is the head-to-head that
+matters (see the evaluated results for which one actually wins).
 
 When SUMO-GUI opens:
   1. Press the green ▶ Play button (or Ctrl+A) to start
@@ -35,7 +42,7 @@ def parse_args():
     p = argparse.ArgumentParser(description="Visual SUMO-GUI demo")
     p.add_argument(
         "--controller", default="ppo",
-        choices=["fixed_time", "max_pressure", "ppo", "ippo"],
+        choices=["fixed_time", "sumo_actuated", "max_pressure", "ppo", "ippo"],
         help="Which controller drives the signals in the GUI",
     )
     p.add_argument("--model", default=None, help="Model .zip (ppo/ippo only; auto-discovers latest if omitted)")
@@ -43,7 +50,14 @@ def parse_args():
     p.add_argument("--tls-json", default=TLS_JSON, help="Path to tls_metadata.json")
     p.add_argument("--delay", type=int, default=100,
                    help="Milliseconds per SUMO step (100 = watchable, 0 = fast)")
-    p.add_argument("--duration", type=int, default=3600, help="Episode duration (seconds)")
+    # Defaults match configs/evaluation.yaml's peak window (begin_time=25200,
+    # episode_duration=3600) — every trained model was evaluated on this
+    # window, so demoing a different one (e.g. the old default: midnight,
+    # begin=0) puts the agent out of distribution from what was measured.
+    p.add_argument("--begin", type=int, default=25200,
+                   help="Absolute sim-time the episode starts at (25200 = 07:00:00)")
+    p.add_argument("--duration", type=int, default=3600,
+                   help="Episode duration in seconds, relative to --begin")
     p.add_argument("--seed", type=int, default=42)
     return p.parse_args()
 
@@ -65,8 +79,12 @@ def _resolve_model(model_arg: str | None, experiments_subdir: str) -> Path:
     return candidates[0]
 
 
+def _absolute_end(args) -> int:
+    return args.begin + args.duration
+
+
 def _build_sumo_extra_args(args) -> list[str]:
-    sumo_extra = ["--end", str(args.duration)]
+    sumo_extra = ["--begin", str(args.begin), "--end", str(_absolute_end(args))]
     viewsettings_path = Path("configs/viewsettings.xml")
     if viewsettings_path.exists():
         sumo_extra += ["-g", str(viewsettings_path), "--start"]
@@ -79,11 +97,25 @@ def run_fixed_time(args) -> None:
     from src.controllers.fixed_time import FixedTimeController
 
     controller = FixedTimeController(
-        episode_duration=args.duration,
+        episode_duration=_absolute_end(args),
         sumo_binary="sumo-gui",
         sumo_extra_args=_build_sumo_extra_args(args),
     )
-    print("\n[Demo] Fixed-Time baseline — SUMO's own static signal programs, no RL.\n")
+    print("\n[Demo] Fixed-Time baseline — genuinely static signal programs, no RL.\n")
+    result = controller.run_episode(args.sumo_cfg, args.tls_json, seed=args.seed, demand_id="1.0x")
+    print(f"\n[Demo] Episode complete. mean_wait={result.mean_waiting_time:.2f}s "
+          f"mean_speed={result.mean_speed:.2f} m/s switches={result.total_switches}")
+
+
+def run_sumo_actuated(args) -> None:
+    from src.controllers.sumo_actuated import SumoActuatedController
+
+    controller = SumoActuatedController(
+        episode_duration=_absolute_end(args),
+        sumo_binary="sumo-gui",
+        sumo_extra_args=_build_sumo_extra_args(args),
+    )
+    print("\n[Demo] SUMO-actuated baseline — InTAS's own calibrated vehicle-actuated programs, no RL.\n")
     result = controller.run_episode(args.sumo_cfg, args.tls_json, seed=args.seed, demand_id="1.0x")
     print(f"\n[Demo] Episode complete. mean_wait={result.mean_waiting_time:.2f}s "
           f"mean_speed={result.mean_speed:.2f} m/s switches={result.total_switches}")
@@ -93,7 +125,7 @@ def run_max_pressure(args) -> None:
     from src.controllers.max_pressure import MaxPressureController
 
     controller = MaxPressureController(
-        episode_duration=args.duration,
+        episode_duration=_absolute_end(args),
         sumo_binary="sumo-gui",
         sumo_extra_args=_build_sumo_extra_args(args),
     )
@@ -120,6 +152,7 @@ def run_ppo(args) -> None:
         seed=args.seed,
         demand_id="1.0x",
         record_trajectories=False,
+        episode_duration=_absolute_end(args),
         sumo_extra_args=_build_sumo_extra_args(args),
     )
 
@@ -156,7 +189,7 @@ def run_ippo(args) -> None:
         decision_interval=5,
         seed=args.seed,
         demand_id="1.0x",
-        episode_duration=args.duration,
+        episode_duration=_absolute_end(args),
         sumo_extra_args=_build_sumo_extra_args(args),
     )
 
@@ -190,11 +223,12 @@ def main() -> None:
     print(f"  Controller: {args.controller}")
     print(f"  Scenario  : {args.sumo_cfg}")
     print(f"  Delay     : {args.delay}ms per step")
-    print(f"  Duration  : {args.duration}s episode")
+    print(f"  Window    : {args.begin}s - {_absolute_end(args)}s ({args.duration}s)")
     print("=" * 60)
 
     {
         "fixed_time": run_fixed_time,
+        "sumo_actuated": run_sumo_actuated,
         "max_pressure": run_max_pressure,
         "ppo": run_ppo,
         "ippo": run_ippo,

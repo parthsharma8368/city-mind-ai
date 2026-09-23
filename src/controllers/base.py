@@ -29,6 +29,13 @@ class ControllerResult:
     total_switches: int = 0
     cumulative_reward: float = 0.0
     source_run_id: str = ""  # which training run's checkpoint produced this (RL controllers only)
+    # Robustness / trip-level metrics (added alongside the per-step
+    # undercounting fix — see metrics.py's tick()/record_backlog()).
+    total_teleports: int = 0
+    backlog: int = 0             # vehicles still in-network when the episode ended
+    trips_completed: int = 0     # from --tripinfo-output; independent of in-network sampling bias
+    mean_trip_duration: float = 0.0
+    mean_trip_timeloss: float = 0.0
 
 
 class BaseController(ABC):

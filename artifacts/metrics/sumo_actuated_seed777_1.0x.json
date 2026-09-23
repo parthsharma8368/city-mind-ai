@@ -1,0 +1,23 @@
+{
+  "controller": "sumo_actuated",
+  "seed": 777,
+  "demand_id": "1.0x",
+  "total_steps": 720,
+  "episode_duration": 3595.0,
+  "mean_waiting_time": 6.112278987478822,
+  "total_waiting_time": 12123868.0,
+  "mean_queue": 0.4317764010366051,
+  "max_queue": 23.0,
+  "throughput": 0.7951608468518009,
+  "total_arrived": 11568,
+  "total_departed": 14548,
+  "mean_speed": 8.697855050990906,
+  "total_switches": 0,
+  "cumulative_reward": 0.0,
+  "source_run_id": "",
+  "total_teleports": 5,
+  "backlog": 3305,
+  "trips_completed": 11577,
+  "mean_trip_duration": 627.0756672713138,
+  "mean_trip_timeloss": 285.8801891681798
+}

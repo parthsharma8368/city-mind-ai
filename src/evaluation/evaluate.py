@@ -29,6 +29,7 @@ from src.controllers.base import ControllerResult
 from src.controllers.fixed_time import FixedTimeController
 from src.controllers.sumo_actuated import SumoActuatedController
 from src.controllers.max_pressure import MaxPressureController
+from src.evaluation.tripinfo import parse_tripinfo
 
 
 def _extract_run_id(model_path: str) -> str:
@@ -59,8 +60,10 @@ class EvaluationRunner:
         self.ippo_model_path = ippo_model_path
         self.output_dir = Path(output_dir)
         self.trajectory_dir = Path(trajectory_dir)
+        self.tripinfo_dir = self.output_dir / "tripinfo"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.trajectory_dir.mkdir(parents=True, exist_ok=True)
+        self.tripinfo_dir.mkdir(parents=True, exist_ok=True)
 
         with open(eval_config_path) as f:
             self.cfg: dict = yaml.safe_load(f)
@@ -100,8 +103,10 @@ class EvaluationRunner:
                     episode_duration=self.absolute_end, sumo_extra_args=begin_args
                 )
                 sa_traj = str(self.trajectory_dir / f"sumo_actuated_seed{seed}_{demand_id}.parquet")
+                sa_trip = str(self.tripinfo_dir / f"sumo_actuated_seed{seed}_{demand_id}.xml")
                 sa_result = sa.run_episode(
-                    self.sumo_cfg, self.tls_metadata_json, seed, demand_id, trajectory_path=sa_traj
+                    self.sumo_cfg, self.tls_metadata_json, seed, demand_id,
+                    trajectory_path=sa_traj, tripinfo_path=sa_trip,
                 )
                 results.append(sa_result)
                 self._save_result(sa_result)
@@ -114,8 +119,10 @@ class EvaluationRunner:
                     episode_duration=self.absolute_end, sumo_extra_args=begin_args
                 )
                 ft_traj = str(self.trajectory_dir / f"fixed_time_seed{seed}_{demand_id}.parquet")
+                ft_trip = str(self.tripinfo_dir / f"fixed_time_seed{seed}_{demand_id}.xml")
                 ft_result = ft.run_episode(
-                    self.sumo_cfg, self.tls_metadata_json, seed, demand_id, trajectory_path=ft_traj
+                    self.sumo_cfg, self.tls_metadata_json, seed, demand_id,
+                    trajectory_path=ft_traj, tripinfo_path=ft_trip,
                 )
                 results.append(ft_result)
                 self._save_result(ft_result)
@@ -128,8 +135,10 @@ class EvaluationRunner:
                     episode_duration=self.absolute_end, sumo_extra_args=begin_args
                 )
                 mp_traj = str(self.trajectory_dir / f"max_pressure_seed{seed}_{demand_id}.parquet")
+                mp_trip = str(self.tripinfo_dir / f"max_pressure_seed{seed}_{demand_id}.xml")
                 mp_result = mp.run_episode(
-                    self.sumo_cfg, self.tls_metadata_json, seed, demand_id, trajectory_path=mp_traj
+                    self.sumo_cfg, self.tls_metadata_json, seed, demand_id,
+                    trajectory_path=mp_traj, tripinfo_path=mp_trip,
                 )
                 results.append(mp_result)
                 self._save_result(mp_result)
@@ -172,6 +181,7 @@ class EvaluationRunner:
         )
         agent.load(self.ppo_model_path)
 
+        ppo_trip = str(self.tripinfo_dir / f"ppo_seed{seed}_{demand_id}.xml")
         env = make_env(
             sumo_cfg=self.sumo_cfg,
             tls_metadata_json=self.tls_metadata_json,
@@ -180,6 +190,7 @@ class EvaluationRunner:
             episode_duration=self.absolute_end,
             begin_time=self.begin_time,
             record_trajectories=True,
+            tripinfo_path=ppo_trip,
         )
 
         obs, _ = env.reset()
@@ -194,6 +205,9 @@ class EvaluationRunner:
             steps += 1
             done = terminated or truncated
 
+        # Must run before env.close() tears down the TraCI connection —
+        # record_backlog() reads live SUMO state.
+        env.unwrapped.metrics.record_backlog()
         summary = env.unwrapped.metrics.summarize()
 
         # Save trajectory
@@ -203,6 +217,7 @@ class EvaluationRunner:
         env.unwrapped.save_trajectory(traj_path)
         env.close()
 
+        trip_summary = parse_tripinfo(ppo_trip)
         return ControllerResult(
             controller="ppo",
             seed=seed,
@@ -220,6 +235,11 @@ class EvaluationRunner:
             total_switches=summary.total_switches,
             cumulative_reward=total_reward,
             source_run_id=_extract_run_id(self.ppo_model_path),
+            total_teleports=summary.total_teleports,
+            backlog=summary.backlog,
+            trips_completed=trip_summary.trips_completed,
+            mean_trip_duration=trip_summary.mean_trip_duration,
+            mean_trip_timeloss=trip_summary.mean_trip_timeloss,
         )
 
     def _run_ippo_episode(self, seed: int, demand_id: str) -> ControllerResult:
@@ -230,13 +250,17 @@ class EvaluationRunner:
 
         model = PPO.load(self.ippo_model_path, device="cpu")
 
+        ippo_trip = str(self.tripinfo_dir / f"ippo_seed{seed}_{demand_id}.xml")
         env = DecentralizedSumoEnv(
             sumo_cfg=self.sumo_cfg,
             tls_metadata_json=self.tls_metadata_json,
             seed=seed,
             demand_id=demand_id,
             episode_duration=self.absolute_end,
-            sumo_extra_args=["--begin", str(self.begin_time), "--end", str(self.absolute_end)],
+            sumo_extra_args=[
+                "--begin", str(self.begin_time), "--end", str(self.absolute_end),
+                "--tripinfo-output", ippo_trip,
+            ],
         )
 
         observations, _ = env.reset()
@@ -272,6 +296,7 @@ class EvaluationRunner:
                     "tls_id": tid, "phase": phase_idx, "tls_state": state_str,
                 })
 
+        env.metrics.record_backlog()
         summary = env.metrics.summarize()
         env.close()
 
@@ -280,6 +305,7 @@ class EvaluationRunner:
             traj_path.parent.mkdir(parents=True, exist_ok=True)
             pd.DataFrame(trajectory_rows).to_parquet(traj_path, index=False)
 
+        trip_summary = parse_tripinfo(ippo_trip)
         return ControllerResult(
             controller="ippo",
             seed=seed,
@@ -297,6 +323,11 @@ class EvaluationRunner:
             total_switches=summary.total_switches,
             cumulative_reward=total_reward,
             source_run_id=_extract_run_id(self.ippo_model_path),
+            total_teleports=summary.total_teleports,
+            backlog=summary.backlog,
+            trips_completed=trip_summary.trips_completed,
+            mean_trip_duration=trip_summary.mean_trip_duration,
+            mean_trip_timeloss=trip_summary.mean_trip_timeloss,
         )
 
     def _save_result(self, result: ControllerResult) -> None:
@@ -321,4 +352,5 @@ class EvaluationRunner:
         print(f"\nAll results saved: {path}")
         print(df[["controller", "seed", "demand_id",
                    "mean_waiting_time", "mean_queue",
-                   "throughput", "total_arrived"]].to_string())
+                   "throughput", "total_arrived", "backlog", "total_teleports",
+                   "trips_completed", "mean_trip_timeloss"]].to_string())

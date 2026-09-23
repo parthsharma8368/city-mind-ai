@@ -12,6 +12,7 @@ problem — the standard pattern for parameter-shared IPPO with SB3.
 """
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 
@@ -87,6 +88,56 @@ def make_ippo_env(
     # tensorboard log through 3.6M timesteps.
     vec_env = VecMonitor(vec_env)
     return vec_env
+
+
+def _close_env_with_timeout(env, timeout: float = 30.0) -> None:
+    """Close a (possibly multi-instance) VecEnv without letting a stuck
+    subprocess block the training script forever.
+
+    SuperSuit's ProcConcatVec.close() already bounds its own join() with a
+    graceful_shutdown_timeout before kill()-ing stragglers, but that only
+    protects against a hung *child*. If close() itself deadlocks in this
+    process (observed on a 6-instance run after a 20+ hour training job:
+    the parent sat idle for hours with 6 orphaned SUMO processes and needed
+    `kill -9`), the timeout has to live here, one level up, running
+    env.close() off the main thread and force-killing every leftover
+    descendant process if it doesn't return in time.
+    """
+    close_done = threading.Event()
+    close_error: list[BaseException] = []
+
+    def _do_close():
+        try:
+            env.close()
+        except BaseException as e:  # noqa: BLE001 - reporting only, never fatal here
+            close_error.append(e)
+        finally:
+            close_done.set()
+
+    t = threading.Thread(target=_do_close, daemon=True)
+    t.start()
+    if close_done.wait(timeout):
+        if close_error:
+            print(f"[IPPOAgent] Warning: env.close() raised {close_error[0]!r} (non-fatal)")
+        return
+
+    print(f"[IPPOAgent] Warning: env.close() did not return within {timeout:.0f}s — "
+          "force-killing any leftover SUMO/worker processes instead of blocking training exit.")
+    try:
+        import psutil
+        parent = psutil.Process()
+        children = parent.children(recursive=True)
+        for child in children:
+            try:
+                child.kill()
+            except psutil.NoSuchProcess:
+                pass
+        if children:
+            psutil.wait_procs(children, timeout=10)
+            print(f"[IPPOAgent] Force-killed {len(children)} leftover child process(es).")
+    except ImportError:
+        print("[IPPOAgent] psutil not installed — cannot force-kill leftover processes; "
+              "check for orphaned `sumo`/python worker processes manually.")
 
 
 class IPPOAgent:
@@ -233,10 +284,7 @@ class IPPOAgent:
         # after "Model saved" printed. self.model.env is the VecMonitor
         # wrapper; .close() propagates through VecMonitor -> SB3VecEnvWrapper
         # -> ProcConcatVec, which sends each subprocess a shutdown signal.
-        try:
-            self.model.env.close()
-        except Exception as e:
-            print(f"[IPPOAgent] Warning: env.close() raised {e!r} (non-fatal, training already complete)")
+        _close_env_with_timeout(self.model.env, timeout=30.0)
         return self.model
 
     def _save_config_artifact(self, total_timesteps: int) -> None:
