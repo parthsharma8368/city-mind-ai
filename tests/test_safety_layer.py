@@ -42,6 +42,32 @@ def make_state(tls_id: str = "TLS_1") -> TLSRuntimeState:
     )
 
 
+def make_three_phase_spec(tls_id: str = "TLS_3") -> TLSSpec:
+    """Three-green-phase TLS (green/yellow x3) — for phase-selection jumps
+    that skip over an intervening green phase (e.g. green0 -> green2)."""
+    phases = [
+        PhaseSpec(index=0, state="GGrrrr", duration=30.0, min_dur=10.0, max_dur=90.0),
+        PhaseSpec(index=1, state="yyrrrr", duration=3.0),   # yellow
+        PhaseSpec(index=2, state="rrGGrr", duration=30.0, min_dur=10.0, max_dur=90.0),
+        PhaseSpec(index=3, state="rryyrr", duration=3.0),   # yellow
+        PhaseSpec(index=4, state="rrrrGG", duration=30.0, min_dur=10.0, max_dur=90.0),
+        PhaseSpec(index=5, state="rrrryy", duration=3.0),   # yellow
+    ]
+    return TLSSpec(
+        tls_id=tls_id, program_id="0", type="static", junction_id=tls_id,
+        phases=phases, controlled_lanes=["l0", "l1", "l2", "l3", "l4", "l5"],
+    )
+
+
+def make_one_phase_spec(tls_id: str = "TLS_1PHASE") -> TLSSpec:
+    """Degenerate single-green-phase TLS (2/98 real InTAS TLS have this)."""
+    phases = [PhaseSpec(index=0, state="GGGG", duration=30.0, min_dur=10.0, max_dur=90.0)]
+    return TLSSpec(
+        tls_id=tls_id, program_id="0", type="static", junction_id=tls_id,
+        phases=phases, controlled_lanes=["l0", "l1", "l2", "l3"],
+    )
+
+
 class TestPhaseSpec:
     def test_is_green(self):
         ph = PhaseSpec(index=0, state="GGrr", duration=30.0)
@@ -322,3 +348,129 @@ class TestSafetyLayerYellowTransition:
         state.phase_elapsed = 6.0
         layer.step(sim_time=6.0, actions={spec.tls_id: 1}, dt=1.0)
         assert state.yellow_pending  # allowed to advance early
+
+
+class TestSafetyLayerPhaseSelect:
+    """mode="phase_select": action is a direct target green-phase index
+    (via TLSSpec.action_to_phase_index), not binary keep/advance. Binary
+    mode's own tests above are the regression guard that this mode's
+    existence doesn't change binary behavior at all."""
+
+    @patch("src.environment.safety.traci")
+    def test_selecting_current_phase_holds(self, mock_traci):
+        spec = make_three_phase_spec()
+        state = make_state(spec.tls_id)
+        cfg = SafetyConfig(min_green=10.0, all_red_duration=2.0)
+        layer = SafetyLayer([spec], cfg)
+        layer.register_states({spec.tls_id: state})
+
+        state.phase_elapsed = 15.0
+        layer.step(sim_time=15.0, actions={spec.tls_id: 0}, dt=1.0, mode="phase_select")
+
+        assert not state.yellow_pending
+        assert state.current_phase == 0
+
+    @patch("src.environment.safety.traci")
+    def test_adjacent_target_uses_native_transition(self, mock_traci):
+        """action=1 (this TLS's own 2nd green, native phase index 2) is the
+        immediate next green in the cycle — must reuse the exact native
+        yellow transition, not the synthesized bridge."""
+        spec = make_three_phase_spec()
+        state = make_state(spec.tls_id)
+        cfg = SafetyConfig(min_green=10.0, all_red_duration=2.0)
+        layer = SafetyLayer([spec], cfg)
+        layer.register_states({spec.tls_id: state})
+
+        state.phase_elapsed = 15.0
+        layer.step(sim_time=15.0, actions={spec.tls_id: 1}, dt=1.0, mode="phase_select")
+
+        assert state.yellow_pending
+        assert state.yellow_target_phase == 2
+        assert state.transition_display_phase == 1  # native yellow (index 1), not the synthetic sentinel
+
+    @patch("src.environment.safety.traci")
+    def test_nonadjacent_jump_uses_yellow_then_synthetic_all_red_bridge(self, mock_traci):
+        """action=2 (this TLS's own 3rd green, native phase index 4) skips
+        over phase 2's green entirely — must never display phase 2's own
+        green state, and must route through current's native yellow (index
+        1) then the synthesized all-red sentinel before landing on phase 4."""
+        spec = make_three_phase_spec()
+        state = make_state(spec.tls_id)
+        cfg = SafetyConfig(min_green=10.0, all_red_duration=2.0)
+        layer = SafetyLayer([spec], cfg)
+        layer.register_states({spec.tls_id: state})
+
+        state.phase_elapsed = 15.0
+        layer.step(sim_time=15.0, actions={spec.tls_id: 2}, dt=1.0, mode="phase_select")
+
+        assert state.yellow_pending
+        assert state.yellow_target_phase == 4
+        assert state.transition_display_phase == 1  # current's own native yellow first
+        assert state.transition_queue == [SafetyLayer._SYNTHETIC_ALL_RED]
+
+        # Walk the rest of the transition and confirm phase 2's green is
+        # never the displayed state, and the applied all-red string is sized
+        # to this TLS's own link count (6, from make_three_phase_spec).
+        applied_states = []
+        mock_traci.trafficlight.setRedYellowGreenState.side_effect = (
+            lambda tls_id, s: applied_states.append(s)
+        )
+
+        layer.step(sim_time=18.0, actions={spec.tls_id: 2}, dt=3.0, mode="phase_select")  # native yellow duration elapses
+        assert state.transition_display_phase == SafetyLayer._SYNTHETIC_ALL_RED
+
+        layer.step(sim_time=20.0, actions={spec.tls_id: 2}, dt=2.0, mode="phase_select")  # all_red_duration elapses
+        assert not state.yellow_pending
+        assert state.current_phase == 4
+
+        assert "GG" not in "".join(applied_states[:-1])  # no intervening green ever displayed
+        assert applied_states[-2] == "rrrrrr"  # synthesized all-red, 6 chars
+
+    @patch("src.environment.safety.traci")
+    def test_out_of_range_action_falls_back_to_hold(self, mock_traci):
+        """Action value beyond this TLS's own green-phase count (e.g. a
+        3-green TLS receiving action=5 from the shared Discrete(6) space)
+        must hold rather than error or pick something arbitrary — this is
+        the defensive fallback underneath MaskablePPO's masking, not a
+        replacement for it."""
+        spec = make_three_phase_spec()
+        state = make_state(spec.tls_id)
+        layer = SafetyLayer([spec], SafetyConfig(min_green=10.0))
+        layer.register_states({spec.tls_id: state})
+
+        state.phase_elapsed = 15.0
+        layer.step(sim_time=15.0, actions={spec.tls_id: 5}, dt=1.0, mode="phase_select")
+
+        assert not state.yellow_pending
+        assert state.current_phase == 0
+
+    @patch("src.environment.safety.traci")
+    def test_single_phase_tls_never_switches(self, mock_traci):
+        """Degenerate 1-green-phase TLS (2/98 real InTAS TLS) — every action
+        value maps to the same phase, so it must never enter a transition."""
+        spec = make_one_phase_spec()
+        state = make_state(spec.tls_id)
+        layer = SafetyLayer([spec], SafetyConfig(min_green=10.0))
+        layer.register_states({spec.tls_id: state})
+
+        state.phase_elapsed = 50.0
+        for action in range(6):
+            layer.step(sim_time=50.0, actions={spec.tls_id: action}, dt=1.0, mode="phase_select")
+            assert not state.yellow_pending
+            assert state.current_phase == 0
+
+    @patch("src.environment.safety.traci")
+    def test_action_mask_matches_safety_layer_acceptance(self, mock_traci):
+        """TLSSpec.action_mask() must agree with what the safety layer will
+        actually accept: masked-in actions map to real green phases,
+        masked-out ones fall back to hold."""
+        spec = make_three_phase_spec()
+        mask = spec.action_mask()
+        assert mask == [True, True, True, False, False, False]
+
+        state = make_state(spec.tls_id)
+        layer = SafetyLayer([spec], SafetyConfig(min_green=10.0, all_red_duration=1.0))
+        layer.register_states({spec.tls_id: state})
+        state.phase_elapsed = 15.0
+        layer.step(sim_time=15.0, actions={spec.tls_id: 2}, dt=1.0, mode="phase_select")
+        assert state.yellow_pending  # masked-in action accepted as a real switch

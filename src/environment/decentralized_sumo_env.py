@@ -38,12 +38,13 @@ from src.environment.local_observation import (
     compute_downstream_queue_sum,
     compute_intersection_pressure,
     compute_mean_queue_norm,
+    compute_per_phase_pressure,
 )
 from src.environment.local_reward import LocalRewardCalculator, LocalRewardConfig
 from src.environment.metrics import MetricsCollector
 from src.environment.observation import ObservationBuilder, ObservationConfig
 from src.environment.safety import SafetyConfig, SafetyLayer
-from src.scenario.tls_metadata import TLSRuntimeState, load_tls_specs
+from src.scenario.tls_metadata import MAX_GREEN_PHASES, TLSRuntimeState, load_tls_specs
 
 
 class DecentralizedSumoEnv(ParallelEnv):
@@ -108,7 +109,24 @@ class DecentralizedSumoEnv(ParallelEnv):
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent: str):
-        return spaces.Discrete(2)
+        """Discrete(MAX_GREEN_PHASES): action i selects this TLS's own i-th
+        green phase (TLSSpec.action_to_phase_index), not a raw phase index —
+        RL-strategy Phase 2's replacement for the original Discrete(2)
+        keep/advance-only action, which could never serve a phase out of
+        fixed-cycle order regardless of which was actually congested. TLS
+        with fewer than MAX_GREEN_PHASES green phases have their extra
+        action slots masked out — see action_masks()."""
+        return spaces.Discrete(MAX_GREEN_PHASES)
+
+    def action_masks(self) -> dict[str, np.ndarray]:
+        """Per-agent boolean masks for MaskablePPO, keyed by agent id (same
+        keys as self.agents) — True for action values that map to one of
+        that TLS's real green phases. Must be called after reset()/step()
+        (needs self.agents to be current)."""
+        return {
+            tid: np.array(self.specs_by_id[tid].action_mask(MAX_GREEN_PHASES), dtype=bool)
+            for tid in self.agents
+        }
 
     # ──────────────────────────────────────────────────────────────────────
     # Lifecycle
@@ -146,7 +164,7 @@ class DecentralizedSumoEnv(ParallelEnv):
         self.obs_builder.build(self._runtime_states)
         self.local_reward.refresh_lane_waiting()
         cache = self.obs_builder.last_step_cache
-        own_queue_norms, own_downstream_sums, _own_pressures = self._compute_per_tls_aux()
+        own_queue_norms, own_downstream_sums, _own_pressures, own_phase_pressures = self._compute_per_tls_aux()
 
         observations = {
             tid: build_local_observation(
@@ -154,10 +172,12 @@ class DecentralizedSumoEnv(ParallelEnv):
                 self._downstream_cache, cache["total_vehicles"], cache["total_waiting"],
                 downstream_queue_sum=own_downstream_sums[tid],
                 neighbor_queue_norms=[own_queue_norms.get(n, 0.0) for n in self._neighbor_map.get(tid, [])],
+                phase_pressures=own_phase_pressures[tid],
             )
             for tid in self.agents
         }
-        infos = {tid: {} for tid in self.agents}
+        masks = self.action_masks()
+        infos = {tid: {"action_mask": masks[tid]} for tid in self.agents}
         return observations, infos
 
     def step(
@@ -173,22 +193,24 @@ class DecentralizedSumoEnv(ParallelEnv):
         for _ in range(self.decision_interval):
             sim_time = traci.simulation.getTime()
             prev_phases = {tid: s.current_phase for tid, s in self._runtime_states.items()}
-            self.safety.step(sim_time, actions, self.step_length)
+            self.safety.step(sim_time, actions, self.step_length, mode="phase_select")
             for tid, state in self._runtime_states.items():
                 if state.current_phase != prev_phases[tid]:
                     switched_this_step[tid] = True
                     step_switches += 1
             traci.simulationStep()
+            self.metrics.tick()
 
         self._step_count += 1
         self.obs_builder.build(self._runtime_states)
         self.local_reward.refresh_lane_waiting()
         cache = self.obs_builder.last_step_cache
-        own_queue_norms, own_downstream_sums, own_pressures = self._compute_per_tls_aux()
+        own_queue_norms, own_downstream_sums, own_pressures, own_phase_pressures = self._compute_per_tls_aux()
 
         sim_time = traci.simulation.getTime()
         terminated_all = self._check_terminated(sim_time)
         truncated_all = sim_time >= self.episode_duration
+        masks = self.action_masks()
 
         observations, rewards, terminations, truncations, infos = {}, {}, {}, {}, {}
         for tid in self.agents:
@@ -199,6 +221,7 @@ class DecentralizedSumoEnv(ParallelEnv):
                 cache["total_vehicles"], cache["total_waiting"],
                 downstream_queue_sum=own_downstream_sums[tid],
                 neighbor_queue_norms=[own_queue_norms.get(n, 0.0) for n in self._neighbor_map.get(tid, [])],
+                phase_pressures=own_phase_pressures[tid],
             )
             queue_sum = float(sum(state.lane_queue)) if state.lane_queue else 0.0
             reward, info = self.local_reward.compute(
@@ -206,6 +229,7 @@ class DecentralizedSumoEnv(ParallelEnv):
                 downstream_queue_sum=own_downstream_sums[tid],
                 pressure=own_pressures[tid],
             )
+            info["action_mask"] = masks[tid]
             rewards[tid] = reward
             terminations[tid] = terminated_all
             truncations[tid] = truncated_all
@@ -233,25 +257,32 @@ class DecentralizedSumoEnv(ParallelEnv):
     # Neighbor coordination support (2026-09-20)
     # ──────────────────────────────────────────────────────────────────────
 
-    def _compute_per_tls_aux(self) -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
-        """Every agent's own mean-queue-norm, raw downstream-queue sum, and
-        Varaiya pressure for this step, computed once and shared:
-        build_local_observation needs the first two for this TLS's own
-        features AND to answer neighbor lookups for whichever *other* TLS
-        have it as one of their 2 nearest neighbors; local_reward.compute()
-        reuses the downstream sum for the spillback penalty and the
-        pressure value for the pressure-reward ablation arm (2026-09-21),
-        instead of re-querying TraCI for either."""
+    def _compute_per_tls_aux(
+        self,
+    ) -> tuple[dict[str, float], dict[str, float], dict[str, float], dict[str, list[float]]]:
+        """Every agent's own mean-queue-norm, raw downstream-queue sum,
+        aggregate Varaiya pressure, and per-phase Varaiya pressure for this
+        step, computed once and shared: build_local_observation needs the
+        first two for this TLS's own features AND to answer neighbor
+        lookups for whichever *other* TLS have it as one of their 2 nearest
+        neighbors; local_reward.compute() reuses the downstream sum for the
+        spillback penalty and the aggregate pressure for the pressure-reward
+        arm (2026-09-21); per-phase pressure (RL-strategy Phase 2) feeds the
+        phase-selection observation so the policy can tell which of its own
+        available phases would actually relieve congestion, instead of
+        re-querying TraCI for any of these."""
         own_queue_norms: dict[str, float] = {}
         own_downstream_sums: dict[str, float] = {}
         own_pressures: dict[str, float] = {}
+        own_phase_pressures: dict[str, list[float]] = {}
         for tid in self.agents:
             state = self._runtime_states[tid]
             spec = self.specs_by_id[tid]
             own_queue_norms[tid] = compute_mean_queue_norm(state, self.obs_cfg)
             own_downstream_sums[tid] = compute_downstream_queue_sum(spec, self._downstream_cache)
             own_pressures[tid] = compute_intersection_pressure(spec, state, self._downstream_cache)
-        return own_queue_norms, own_downstream_sums, own_pressures
+            own_phase_pressures[tid] = compute_per_phase_pressure(spec, self._downstream_cache)
+        return own_queue_norms, own_downstream_sums, own_pressures, own_phase_pressures
 
     def _compute_neighbor_map(self, k: int = N_NEIGHBORS) -> dict[str, list[str]]:
         """Each TLS's k geographically-nearest other TLS, by straight-line
@@ -322,6 +353,10 @@ class DecentralizedSumoEnv(ParallelEnv):
         self._sim_running = True
 
     def _close_sumo(self) -> None:
+        try:
+            self.metrics.record_backlog()
+        except Exception:
+            pass
         try:
             traci.close()
         except Exception:

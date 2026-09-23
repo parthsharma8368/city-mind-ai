@@ -9,8 +9,9 @@ from src.environment.local_observation import (
     LOCAL_OBS_SIZE,
     LocalObservationConfig,
     build_local_observation,
+    compute_per_phase_pressure,
 )
-from src.scenario.tls_metadata import PhaseSpec, TLSRuntimeState, TLSSpec
+from src.scenario.tls_metadata import MAX_GREEN_PHASES, PhaseSpec, TLSRuntimeState, TLSSpec
 
 
 def make_spec(tls_id: str, n_lanes: int, n_phases: int) -> TLSSpec:
@@ -126,3 +127,55 @@ def test_downstream_queue_sum_precomputed_matches_internal_computation(mock_trac
         spec, state, cfg, {}, total_vehicles=100, total_waiting=50, downstream_queue_sum=5.0,
     )
     assert obs_internal[7] == obs_precomputed[7]
+
+
+@patch("src.environment.local_observation.traci")
+def test_phase_pressures_land_at_documented_indices_and_are_padded(mock_traci):
+    """phase_pressure_norm_0..5 (indices 12-17, RL-strategy Phase 2) carry
+    through whatever the caller passes, padded with 0.0 for TLS with fewer
+    than MAX_GREEN_PHASES green phases."""
+    mock_traci.lane.getLinks.return_value = []
+    mock_traci.exceptions.TraCIException = Exception
+
+    spec = make_spec("tls_1", n_lanes=2, n_phases=4)
+    state = TLSRuntimeState(tls_id="tls_1", current_phase=0, phase_elapsed=5.0)
+    state.lane_queue = [1.0, 1.0]
+    state.lane_speed = [5.0, 5.0]
+    state.lane_density = [0.1, 0.1]
+    cfg = LocalObservationConfig(max_phase_pressure=30.0)
+
+    obs_no_pressure = build_local_observation(spec, state, cfg, {}, total_vehicles=100, total_waiting=50)
+    assert list(obs_no_pressure[12:18]) == [0.0] * MAX_GREEN_PHASES
+
+    obs_with_pressure = build_local_observation(
+        spec, state, cfg, {}, total_vehicles=100, total_waiting=50,
+        phase_pressures=[15.0, -60.0],  # only 2 real values; -60 exceeds max_phase_pressure -> clipped
+    )
+    assert obs_with_pressure[12] == pytest.approx(0.5, abs=1e-6)
+    assert obs_with_pressure[13] == pytest.approx(-1.0, abs=1e-6)  # clipped, not just scaled
+    assert list(obs_with_pressure[14:18]) == [0.0] * (MAX_GREEN_PHASES - 2)  # padding for missing phases
+
+
+@patch("src.environment.local_observation.traci")
+def test_compute_per_phase_pressure_matches_max_pressure_controller_convention(mock_traci):
+    """Same upstream-minus-downstream-halting convention as
+    max_pressure.py's _phase_pressure, computed for every green phase at once."""
+    mock_traci.exceptions.TraCIException = Exception
+    mock_traci.lane.getLastStepHaltingNumber.side_effect = lambda lane_id: {
+        "l0": 8.0, "l1": 2.0, "down_0": 3.0, "down_1": 1.0,
+    }.get(lane_id, 0.0)
+    mock_traci.lane.getLinks.side_effect = lambda lane_id: {
+        "l0": [("down_0", 0, "", "", "", "", "", "")],
+        "l1": [("down_1", 0, "", "", "", "", "", "")],
+    }.get(lane_id, [])
+
+    phases = [
+        PhaseSpec(index=0, state="Gr", duration=30.0),  # green on l0 only
+        PhaseSpec(index=1, state="yr", duration=3.0),   # yellow, not a green target
+        PhaseSpec(index=2, state="rG", duration=30.0),  # green on l1 only
+    ]
+    spec = TLSSpec(tls_id="t", program_id="0", type="static", junction_id="t",
+                    phases=phases, controlled_lanes=["l0", "l1"])
+
+    pressures = compute_per_phase_pressure(spec, {})
+    assert pressures == [8.0 - 3.0, 2.0 - 1.0]  # one entry per green phase, cycle order, yellow skipped

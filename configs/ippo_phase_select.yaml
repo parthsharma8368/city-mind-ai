@@ -1,0 +1,56 @@
+# ─── IPPO phase-selection — short ablation run (gate G1) ────────────────
+# This is the ~100-real-episode ablation tier from the RL-strategy
+# sequencing plan, NOT the full run — evaluate the deterministic policy on
+# 3 seeds against the corrected baselines (artifacts/metrics/) once this
+# finishes; only proceed to a full run if it beats static fixed-time on
+# trips completed and mean trip timeloss.
+#
+# num_vec_envs is 1, NOT 6 like the original ippo.yaml: MaskablePPO's
+# action masking needs env.env_method("action_masks") per step, which
+# SuperSuit's ProcConcatVec (the multi-instance wrapper) does not
+# implement — see src/agents/ippo_maskable_agent.py's module docstring.
+# Single-instance means this run is wall-clock-bound by one SUMO instance
+# at a time (~280-330s/episode at peak per prior measurement), roughly
+# 6x slower than a parallelized run of the same episode count — closer to
+# 8-9 hours than the ~4 hours a 6-instance run would take. That tradeoff
+# (accept the slower single-instance run vs. first patching SuperSuit's
+# ProcConcatVec to support env_method across its subprocess boundary) is
+# the go/no-go decision this config is waiting on.
+#
+# n_steps=720 (one real episode) x 98 agents = 70,560-sample rollout per
+# update. total_timesteps=7,056,000 -> 100 real episodes.
+# batch_size=8820 divides 70,560 evenly (8 minibatches), same ratio
+# ippo.yaml uses. checkpoint_freq=705,600 -> a checkpoint every 10 real
+# episodes.
+algorithm: MaskablePPO
+device: cpu
+num_vec_envs: 1
+
+total_timesteps: 7056000
+n_steps: 720
+batch_size: 8820
+n_epochs: 10
+
+gamma: 0.99
+gae_lambda: 0.95
+normalize_advantage: true
+
+clip_range: 0.2
+clip_range_vf: null
+
+ent_coef: 0.01
+vf_coef: 0.5
+max_grad_norm: 0.5
+
+learning_rate: 3.0e-4
+
+policy: MlpPolicy
+policy_kwargs:
+  net_arch:
+    - 256
+    - 256
+  activation_fn: tanh
+
+save_checkpoints: true
+checkpoint_freq: 705600
+tensorboard_log: artifacts/tb_logs

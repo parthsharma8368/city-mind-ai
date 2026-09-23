@@ -36,13 +36,15 @@ from dataclasses import dataclass
 import numpy as np
 
 from src.environment.sumo_connection import traci
-from src.scenario.tls_metadata import TLSRuntimeState, TLSSpec
+from src.scenario.tls_metadata import MAX_GREEN_PHASES, TLSRuntimeState, TLSSpec
 
 # phase_elapsed_norm, phase_progress_norm, mean_queue_norm, max_queue_norm,
 # mean_speed_norm, mean_density_norm, num_lanes_norm, downstream_queue_norm,
 # neighbor_queue_norm_1, neighbor_queue_norm_2, total_vehicles_norm,
-# total_waiting_norm
-LOCAL_OBS_SIZE = 12
+# total_waiting_norm, phase_pressure_norm_0..5 (RL-strategy Phase 2:
+# phase-selection needs per-phase pressure, not just the aggregate
+# intersection-wide pressure below — see compute_per_phase_pressure)
+LOCAL_OBS_SIZE = 12 + MAX_GREEN_PHASES
 N_NEIGHBORS = 2
 
 
@@ -54,6 +56,7 @@ class LocalObservationConfig:
     max_total_vehicles: float = 2000.0
     max_waiting_time: float = 3600.0
     max_lanes_reference: float = 20.0  # normalizes "how big is this intersection"
+    max_phase_pressure: float = 30.0   # normalizes phase_pressure_norm_* (signed, clipped to [-1, 1])
 
 
 def _mean(values: list[float]) -> float:
@@ -117,6 +120,45 @@ def compute_intersection_pressure(
     return upstream - downstream
 
 
+def compute_per_phase_pressure(
+    spec: TLSSpec, downstream_cache: dict[str, list[str]]
+) -> list[float]:
+    """Varaiya pressure (upstream halting - downstream halting, summed over
+    that phase's own green movements) for each of this TLS's own green
+    phases, in green_phase_indices order — position i is what selecting
+    action i would relieve right now. Same per-movement computation as
+    max_pressure.py's _phase_pressure (kept independent rather than shared,
+    since MaxPressureController computes it for at most 2 candidate phases
+    per step while this needs every phase, every step, for every agent).
+
+    Unlike compute_intersection_pressure (which sums over ALL controlled
+    lanes regardless of which phase is active), this is what actually makes
+    phase-selection learnable: the aggregate can't tell the policy WHICH of
+    its available phases would help, only that something is imbalanced.
+    """
+    pressures: list[float] = []
+    for idx in spec.green_phase_indices:
+        phase = spec.phases[idx]
+        p = 0.0
+        for i, sig in enumerate(phase.state):
+            if sig not in ("G", "g") or i >= len(spec.controlled_lanes):
+                continue
+            lane_id = spec.controlled_lanes[i]
+            try:
+                upstream = traci.lane.getLastStepHaltingNumber(lane_id)
+            except traci.exceptions.TraCIException:
+                upstream = 0.0
+            downstream = 0.0
+            for dl in get_downstream_lanes(lane_id, downstream_cache):
+                try:
+                    downstream += traci.lane.getLastStepHaltingNumber(dl)
+                except traci.exceptions.TraCIException:
+                    pass
+            p += upstream - downstream
+        pressures.append(p)
+    return pressures
+
+
 def compute_downstream_queue_sum(
     spec: TLSSpec, downstream_cache: dict[str, list[str]]
 ) -> float:
@@ -145,6 +187,7 @@ def build_local_observation(
     total_waiting: float,
     downstream_queue_sum: float | None = None,
     neighbor_queue_norms: list[float] | None = None,
+    phase_pressures: list[float] | None = None,
 ) -> np.ndarray:
     """
     Build this one TLS's fixed-size local observation.
@@ -164,6 +207,14 @@ def build_local_observation(
     see DecentralizedSumoEnv._neighbor_map). Padded/truncated to exactly
     N_NEIGHBORS; defaults to zeros when omitted (e.g. no neighbor data
     available, or fewer than N_NEIGHBORS TLS exist).
+
+    phase_pressures: this TLS's own compute_per_phase_pressure() values (one
+    per green phase, in green_phase_indices/action-index order), precomputed
+    by the caller so it can be shared with the phase-selection action mask.
+    Padded to MAX_GREEN_PHASES with 0.0 for TLS with fewer green phases —
+    those slots are also masked out of the action space, so their pressure
+    value is never actable on; 0.0 (neutral/balanced) rather than some
+    extreme value keeps an unmasked forward pass numerically harmless.
     """
     n_phases = len(spec.phases)
     phase_elapsed_norm = min(state.phase_elapsed / cfg.max_phase_elapsed, 1.0)
@@ -189,6 +240,10 @@ def build_local_observation(
     total_vehicles_norm = min(total_vehicles / cfg.max_total_vehicles, 1.0)
     total_waiting_norm = min(total_waiting / cfg.max_waiting_time, 1.0)
 
+    pressures = list(phase_pressures or [])
+    pressures = (pressures + [0.0] * MAX_GREEN_PHASES)[:MAX_GREEN_PHASES]
+    pressures_norm = [max(-1.0, min(1.0, p / cfg.max_phase_pressure)) for p in pressures]
+
     return np.array([
         phase_elapsed_norm,
         phase_progress_norm,
@@ -201,4 +256,5 @@ def build_local_observation(
         *neighbors,
         total_vehicles_norm,
         total_waiting_norm,
+        *pressures_norm,
     ], dtype=np.float32)
