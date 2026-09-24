@@ -44,6 +44,24 @@ class LocalRewardConfig:
     # signal, tried because it's dense, bounded, and already contains the
     # spillback effect the hand-added spillback_weight term approximates.
     pressure_weight: float = 0.0
+    # RL-strategy Phase 2 fix (2026-09-24): pressure_weight above uses
+    # AGGREGATE intersection pressure (all controlled lanes, summed) —
+    # a number that doesn't move in any agent-attributable way when the
+    # policy switches phases, so it gave phase-selection training no signal
+    # connecting "I chose to serve phase X" to "phase X's backlog went
+    # down." Diagnosed directly against the first phase-selection training
+    # run (gate G1, 2026-09-23): a 6-phase TLS let one phase's own pressure
+    # climb from 6 to 9+ over 15 real minutes while the policy sat on a
+    # different, already-empty phase, switching only 8 times in that window
+    # — switching_penalty was the only reward term that clearly fired on
+    # every step, so the policy learned to minimize switching regardless of
+    # what was building up elsewhere. neglected_pressure_weight penalizes
+    # the WORST pressure among this TLS's own green phases OTHER than the
+    # one currently active — directly, per-step, whether or not the policy
+    # acts on it — so ignoring a growing queue is no longer free. 0.0 =
+    # disabled (preserves existing behavior for callers that don't pass
+    # neglected_pressure, e.g. binary-action IPPO / MaxPressureController).
+    neglected_pressure_weight: float = 0.0
     reward_clip: float | None = 50.0  # per-agent rewards are much smaller-scale than the network-wide sum
 
 
@@ -79,6 +97,7 @@ class LocalRewardCalculator:
         switched: bool,
         downstream_queue_sum: float = 0.0,
         pressure: float = 0.0,
+        neglected_pressure: float = 0.0,
     ) -> tuple[float, dict]:
         current_waiting = sum(self._lane_waiting.get(lane, 0.0) for lane in spec.controlled_lanes)
         prev_waiting = self._prev_tls_waiting.get(tls_id, current_waiting)
@@ -93,8 +112,12 @@ class LocalRewardCalculator:
         r_spillback = -self.cfg.spillback_weight * max(0.0, delta_downstream)
 
         r_pressure = -self.cfg.pressure_weight * abs(pressure)
+        # Only the POSITIVE case (a neglected phase actually wants service)
+        # is penalized — a negative value would mean every other phase is
+        # under-saturated, which is fine, not something to punish.
+        r_neglected = -self.cfg.neglected_pressure_weight * max(0.0, neglected_pressure)
 
-        reward = r_waiting + r_queue + r_switch + r_spillback + r_pressure
+        reward = r_waiting + r_queue + r_switch + r_spillback + r_pressure + r_neglected
 
         if self.cfg.reward_clip is not None:
             reward = max(-abs(self.cfg.reward_clip), min(abs(self.cfg.reward_clip), reward))
@@ -108,6 +131,7 @@ class LocalRewardCalculator:
             "reward/switch_component": r_switch,
             "reward/spillback_component": r_spillback,
             "reward/pressure_component": r_pressure,
+            "reward/neglected_pressure_component": r_neglected,
             "metrics/local_waiting": current_waiting,
         }
         return float(reward), info

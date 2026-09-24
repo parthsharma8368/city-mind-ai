@@ -122,3 +122,59 @@ def test_pressure_disabled_by_default_is_a_no_op(mock_traci):
     reward, info = calc.compute("A", spec, queue_sum=0.0, switched=False, pressure=999.0)
     assert reward == 0.0
     assert info["reward/pressure_component"] == 0.0
+
+
+@patch("src.environment.local_reward.traci")
+def test_neglected_pressure_penalizes_ignoring_a_congested_other_phase(mock_traci):
+    """RL-strategy Phase 2 fix (2026-09-24): unlike pressure_weight (which
+    uses aggregate, action-independent pressure), neglected_pressure_weight
+    must fire on a positive neglected_pressure value regardless of the
+    other components — this is what's supposed to make ignoring a growing
+    queue on a phase the agent isn't currently serving costly."""
+    mock_traci.exceptions.TraCIException = Exception
+    spec = make_spec("A", ["a_lane"])
+    calc = LocalRewardCalculator(LocalRewardConfig(
+        waiting_delta_weight=0.0, switching_penalty=0.0, spillback_weight=0.0,
+        pressure_weight=0.0, neglected_pressure_weight=1.0,
+    ))
+    calc.reset()
+    mock_traci.vehicle.getIDList.return_value = []
+    calc.refresh_lane_waiting()
+
+    reward, info = calc.compute("A", spec, queue_sum=0.0, switched=False, neglected_pressure=9.0)
+    assert reward == -9.0
+    assert info["reward/neglected_pressure_component"] == -9.0
+
+
+@patch("src.environment.local_reward.traci")
+def test_neglected_pressure_does_not_penalize_negative_values(mock_traci):
+    """A negative neglected_pressure means every other phase is
+    under-saturated (spillback risk elsewhere, not backlog) — not something
+    to punish the same way as a genuinely congested neglected phase."""
+    mock_traci.exceptions.TraCIException = Exception
+    spec = make_spec("A", ["a_lane"])
+    calc = LocalRewardCalculator(LocalRewardConfig(
+        waiting_delta_weight=0.0, switching_penalty=0.0, spillback_weight=0.0,
+        pressure_weight=0.0, neglected_pressure_weight=1.0,
+    ))
+    calc.reset()
+    mock_traci.vehicle.getIDList.return_value = []
+    calc.refresh_lane_waiting()
+
+    reward, info = calc.compute("A", spec, queue_sum=0.0, switched=False, neglected_pressure=-9.0)
+    assert reward == 0.0
+    assert info["reward/neglected_pressure_component"] == 0.0
+
+
+@patch("src.environment.local_reward.traci")
+def test_neglected_pressure_disabled_by_default_is_a_no_op(mock_traci):
+    mock_traci.exceptions.TraCIException = Exception
+    spec = make_spec("A", ["a_lane"])
+    calc = LocalRewardCalculator(LocalRewardConfig(waiting_delta_weight=0.0, switching_penalty=0.0))
+    calc.reset()
+    mock_traci.vehicle.getIDList.return_value = []
+    calc.refresh_lane_waiting()
+
+    reward, info = calc.compute("A", spec, queue_sum=0.0, switched=False, neglected_pressure=999.0)
+    assert reward == 0.0
+    assert info["reward/neglected_pressure_component"] == 0.0

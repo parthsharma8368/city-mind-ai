@@ -179,11 +179,12 @@ class IPPOMaskableAgent:
     def build_model(self) -> MaskablePPO:
         set_random_seed(self.seed)
         reward_cfg = LocalRewardConfig(
-            waiting_delta_weight=self.env_cfg["reward"].get("waiting_delta_weight", 0.0),
+            waiting_delta_weight=self.env_cfg["reward"].get("waiting_delta_weight", 0.3),
             queue_weight=self.env_cfg["reward"].get("queue_weight", 0.0),
-            switching_penalty=self.env_cfg["reward"].get("switching_penalty", 0.3),
+            switching_penalty=self.env_cfg["reward"].get("switching_penalty", 0.05),
             spillback_weight=self.env_cfg["reward"].get("spillback_weight", 0.2),
-            pressure_weight=self.env_cfg["reward"].get("pressure_weight", 1.0),
+            pressure_weight=self.env_cfg["reward"].get("pressure_weight", 0.3),
+            neglected_pressure_weight=self.env_cfg["reward"].get("neglected_pressure_weight", 1.0),
         )
         safety_cfg = SafetyConfig(
             min_green=self.env_cfg["safety"].get("min_green", 5.0),

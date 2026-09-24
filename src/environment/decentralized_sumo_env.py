@@ -224,10 +224,16 @@ class DecentralizedSumoEnv(ParallelEnv):
                 phase_pressures=own_phase_pressures[tid],
             )
             queue_sum = float(sum(state.lane_queue)) if state.lane_queue else 0.0
+            green_indices = spec.green_phase_indices
+            active_pos = green_indices.index(state.current_phase) if state.current_phase in green_indices else None
+            neglected_pressure = max(
+                (p for i, p in enumerate(own_phase_pressures[tid]) if i != active_pos), default=0.0
+            )
             reward, info = self.local_reward.compute(
                 tid, spec, queue_sum, switched_this_step[tid],
                 downstream_queue_sum=own_downstream_sums[tid],
                 pressure=own_pressures[tid],
+                neglected_pressure=neglected_pressure,
             )
             info["action_mask"] = masks[tid]
             rewards[tid] = reward

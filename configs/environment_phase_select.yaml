@@ -67,24 +67,34 @@ safety:
   min_red: 0
 
 # ─── Reward ──────────────────────────────────────────────────────────────────
-# RL-strategy Phase 2: pressure-primary, waiting-delta OFF. The RL-strategy
-# memo's second diagnosed fault — a policy rewarded on network-wide
-# waiting-time delta learned that rapid cycling resets the counters it's
-# scored on (40k+ switches/hour measured under this same reward with the
-# OLD action space) — isn't fixed by changing the action space alone; the
-# objective has to stop rewarding that degenerate solution. Pressure
-# (local_reward.py's already-implemented, already-unit-tested ablation arm)
-# is bounded, dense, contains the downstream coupling the hand-built
-# spillback term approximated, and is the objective Max-Pressure is
-# provably throughput-optimal under — the property the waiting-delta
-# reward lacks. spillback_weight/switching_penalty are left at
-# environment.yaml's values (secondary terms, not the primary signal).
+# RL-strategy Phase 2, REVISED 2026-09-24 after gate G1's first result
+# (7,716 trips / 5,853 backlog / 1,817 teleports per episode — worse than
+# every baseline, worse than the old binary-action IPPO). Diagnosed
+# directly against that run: pressure_weight alone used AGGREGATE
+# intersection pressure, which doesn't move in any agent-attributable way
+# when the policy switches phases — a 6-phase TLS was observed sitting on
+# an empty phase for 15 real minutes while a different phase's own
+# pressure climbed from 6 to 9+, because switching_penalty (0.3, applied
+# every single step) was the only term that clearly rewarded NOT acting.
+#
+# neglected_pressure_weight is the fix: penalizes the worst pressure among
+# this TLS's own green phases OTHER than whichever is currently active —
+# directly, per-step, whether or not the policy switches — so ignoring a
+# growing queue elsewhere is no longer free. waiting_delta_weight is
+# restored (was zeroed) so actual service outcomes still matter, not just
+# the pressure proxy; switching_penalty is cut 6x (0.3 -> 0.05) so it no
+# longer dominates the per-step reward and fights the corrective switches
+# neglected_pressure_weight is trying to encourage. pressure_weight itself
+# is reduced to a secondary role rather than removed — it still penalizes
+# genuine upstream/downstream imbalance, just no longer as the one term
+# expected to carry all of the signal.
 reward:
-  waiting_delta_weight: 0.0
+  waiting_delta_weight: 0.3
   queue_weight: 0.0
-  switching_penalty: 0.3
+  switching_penalty: 0.05
   spillback_weight: 0.2
-  pressure_weight: 1.0
+  pressure_weight: 0.3
+  neglected_pressure_weight: 1.0
 
 # ─── Episode Termination ─────────────────────────────────────────────────────
 termination:
