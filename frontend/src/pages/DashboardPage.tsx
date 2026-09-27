@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Activity, TrendingDown, Zap, AlertTriangle } from "lucide-react";
 import { MetricsPanel } from "../components/MetricsPanel";
 import { PlaybackControls } from "../components/PlaybackControls";
@@ -122,6 +123,44 @@ export const DashboardPage: React.FC = () => {
             Can't reach the CityMind API — is <code>uvicorn api.main:app</code> running?
             Showing whatever was last loaded.
           </span>
+        </div>
+      )}
+
+      {metrics?.starvation_flag && (
+        <div
+          className="connectivity-banner"
+          role="alert"
+          style={{
+            background: "rgba(245, 158, 11, 0.1)",
+            borderColor: "rgba(245, 158, 11, 0.35)",
+            color: "var(--signal-yellow)",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            <AlertTriangle size={16} aria-hidden="true" />
+            <span>
+              <strong>{controllerLabel(metrics.controller)}</strong>'s lower wait time reflects fewer completed trips,
+              not faster service — it completes {Math.abs(metrics.trips_completed_gap_pct ?? 0).toFixed(1)}% fewer
+              trips than baseline, leaving more vehicles stuck in the network.
+            </span>
+          </span>
+          <Link
+            to="/comparison"
+            style={{
+              color: "var(--signal-yellow)",
+              border: "1px solid rgba(245, 158, 11, 0.4)",
+              borderRadius: "var(--radius-sm)",
+              padding: "0.3rem 0.7rem",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              textDecoration: "none",
+            }}
+          >
+            See full picture →
+          </Link>
         </div>
       )}
 

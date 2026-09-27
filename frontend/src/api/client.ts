@@ -63,15 +63,25 @@ export interface ComparisonEntry {
   mean_speed: number;
   total_arrived: number;
   cumulative_reward: number;
+  backlog: number;
+  total_teleports: number;
+  trips_completed: number;
+  mean_trip_timeloss: number;
+}
+
+export interface ComparisonImprovement {
+  controller?: string;
+  baseline?: string;
+  waiting_time_improvement_pct?: number;
+  throughput_improvement_pct?: number;
+  trips_completed_gap_pct?: number;
+  starvation_flag?: boolean;
 }
 
 export interface ComparisonResult {
   results: ComparisonEntry[];
-  improvement?: {
-    controller?: string;
-    waiting_time_improvement_pct?: number;
-    throughput_improvement_pct?: number;
-  };
+  improvement?: ComparisonImprovement;
+  improvement_vs_actuated?: ComparisonImprovement;
 }
 
 export interface MetricsSummary {
@@ -84,9 +94,15 @@ export interface MetricsSummary {
   total_steps: number;
   cumulative_reward: number;
   total_switches: number;
+  backlog: number;
+  total_teleports: number;
+  trips_completed: number;
+  mean_trip_timeloss: number;
+  trips_completed_gap_pct?: number;
+  starvation_flag?: boolean;
 }
 
-export type SimControllerId = "fixed_time" | "max_pressure" | "ppo" | "ippo";
+export type SimControllerId = "fixed_time" | "sumo_actuated" | "max_pressure" | "ppo" | "ippo" | "ippo_phase_select";
 
 export interface SimulationStatus {
   gui_running: boolean;

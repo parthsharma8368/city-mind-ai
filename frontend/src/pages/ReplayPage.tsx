@@ -10,14 +10,18 @@ import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued } from "../utils/trajectory";
 import { CONTROLLER_LABELS, CONTROLLER_COLORS } from "../constants/controllers";
 
-const CONTROLLER_IDS = ["ppo", "ippo", "fixed_time", "max_pressure"] as const;
+const CONTROLLER_IDS = ["ppo", "ippo", "fixed_time", "max_pressure", "sumo_actuated"] as const;
 const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ppo" || id === "ippo");
+// Split view's left-hand panel: which baseline to compare the RL controller against.
+const BASELINE_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "fixed_time" || id === "sumo_actuated");
 
 export const ReplayPage: React.FC = () => {
   const [isSplitMode, setIsSplitMode] = useState(true);
   const [controller, setController] = useState("ppo");
-  // Split view's right-hand panel: which RL controller to compare against Fixed-Time.
+  // Split view's right-hand panel: which RL controller to compare against the baseline.
   const [splitRlController, setSplitRlController] = useState("ppo");
+  // Split view's left-hand panel: which baseline to compare the RL controller against.
+  const [splitBaselineController, setSplitBaselineController] = useState("fixed_time");
   const [seed] = useState(42);
   const [demandId] = useState("1.0x");
   const [loading, setLoading] = useState(false);
@@ -61,9 +65,9 @@ export const ReplayPage: React.FC = () => {
       setIsPlaying(false);
       try {
         if (isSplitMode) {
-          // Fetch both Fixed-Time and the selected RL controller in parallel
+          // Fetch both the selected baseline and the selected RL controller in parallel
           const [ftData, ppoData] = await Promise.all([
-            api.getReplayFrames("fixed_time", seed, demandId, 0, 120),
+            api.getReplayFrames(splitBaselineController, seed, demandId, 0, 120),
             api.getReplayFrames(splitRlController, seed, demandId, 0, 120),
           ]);
           if (cancelled) return;
@@ -117,7 +121,7 @@ export const ReplayPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [isSplitMode, controller, splitRlController, seed, demandId]);
+  }, [isSplitMode, controller, splitRlController, splitBaselineController, seed, demandId]);
 
   // Current simulation time
   const currentTime = availableTimes[currentTimeIndex] ?? 0;
@@ -329,16 +333,34 @@ export const ReplayPage: React.FC = () => {
       ) : isSplitMode ? (
         /* ── DUAL SIDE-BY-SIDE VIEW ────────────────────────────────────────── */
         <div className="replay-split-grid" style={{ marginBottom: "1.25rem" }}>
-          {/* LEFT: Fixed-Time Baseline */}
+          {/* LEFT: Baseline — switchable between Fixed-Time and SUMO-Actuated */}
           <div className="glass-card" style={{ padding: "1rem", border: "1px solid rgba(245,158,11,0.25)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--signal-yellow)" }} />
-                <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--signal-yellow)" }}>
-                  {CONTROLLER_LABELS.fixed_time}
+                <span style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: CONTROLLER_COLORS[splitBaselineController] ?? "var(--signal-yellow)",
+                }} />
+                <span style={{
+                  fontWeight: 700, fontSize: "0.95rem",
+                  color: CONTROLLER_COLORS[splitBaselineController] ?? "var(--signal-yellow)",
+                }}>
+                  {CONTROLLER_LABELS[splitBaselineController] ?? splitBaselineController}
                 </span>
               </div>
-              <span className="badge-yellow" style={{ fontSize: "0.7rem" }}>Static Schedules</span>
+              <div role="group" aria-label="Baseline controller to compare" style={{ display: "flex", gap: 4 }}>
+                {BASELINE_CONTROLLER_IDS.map((id) => (
+                  <button
+                    key={id}
+                    className={`btn btn-sm ${splitBaselineController === id ? "btn-primary" : ""}`}
+                    style={{ padding: "0.2rem 0.55rem", fontSize: "0.7rem" }}
+                    onClick={() => setSplitBaselineController(id)}
+                    aria-pressed={splitBaselineController === id}
+                  >
+                    {CONTROLLER_LABELS[id] ?? id}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Left Telemetry */}
@@ -503,7 +525,7 @@ export const ReplayPage: React.FC = () => {
               <tbody>
                 {comparisonRows.map((r) => {
                   const isActive = isSplitMode
-                    ? r.controller === "fixed_time" || r.controller === splitRlController
+                    ? r.controller === splitBaselineController || r.controller === splitRlController
                     : r.controller === controller;
                   return (
                     <tr key={r.controller} style={isActive ? { background: "rgba(34,211,238,0.06)" } : undefined}>

@@ -6,7 +6,13 @@ import {
 import type { ComparisonEntry } from "../api/client";
 import { CONTROLLER_LABELS, CONTROLLER_HEX } from "../constants/controllers";
 
-type MetricKey = "mean_waiting_time" | "throughput" | "mean_queue" | "mean_speed";
+type MetricKey =
+  | "mean_waiting_time"
+  | "throughput"
+  | "mean_queue"
+  | "mean_speed"
+  | "trips_completed"
+  | "mean_trip_timeloss";
 
 interface ComparisonChartProps {
   data: ComparisonEntry[];

@@ -5,7 +5,7 @@ import type { SimulationStatus, SimControllerId } from "../api/client";
 import { useSimulationSocket } from "../context/simulationSocketStore";
 import { CONTROLLER_LABELS } from "../constants/controllers";
 
-const CONTROLLER_IDS: SimControllerId[] = ["fixed_time", "max_pressure", "ppo", "ippo"];
+const CONTROLLER_IDS: SimControllerId[] = ["fixed_time", "sumo_actuated", "max_pressure", "ppo", "ippo"];
 
 export const SimulationControl: React.FC = () => {
   const [simStatus, setSimStatus] = useState<SimulationStatus | null>(null);

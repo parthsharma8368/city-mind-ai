@@ -1,8 +1,9 @@
 import React from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import {
-  Activity, Layers, PlayCircle, BarChart3, Brain, Cpu, Monitor,
+  Activity, Layers, PlayCircle, BarChart3, Brain, Cpu, Monitor, BookOpen,
 } from "lucide-react";
+import { StoryPage } from "./pages/StoryPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ExperimentsPage } from "./pages/ExperimentsPage";
 import { ComparisonPage } from "./pages/ComparisonPage";
@@ -12,6 +13,7 @@ import { SimulationSocketProvider } from "./context/SimulationSocketContext";
 import { useSimulationSocket } from "./context/simulationSocketStore";
 
 const NAV_ITEMS = [
+  { to: "/story",         label: "Story",        icon: <BookOpen size={16} aria-hidden="true" /> },
   { to: "/",             label: "Dashboard",    icon: <Activity size={16} aria-hidden="true" /> },
   { to: "/replay",       label: "Replay",       icon: <PlayCircle size={16} aria-hidden="true" /> },
   { to: "/experiments",  label: "Experiments",  icon: <Layers size={16} aria-hidden="true" /> },
@@ -75,6 +77,7 @@ export function App() {
         {/* ── Main Content ─────────────────────────────────────────────────── */}
         <main id="main-content" tabIndex={-1} style={{ flex: 1, padding: "2rem", maxWidth: "1360px", width: "100%", margin: "0 auto" }}>
           <Routes>
+            <Route path="/story" element={<StoryPage />} />
             <Route path="/" element={<DashboardPage />} />
             <Route path="/replay" element={<ReplayPage />} />
             <Route path="/experiments" element={<ExperimentsPage />} />

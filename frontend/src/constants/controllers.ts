@@ -8,6 +8,8 @@ export const CONTROLLER_LABELS: Record<string, string> = {
   ippo: "IPPO (Parameter-Shared)",
   fixed_time: "Fixed-Time",
   max_pressure: "Max-Pressure",
+  sumo_actuated: "SUMO-Actuated (Calibrated)",
+  ippo_phase_select: "IPPO Phase-Select (training)",
 };
 
 export const CONTROLLER_COLORS: Record<string, string> = {
@@ -15,6 +17,8 @@ export const CONTROLLER_COLORS: Record<string, string> = {
   ippo: "var(--accent-purple)",
   fixed_time: "var(--signal-yellow)",
   max_pressure: "var(--accent-indigo)",
+  sumo_actuated: "var(--signal-green)",
+  ippo_phase_select: "var(--text-muted)",
 };
 
 // Resolved hex twins of CONTROLLER_COLORS (must match styles/index.css's
@@ -27,6 +31,8 @@ export const CONTROLLER_HEX: Record<string, string> = {
   ippo: "#a855f7",
   fixed_time: "#f59e0b",
   max_pressure: "#818cf8",
+  sumo_actuated: "#22c55e",
+  ippo_phase_select: "#64748b",
 };
 
 export function controllerLabel(id: string): string {

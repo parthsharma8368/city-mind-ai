@@ -10,10 +10,12 @@ afterEach(() => {
 
 const baseResult: ComparisonResult = {
   results: [
-    { controller: "fixed_time", label: "Fixed-Time", mean_waiting_time: 3.19, mean_queue: 0.057, throughput: 0.71, mean_speed: 10.66, total_arrived: 150, cumulative_reward: 0 },
-    { controller: "ppo", label: "PPO (RL)", mean_waiting_time: 13.59, mean_queue: 0.002, throughput: 0.84, mean_speed: 0.88, total_arrived: 226, cumulative_reward: -2757 },
+    { controller: "fixed_time", label: "Fixed-Time", mean_waiting_time: 3.19, mean_queue: 0.057, throughput: 0.71, mean_speed: 10.66, total_arrived: 150, cumulative_reward: 0, backlog: 0, total_teleports: 0, trips_completed: 150, mean_trip_timeloss: 0 },
+    { controller: "ppo", label: "PPO (RL)", mean_waiting_time: 13.59, mean_queue: 0.002, throughput: 0.84, mean_speed: 0.88, total_arrived: 226, cumulative_reward: -2757, backlog: 0, total_teleports: 0, trips_completed: 226, mean_trip_timeloss: 0 },
   ],
-  improvement: { waiting_time_improvement_pct: -325.9, throughput_improvement_pct: 17.9 },
+  // starvation_flag is explicitly false: the top badge only ever renders an
+  // unqualified wait-time claim once starvation has been ruled out.
+  improvement: { waiting_time_improvement_pct: -325.9, throughput_improvement_pct: 17.9, starvation_flag: false },
 };
 
 describe("ComparisonPage improvement banner", () => {
@@ -30,7 +32,7 @@ describe("ComparisonPage improvement banner", () => {
   it("renders a POSITIVE badge with 'reduction' wording when PPO genuinely beats the baseline", async () => {
     const winning: ComparisonResult = {
       ...baseResult,
-      improvement: { waiting_time_improvement_pct: 25.0 },
+      improvement: { waiting_time_improvement_pct: 25.0, starvation_flag: false },
     };
     vi.spyOn(api, "getComparisonMetrics").mockResolvedValue(winning);
     render(<ComparisonPage />);

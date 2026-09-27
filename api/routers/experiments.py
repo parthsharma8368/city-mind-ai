@@ -13,6 +13,7 @@ METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
 EXPERIMENTS_ROOTS = {
     "ppo": _PROJECT_ROOT / "artifacts" / "experiments" / "ppo",
     "ippo": _PROJECT_ROOT / "artifacts" / "experiments" / "ippo",
+    "ippo_phase_select": _PROJECT_ROOT / "artifacts" / "experiments" / "ippo_phase_select",
 }
 _SAFE_RUN_ID = re.compile(r"^[A-Za-z0-9_.\-]+$")
 
@@ -109,9 +110,13 @@ def get_experiment_summary(run_id: str):
     ran last, even if it came from a different run entirely.
     """
     run_dir = _resolve_run_dir(run_id)
-    cfg_path = run_dir / "config.yaml"
-    algorithm = _load_yaml(cfg_path.read_text()).get("algorithm", "PPO") if cfg_path.exists() else "PPO"
-    prefix = "ippo" if "ippo" in str(algorithm).lower() else "ppo"
+    # Derive the metrics-filename prefix from which experiments root the run
+    # actually lives under (run_dir.parent.name), not from parsing the
+    # algorithm string — "MaskablePPO (parameter-shared, phase-selection)"
+    # doesn't contain the substring "ippo", so string-matching it against
+    # "ippo"/"ppo" would silently misroute ippo_phase_select runs to the
+    # wrong metrics files.
+    prefix = run_dir.parent.name if run_dir.parent.name in EXPERIMENTS_ROOTS else "ppo"
 
     for json_file in METRICS_DIR.glob(f"{prefix}*.json"):
         try:
