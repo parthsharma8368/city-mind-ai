@@ -178,38 +178,7 @@ class IPPOMaskableAgent:
 
     def build_model(self) -> MaskablePPO:
         set_random_seed(self.seed)
-        reward_cfg = LocalRewardConfig(
-            waiting_delta_weight=self.env_cfg["reward"].get("waiting_delta_weight", 0.3),
-            queue_weight=self.env_cfg["reward"].get("queue_weight", 0.0),
-            switching_penalty=self.env_cfg["reward"].get("switching_penalty", 0.05),
-            spillback_weight=self.env_cfg["reward"].get("spillback_weight", 0.2),
-            pressure_weight=self.env_cfg["reward"].get("pressure_weight", 0.3),
-            neglected_pressure_weight=self.env_cfg["reward"].get("neglected_pressure_weight", 1.0),
-        )
-        safety_cfg = SafetyConfig(
-            min_green=self.env_cfg["safety"].get("min_green", 5.0),
-            max_green=self.env_cfg["safety"].get("max_green", 60.0),
-            yellow_duration=self.env_cfg["safety"].get("yellow_duration", 3.0),
-            all_red_duration=self.env_cfg["safety"].get("all_red_duration", 1.0),
-        )
-
-        sumo_cfg_dict = self.env_cfg.get("sumo", {})
-        begin_time = int(sumo_cfg_dict.get("begin", 0))
-        end_time = int(sumo_cfg_dict.get("end", 3600))
-        num_vec_envs = int(self.ppo_cfg.get("num_vec_envs", 1))
-
-        env = make_ippo_maskable_env(
-            sumo_cfg=self.sumo_cfg,
-            tls_metadata_json=self.tls_metadata_json,
-            seed=self.seed,
-            demand_id=self.demand_id,
-            reward_config=reward_cfg,
-            safety_config=safety_cfg,
-            decision_interval=self.env_cfg.get("decision_interval", 5),
-            episode_duration=end_time,
-            begin_time=begin_time,
-            num_vec_envs=num_vec_envs,
-        )
+        env = self._build_env()
 
         ppo = self.ppo_cfg
         policy_kwargs = dict(ppo.get("policy_kwargs", {}))
@@ -241,11 +210,78 @@ class IPPOMaskableAgent:
               f"Act={self.model.action_space}, num_agents(envs)={self.model.n_envs}")
         return self.model
 
+    def _build_env(self):
+        """Env construction shared by build_model() and resume_training() —
+        pulled out so a resumed run gets an env built from the exact same
+        config-derived parameters as the original, not a hand-copied subset."""
+        reward_cfg = LocalRewardConfig(
+            waiting_delta_weight=self.env_cfg["reward"].get("waiting_delta_weight", 0.3),
+            queue_weight=self.env_cfg["reward"].get("queue_weight", 0.0),
+            switching_penalty=self.env_cfg["reward"].get("switching_penalty", 0.05),
+            spillback_weight=self.env_cfg["reward"].get("spillback_weight", 0.2),
+            pressure_weight=self.env_cfg["reward"].get("pressure_weight", 0.3),
+            neglected_pressure_weight=self.env_cfg["reward"].get("neglected_pressure_weight", 1.0),
+        )
+        safety_cfg = SafetyConfig(
+            min_green=self.env_cfg["safety"].get("min_green", 5.0),
+            max_green=self.env_cfg["safety"].get("max_green", 60.0),
+            yellow_duration=self.env_cfg["safety"].get("yellow_duration", 3.0),
+            all_red_duration=self.env_cfg["safety"].get("all_red_duration", 1.0),
+        )
+        sumo_cfg_dict = self.env_cfg.get("sumo", {})
+        begin_time = int(sumo_cfg_dict.get("begin", 0))
+        end_time = int(sumo_cfg_dict.get("end", 3600))
+        num_vec_envs = int(self.ppo_cfg.get("num_vec_envs", 1))
+        return make_ippo_maskable_env(
+            sumo_cfg=self.sumo_cfg,
+            tls_metadata_json=self.tls_metadata_json,
+            seed=self.seed,
+            demand_id=self.demand_id,
+            reward_config=reward_cfg,
+            safety_config=safety_cfg,
+            decision_interval=self.env_cfg.get("decision_interval", 5),
+            episode_duration=end_time,
+            begin_time=begin_time,
+            num_vec_envs=num_vec_envs,
+        )
+
+    def resume_training(self, checkpoint_path: str, completed_timesteps: int | None = None) -> MaskablePPO:
+        """Continue training from a saved checkpoint after an interruption
+        (e.g. the process was killed by something outside this run, like a
+        machine restart) — not a substitute for train() on a fresh run.
+
+        completed_timesteps defaults to parsing it from the checkpoint's own
+        filename (SB3's CheckpointCallback names them
+        "<prefix>_<num_timesteps>_steps.zip"), so total_timesteps in the
+        config is honored as the real target rather than restarting the
+        countdown from the checkpoint.
+        """
+        if completed_timesteps is None:
+            stem = Path(checkpoint_path).stem  # e.g. "ippo_phase_select_2822400_steps"
+            completed_timesteps = int(stem.rsplit("_", 2)[-2])
+
+        self.model = MaskablePPO.load(checkpoint_path, device=self.device)
+        env = self._build_env()
+        self.model.set_env(env)
+        print(f"[IPPOMaskableAgent] Resumed from {checkpoint_path} at {completed_timesteps:,} timesteps.")
+
+        total_timesteps = int(self.ppo_cfg.get("total_timesteps", 7_056_000))
+        remaining = total_timesteps - completed_timesteps
+        if remaining <= 0:
+            raise ValueError(
+                f"Checkpoint already has {completed_timesteps:,} timesteps >= "
+                f"target {total_timesteps:,} — nothing to resume."
+            )
+        return self._run_learn(remaining, reset_num_timesteps=False)
+
     def train(self) -> MaskablePPO:
         if self.model is None:
             self.build_model()
 
         total_timesteps = int(self.ppo_cfg.get("total_timesteps", 7_056_000))
+        return self._run_learn(total_timesteps, reset_num_timesteps=True)
+
+    def _run_learn(self, timesteps: int, reset_num_timesteps: bool) -> MaskablePPO:
         checkpoint_freq = int(self.ppo_cfg.get("checkpoint_freq", 705_600))
 
         save_freq = max(checkpoint_freq // self.model.n_envs, 1)
@@ -256,14 +292,17 @@ class IPPOMaskableAgent:
         )
         callbacks = CallbackList([checkpoint_cb])
 
-        print(f"\n[IPPOMaskableAgent] Starting training — {total_timesteps:,} timesteps "
-              f"({total_timesteps // self.model.n_envs:,} real decision steps across {self.model.n_envs} agents)")
-        self.model.learn(total_timesteps=total_timesteps, callback=callbacks, tb_log_name="ippo_phase_select", progress_bar=True)
+        print(f"\n[IPPOMaskableAgent] Training for {timesteps:,} more timesteps "
+              f"({timesteps // self.model.n_envs:,} real decision steps across {self.model.n_envs} agents)")
+        self.model.learn(
+            total_timesteps=timesteps, callback=callbacks, tb_log_name="ippo_phase_select",
+            reset_num_timesteps=reset_num_timesteps, progress_bar=True,
+        )
 
         model_path = self.run_dir / "model_final.zip"
         self.model.save(str(model_path))
         print(f"\n[IPPOMaskableAgent] Model saved: {model_path}")
-        self._save_config_artifact(total_timesteps)
+        self._save_config_artifact(self.model.num_timesteps)
 
         _close_env_with_timeout(self.model.env, timeout=30.0)
         return self.model
