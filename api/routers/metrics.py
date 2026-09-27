@@ -117,10 +117,16 @@ def get_comparison():
 @router.get("/summary")
 def get_summary():
     """
-    Return the dashboard's headline controller summary — whichever RL
-    controller (ppo or ippo) currently has the lower mean_waiting_time, not
-    always "ppo". Same best-RL selection as /comparison, so the Dashboard
-    and Comparison page never show two different "headline" results.
+    Return the dashboard's headline RL controller summary.
+
+    Ranked by trips_completed (descending), NOT mean_waiting_time: the
+    corrected evaluation (2026-09-23) showed IPPO's lower mean_waiting_time
+    was a starvation artifact — it completed 18% fewer trips than the
+    actuated baseline while leaving 26% more vehicles stuck in the network.
+    mean_waiting_time only reflects vehicles currently in the network, so a
+    controller that lets fewer of them finish can look artificially good on
+    it. Ranking by trips completed is what the "no starvation" release gate
+    actually checks, so the Dashboard's headline can't repeat that mistake.
     """
     ppo_data = _load_metric_json("ppo")
     ippo_data = _load_metric_json("ippo")
@@ -141,9 +147,17 @@ def get_summary():
     if not candidates:
         raise HTTPException(404, "No metrics found. Run evaluation first.")
 
-    best_name, best_data = min(
-        candidates, key=lambda item: float(item[1].get("mean_waiting_time", float("inf")))
+    best_name, best_data = max(
+        candidates, key=lambda item: float(item[1].get("trips_completed", 0))
     )
+
+    baseline = _load_metric_json("sumo_actuated") or _load_metric_json("fixed_time")
+    trips_gap_pct = None
+    if baseline and baseline.get("trips_completed"):
+        trips_gap_pct = round(
+            (float(best_data.get("trips_completed", 0)) - float(baseline["trips_completed"]))
+            / float(baseline["trips_completed"]) * 100, 1
+        )
 
     return {
         "controller": best_name,
@@ -155,6 +169,12 @@ def get_summary():
         "total_steps": int(best_data.get("total_steps", 0)),
         "cumulative_reward": round(float(best_data.get("cumulative_reward", 0)), 1),
         "total_switches": int(best_data.get("total_switches", 0)),
+        "backlog": int(best_data.get("backlog", 0)),
+        "total_teleports": int(best_data.get("total_teleports", 0)),
+        "trips_completed": int(best_data.get("trips_completed", 0)),
+        "mean_trip_timeloss": round(float(best_data.get("mean_trip_timeloss", 0)), 2),
+        "trips_completed_gap_pct": trips_gap_pct,
+        "starvation_flag": (trips_gap_pct is not None and trips_gap_pct < -2.0),
     }
 
 

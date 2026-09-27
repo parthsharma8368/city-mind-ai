@@ -34,7 +34,7 @@ _gui_processes: dict[str, subprocess.Popen] = {}
 _gui_lock = threading.Lock()
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 _ARTIFACTS_DIR = (_PROJECT_ROOT / "artifacts").resolve()
-_CONTROLLERS = ("fixed_time", "max_pressure", "ppo", "ippo")
+_CONTROLLERS = ("fixed_time", "sumo_actuated", "max_pressure", "ppo", "ippo")
 _MODEL_BASED_CONTROLLERS = ("ppo", "ippo")
 
 
