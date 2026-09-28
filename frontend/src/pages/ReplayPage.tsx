@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   Play, Pause, RotateCcw, Car, Gauge,
   Activity, AlertTriangle, Film, Columns, Eye
@@ -7,8 +8,9 @@ import {
 import { api } from "../api/client";
 import type { TLSFrame, ComparisonEntry } from "../api/client";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
-import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued } from "../utils/trajectory";
-import { CONTROLLER_LABELS, CONTROLLER_COLORS, replayWindowStart } from "../constants/controllers";
+import { QueueTrendSparkline } from "../components/QueueTrendSparkline";
+import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued, buildQueueTrend } from "../utils/trajectory";
+import { CONTROLLER_LABELS, CONTROLLER_COLORS, CONTROLLER_HEX, replayWindowStart, REPLAY_WINDOW_SECONDS } from "../constants/controllers";
 
 const CONTROLLER_IDS = ["ppo", "ippo", "fixed_time", "max_pressure", "sumo_actuated"] as const;
 const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ppo" || id === "ippo");
@@ -74,8 +76,8 @@ export const ReplayPage: React.FC = () => {
           const baselineStart = replayWindowStart(splitBaselineController);
           const rlStart = replayWindowStart(splitRlController);
           const [ftData, ppoData] = await Promise.all([
-            api.getReplayFrames(splitBaselineController, seed, demandId, baselineStart, baselineStart + 120),
-            api.getReplayFrames(splitRlController, seed, demandId, rlStart, rlStart + 120),
+            api.getReplayFrames(splitBaselineController, seed, demandId, baselineStart, baselineStart + REPLAY_WINDOW_SECONDS),
+            api.getReplayFrames(splitRlController, seed, demandId, rlStart, rlStart + REPLAY_WINDOW_SECONDS),
           ]);
           if (cancelled) return;
 
@@ -97,7 +99,7 @@ export const ReplayPage: React.FC = () => {
         } else {
           // Fetch single controller, at its own recorded window (see above).
           const windowStart = replayWindowStart(controller);
-          const data = await api.getReplayFrames(controller, seed, demandId, windowStart, windowStart + 120);
+          const data = await api.getReplayFrames(controller, seed, demandId, windowStart, windowStart + REPLAY_WINDOW_SECONDS);
           if (cancelled) return;
 
           const typedFrames = data.frames as Record<string, VehiclePoint[]>;
@@ -154,6 +156,13 @@ export const ReplayPage: React.FC = () => {
     if (availableTimes.length === 0) return [];
     return sampleAndHold(ppoFrames, currentTime);
   }, [ppoFrames, availableTimes, currentTime]);
+
+  // Queued-vehicle count across the whole fetched window (not just this
+  // instant) — the visual answer to "does this policy's queue actually
+  // come down, or does it just sit there while the average looks fine?"
+  const queueTrend = useMemo(() => buildQueueTrend(frames), [frames]);
+  const fixedQueueTrend = useMemo(() => buildQueueTrend(fixedFrames), [fixedFrames]);
+  const ppoQueueTrend = useMemo(() => buildQueueTrend(ppoFrames), [ppoFrames]);
 
   // Real recorded TLS phase state per controller — not a client-side guess.
   const tlsCurrentStates = useMemo(
@@ -329,6 +338,19 @@ export const ReplayPage: React.FC = () => {
         </div>
       </div>
 
+      {isSplitMode && !error && (
+        <div style={{
+          fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: "1rem",
+          padding: "0.6rem 0.9rem", background: "rgba(255,255,255,0.02)",
+          border: "1px solid var(--border-subtle)", borderRadius: 8,
+        }}>
+          <strong style={{ color: "var(--text-primary)" }}>What to actually watch:</strong> don't just compare how
+          busy each side looks right now — watch the queue trend line under each map over the full {REPLAY_WINDOW_SECONDS / 60} minutes.
+          A side whose queue keeps falling is clearing traffic; a side whose queue stays flat near its peak is
+          backing up even if its average wait number looks good (see the <Link to="/story" style={{ color: "var(--accent-cyan)" }}>Story page</Link> for why that distinction matters here).
+        </div>
+      )}
+
       {error ? (
         <div style={{
           padding: "2.5rem",
@@ -405,6 +427,11 @@ export const ReplayPage: React.FC = () => {
 
             {/* Canvas */}
             <NetworkCanvas height={390} vehicles={currentFixedVehicles} tlsStates={tlsFixedStates} currentTime={currentTime} />
+            {fixedQueueTrend.length > 1 && (
+              <div style={{ marginTop: "0.6rem" }}>
+                <QueueTrendSparkline data={fixedQueueTrend} currentTime={currentTime} color={CONTROLLER_HEX[splitBaselineController] ?? "#f59e0b"} height={36} />
+              </div>
+            )}
           </div>
 
           {/* RIGHT: RL Agent — switchable between the centralized and parameter-shared policies */}
@@ -461,6 +488,11 @@ export const ReplayPage: React.FC = () => {
 
             {/* Canvas */}
             <NetworkCanvas height={390} vehicles={currentPpoVehicles} tlsStates={tlsPpoStates} currentTime={currentTime} />
+            {ppoQueueTrend.length > 1 && (
+              <div style={{ marginTop: "0.6rem" }}>
+                <QueueTrendSparkline data={ppoQueueTrend} currentTime={currentTime} color={CONTROLLER_HEX[splitRlController] ?? "#22d3ee"} height={36} />
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -508,6 +540,14 @@ export const ReplayPage: React.FC = () => {
               </span>
             </div>
             <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsCurrentStates} currentTime={currentTime} />
+            {queueTrend.length > 1 && (
+              <div style={{ marginTop: "0.75rem" }}>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: 4 }}>
+                  Queued vehicles over this {REPLAY_WINDOW_SECONDS / 60}-minute window — watch for a fall, not just a low instant reading
+                </div>
+                <QueueTrendSparkline data={queueTrend} currentTime={currentTime} color={CONTROLLER_HEX[controller] ?? "#22d3ee"} height={40} />
+              </div>
+            )}
           </div>
         </>
       )}

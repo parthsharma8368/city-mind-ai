@@ -55,3 +55,13 @@ const MIDNIGHT_WINDOW_START = 0;
 export function replayWindowStart(controllerId: string): number {
   return controllerId === "ippo" ? MIDNIGHT_WINDOW_START : PEAK_WINDOW_START;
 }
+
+// How much of the recorded episode to fetch for a replay. 120s (one or two
+// signal cycles) isn't enough to see whether a policy is actually clearing
+// a queue or just holding it steady — 300s (5 min) shows several full
+// cycles' worth of buildup/clearing, which is what the comparison is
+// actually about. Checked against real recorded data before picking this:
+// at peak, a 300s fetch is on the order of a few thousand rows per
+// timestamp x ~60 timestamps — still a sub-second local fetch, not the
+// 10x-larger jump a naive "just fetch the whole episode" would be.
+export const REPLAY_WINDOW_SECONDS = 300;

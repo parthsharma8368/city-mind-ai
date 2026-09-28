@@ -59,3 +59,28 @@ export function meanSpeedKmh(vehicles: Array<{ speed: number }>): number {
 export function countQueued(vehicles: Array<{ speed: number }>): number {
   return vehicles.filter((v) => isQueuedSpeed(v.speed)).length;
 }
+
+export interface QueueTrendPoint {
+  time: number;
+  queued: number;
+  total: number;
+}
+
+/**
+ * Queued-vehicle count at EVERY recorded timestamp in a fetched frame dict
+ * (not just the current playback instant) — the point of this is to make a
+ * rising/flat/falling trend visible across the whole replay window, which a
+ * single instantaneous "Queued: N" number cannot show. This is what
+ * distinguishes a policy actually clearing traffic from one whose queue
+ * count never comes down (the starvation pattern described on the Story
+ * page) — a single snapshot looks the same in both cases.
+ */
+export function buildQueueTrend(frames: Record<string, { speed?: number }[]>): QueueTrendPoint[] {
+  return Object.keys(frames)
+    .map((key) => parseFloat(key))
+    .sort((a, b) => a - b)
+    .map((time) => {
+      const vehicles = frames[time.toFixed(1)] ?? frames[String(time)] ?? [];
+      return { time, queued: countQueued(vehicles as Array<{ speed: number }>), total: vehicles.length };
+    });
+}

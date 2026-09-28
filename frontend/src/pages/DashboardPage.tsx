@@ -5,11 +5,12 @@ import { MetricsPanel } from "../components/MetricsPanel";
 import { PlaybackControls } from "../components/PlaybackControls";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { SimulationControl } from "../components/SimulationControl";
+import { QueueTrendSparkline } from "../components/QueueTrendSparkline";
 import { api } from "../api/client";
 import type { MetricsSummary, TLSFrame } from "../api/client";
 import { useSimulationSocket } from "../context/simulationSocketStore";
-import { sampleAndHold, tlsFramesToStateMap, meanSpeedMs, countQueued, msToKmh } from "../utils/trajectory";
-import { controllerLabel, replayWindowStart } from "../constants/controllers";
+import { sampleAndHold, tlsFramesToStateMap, meanSpeedMs, countQueued, msToKmh, buildQueueTrend } from "../utils/trajectory";
+import { controllerLabel, replayWindowStart, REPLAY_WINDOW_SECONDS, CONTROLLER_HEX } from "../constants/controllers";
 
 export const DashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
@@ -44,7 +45,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (!headlineController) return; // wait for /summary to resolve which controller "wins" first
     const windowStart = replayWindowStart(headlineController);
-    api.getReplayFrames(headlineController, 42, "1.0x", windowStart, windowStart + 120)
+    api.getReplayFrames(headlineController, 42, "1.0x", windowStart, windowStart + REPLAY_WINDOW_SECONDS)
       .then((data) => {
         setFrames(data.frames);
         setTlsFrames(data.tls_frames ?? {});
@@ -93,6 +94,11 @@ export const DashboardPage: React.FC = () => {
     () => (availableTimes.length === 0 ? [] : sampleAndHold(frames, currentTime)),
     [frames, availableTimes.length, currentTime]
   );
+
+  // Queued-vehicle count across the WHOLE fetched window, not just this
+  // instant — this is what actually shows whether the policy is clearing
+  // traffic or just holding a queue steady (see QueueTrendSparkline).
+  const queueTrend = useMemo(() => buildQueueTrend(frames), [frames]);
 
   // Real per-TLS phase state at the current replay time, straight from the
   // controller's recorded trajectory — no client-side approximation.
@@ -227,6 +233,25 @@ export const DashboardPage: React.FC = () => {
         ) : (
           <>
             <NetworkCanvas height={420} vehicles={currentVehicles} tlsStates={tlsStates} currentTime={currentTime} />
+
+            {queueTrend.length > 1 && (
+              <div style={{ marginTop: "0.85rem", padding: "0.6rem 0.85rem", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)", borderRadius: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Queued vehicles over this {REPLAY_WINDOW_SECONDS / 60}-minute window
+                  </span>
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                    watch whether this <strong style={{ color: "var(--text-secondary)" }}>falls</strong> or stays <strong style={{ color: "var(--text-secondary)" }}>flat</strong> — flat means it's not clearing
+                  </span>
+                </div>
+                <QueueTrendSparkline
+                  data={queueTrend}
+                  currentTime={currentTime}
+                  color={metrics ? CONTROLLER_HEX[metrics.controller] ?? "#22d3ee" : "#22d3ee"}
+                />
+              </div>
+            )}
+
             <div style={{ marginTop: "1rem" }}>
               <PlaybackControls
                 isPlaying={isPlaying}
