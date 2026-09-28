@@ -8,7 +8,7 @@ import { api } from "../api/client";
 import type { TLSFrame, ComparisonEntry } from "../api/client";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued } from "../utils/trajectory";
-import { CONTROLLER_LABELS, CONTROLLER_COLORS } from "../constants/controllers";
+import { CONTROLLER_LABELS, CONTROLLER_COLORS, replayWindowStart } from "../constants/controllers";
 
 const CONTROLLER_IDS = ["ppo", "ippo", "fixed_time", "max_pressure", "sumo_actuated"] as const;
 const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ppo" || id === "ippo");
@@ -65,10 +65,17 @@ export const ReplayPage: React.FC = () => {
       setIsPlaying(false);
       try {
         if (isSplitMode) {
-          // Fetch both the selected baseline and the selected RL controller in parallel
+          // Fetch both the selected baseline and the selected RL controller in
+          // parallel, each at ITS OWN recorded window — most controllers were
+          // regenerated at the peak window, but "ippo" still only has data at
+          // the original midnight window (see replayWindowStart), so a single
+          // shared window would silently return zero frames for whichever
+          // side doesn't match it.
+          const baselineStart = replayWindowStart(splitBaselineController);
+          const rlStart = replayWindowStart(splitRlController);
           const [ftData, ppoData] = await Promise.all([
-            api.getReplayFrames(splitBaselineController, seed, demandId, 0, 120),
-            api.getReplayFrames(splitRlController, seed, demandId, 0, 120),
+            api.getReplayFrames(splitBaselineController, seed, demandId, baselineStart, baselineStart + 120),
+            api.getReplayFrames(splitRlController, seed, demandId, rlStart, rlStart + 120),
           ]);
           if (cancelled) return;
 
@@ -88,8 +95,9 @@ export const ReplayPage: React.FC = () => {
           setAvailableTimes(times);
           setCurrentTimeIndex(0);
         } else {
-          // Fetch single controller
-          const data = await api.getReplayFrames(controller, seed, demandId, 0, 120);
+          // Fetch single controller, at its own recorded window (see above).
+          const windowStart = replayWindowStart(controller);
+          const data = await api.getReplayFrames(controller, seed, demandId, windowStart, windowStart + 120);
           if (cancelled) return;
 
           const typedFrames = data.frames as Record<string, VehiclePoint[]>;
@@ -123,8 +131,12 @@ export const ReplayPage: React.FC = () => {
     };
   }, [isSplitMode, controller, splitRlController, splitBaselineController, seed, demandId]);
 
-  // Current simulation time
+  // Current simulation time (absolute — matches the raw keys in the frame
+  // dicts, needed as-is for sampleAndHold lookups throughout this page).
   const currentTime = availableTimes[currentTimeIndex] ?? 0;
+  // Display-only offset so the on-screen clock reads from 00:00 regardless
+  // of which absolute sim-time the fetched window actually starts at.
+  const displayWindowStart = availableTimes.length > 0 ? availableTimes[0] : 0;
 
   // Active vehicles in Single Mode
   const currentVehicles = useMemo(() => {
@@ -297,7 +309,7 @@ export const ReplayPage: React.FC = () => {
               Synchronized Simulation Clock
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.25rem", fontWeight: 700, color: "var(--accent-cyan)" }}>
-              {currentTime.toFixed(1)} <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>sec</span>
+              {(currentTime - displayWindowStart).toFixed(1)} <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>sec</span>
             </div>
           </div>
         </div>
@@ -507,7 +519,7 @@ export const ReplayPage: React.FC = () => {
             <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>Comparison Metrics</span>
             <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
               Full 3600s episode (seed {seed}) — not just the {" "}
-              {(availableTimes[availableTimes.length - 1] ?? 120).toFixed(0)}s replay window above
+              {((availableTimes[availableTimes.length - 1] ?? 120) - displayWindowStart).toFixed(0)}s replay window above
             </span>
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -566,7 +578,7 @@ export const ReplayPage: React.FC = () => {
         {/* Scrubber slider */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", minWidth: 40 }}>
-            {currentTime.toFixed(0)}s
+            {(currentTime - displayWindowStart).toFixed(0)}s
           </span>
           <input
             type="range"
@@ -583,7 +595,7 @@ export const ReplayPage: React.FC = () => {
             }}
           />
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", minWidth: 40 }}>
-            {(availableTimes[availableTimes.length - 1] ?? 0).toFixed(0)}s
+            {((availableTimes[availableTimes.length - 1] ?? 0) - displayWindowStart).toFixed(0)}s
           </span>
         </div>
 

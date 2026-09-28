@@ -9,7 +9,7 @@ import { api } from "../api/client";
 import type { MetricsSummary, TLSFrame } from "../api/client";
 import { useSimulationSocket } from "../context/simulationSocketStore";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedMs, countQueued, msToKmh } from "../utils/trajectory";
-import { controllerLabel } from "../constants/controllers";
+import { controllerLabel, replayWindowStart } from "../constants/controllers";
 
 export const DashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
@@ -43,7 +43,8 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!headlineController) return; // wait for /summary to resolve which controller "wins" first
-    api.getReplayFrames(headlineController, 42, "1.0x", 0, 120)
+    const windowStart = replayWindowStart(headlineController);
+    api.getReplayFrames(headlineController, 42, "1.0x", windowStart, windowStart + 120)
       .then((data) => {
         setFrames(data.frames);
         setTlsFrames(data.tls_frames ?? {});
@@ -79,8 +80,14 @@ export const DashboardPage: React.FC = () => {
     };
   }, [isPlaying, playbackSpeed, availableTimes.length]);
 
-  // Current simulation time
+  // Current simulation time (absolute sim-time, matches the raw keys in
+  // `frames`/`tlsFrames` — needed as-is for sampleAndHold lookups below).
   const currentTime = availableTimes[currentTimeIndex] ?? 0;
+  // Display-only: the fetched window's own first frame, so the on-screen
+  // clock reads from 00:00 regardless of which absolute sim-time the
+  // controller's trajectory actually starts at (peak-window controllers
+  // start around 25200s; ippo's still starts at 0 — see replayWindowStart).
+  const displayWindowStart = availableTimes.length > 0 ? availableTimes[0] : 0;
 
   const currentVehicles = useMemo(
     () => (availableTimes.length === 0 ? [] : sampleAndHold(frames, currentTime)),
@@ -201,7 +208,7 @@ export const DashboardPage: React.FC = () => {
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span className="badge-blue" style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
-                Time: {currentTime.toFixed(1)}s
+                Time: {(currentTime - displayWindowStart).toFixed(1)}s
               </span>
               <span className="badge-green">
                 <Zap size={10} aria-hidden="true" /> Recorded Run
@@ -223,8 +230,8 @@ export const DashboardPage: React.FC = () => {
             <div style={{ marginTop: "1rem" }}>
               <PlaybackControls
                 isPlaying={isPlaying}
-                currentTime={currentTime}
-                maxTime={availableTimes.length > 0 ? availableTimes[availableTimes.length - 1] : 120}
+                currentTime={currentTime - displayWindowStart}
+                maxTime={availableTimes.length > 0 ? availableTimes[availableTimes.length - 1] - displayWindowStart : 120}
                 playbackSpeed={playbackSpeed}
                 onPlayToggle={() => setIsPlaying(!isPlaying)}
                 onReset={() => {
@@ -233,7 +240,7 @@ export const DashboardPage: React.FC = () => {
                 }}
                 onSpeedChange={setPlaybackSpeed}
                 onSeek={(t) => {
-                  const idx = availableTimes.findIndex((timeVal) => timeVal >= t);
+                  const idx = availableTimes.findIndex((timeVal) => timeVal - displayWindowStart >= t);
                   if (idx !== -1) setCurrentTimeIndex(idx);
                 }}
               />

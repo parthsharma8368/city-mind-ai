@@ -38,3 +38,20 @@ export const CONTROLLER_HEX: Record<string, string> = {
 export function controllerLabel(id: string): string {
   return CONTROLLER_LABELS[id] ?? id;
 }
+
+// Absolute sim-time (seconds) each controller's recorded trajectory parquet
+// actually starts at. Every controller except "ippo" was regenerated at the
+// 07:00-08:00 peak window (25200 = 07:00:00) once the mechanics/metrics fix
+// moved evaluation there; "ippo" (the original binary-action model) can no
+// longer be replayed at all under the current DecentralizedSumoEnv (it now
+// expects an 18-dim phase-selection observation, not that model's 12-dim
+// one), so its trajectory file is still the original midnight-window
+// recording and must be requested at time 0, not 25200 — requesting the
+// wrong window for either case returns zero frames and silently breaks
+// playback (no error, just nothing to animate).
+const PEAK_WINDOW_START = 25200;
+const MIDNIGHT_WINDOW_START = 0;
+
+export function replayWindowStart(controllerId: string): number {
+  return controllerId === "ippo" ? MIDNIGHT_WINDOW_START : PEAK_WINDOW_START;
+}
