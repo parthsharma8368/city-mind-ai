@@ -91,7 +91,7 @@ export const ComparisonPage: React.FC = () => {
       <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <h2 className="section-title">Controller Comparison</h2>
-          <p className="section-subtitle">PPO · IPPO · Fixed-Time · Max-Pressure · InTAS Ingolstadt · 1.0× demand</p>
+          <p className="section-subtitle">PPO · IPPO · IPPO Phase-Select · Fixed-Time · SUMO-Actuated · Max-Pressure · InTAS Ingolstadt · 1.0× demand</p>
         </div>
         {showsRealImprovement && (
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>

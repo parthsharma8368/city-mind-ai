@@ -41,10 +41,11 @@ def get_comparison():
     Return aggregated comparison metrics across all controllers.
     Reads from artifacts/metrics/*.json files.
     """
-    controllers = ["ppo", "ippo", "fixed_time", "sumo_actuated", "max_pressure"]
+    controllers = ["ppo", "ippo", "ippo_phase_select", "fixed_time", "sumo_actuated", "max_pressure"]
     labels = {
         "ppo": "PPO (Centralized)",
         "ippo": "IPPO (Parameter-Shared)",
+        "ippo_phase_select": "IPPO Phase-Select",
         "fixed_time": "Fixed-Time (static)",
         "sumo_actuated": "SUMO-Actuated (calibrated)",
         "max_pressure": "Max-Pressure",
@@ -75,12 +76,17 @@ def get_comparison():
         return {"results": [], "message": "No evaluation results found. Run run_evaluation.py first."}
 
     # Compute improvement % for whichever RL controller currently has a
-    # result and (if both do) is actually better, against each baseline that
+    # result and is actually the best of them, against each baseline that
     # has a result. sumo_actuated is the harder, calibrated-adaptive bar;
     # fixed_time is the weaker static one — report both rather than only
     # the easier comparison, so the headline can't quietly pick the flattering one.
-    rl_candidates = [r for r in results if r["controller"] in ("ppo", "ippo")]
-    best_rl = min(rl_candidates, key=lambda r: r["mean_waiting_time"], default=None)
+    # Ranked by trips_completed, NOT mean_waiting_time — the same starvation-
+    # hiding bug fixed in /summary (2026-09-28) was still live here: picking
+    # by min(mean_waiting_time) would keep selecting whichever controller
+    # starves the most vehicles, since that's exactly what depresses the
+    # in-network average. See get_summary()'s docstring for the full reasoning.
+    rl_candidates = [r for r in results if r["controller"] in ("ppo", "ippo", "ippo_phase_select")]
+    best_rl = max(rl_candidates, key=lambda r: r["trips_completed"], default=None)
 
     def _improvement_vs(baseline_name: str) -> dict:
         baseline = next((r for r in results if r["controller"] == baseline_name), None)
@@ -130,8 +136,13 @@ def get_summary():
     """
     ppo_data = _load_metric_json("ppo")
     ippo_data = _load_metric_json("ippo")
+    ippo_phase_select_data = _load_metric_json("ippo_phase_select")
 
-    candidates = [(name, data) for name, data in (("ppo", ppo_data), ("ippo", ippo_data)) if data]
+    candidates = [
+        (name, data) for name, data in (
+            ("ppo", ppo_data), ("ippo", ippo_data), ("ippo_phase_select", ippo_phase_select_data),
+        ) if data
+    ]
     if not candidates:
         # Fallback to reading from evaluation_results.parquet
         parquet_path = METRICS_DIR / "evaluation_results.parquet"

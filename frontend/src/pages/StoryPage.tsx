@@ -1,7 +1,7 @@
 import React from "react";
 import {
   BookOpen, HelpCircle, Bug, Table2, AlertTriangle, GitBranch, Wrench,
-  ScanSearch, Sliders, Clock,
+  ScanSearch, Sliders, FlaskConical,
 } from "lucide-react";
 import { CONTROLLER_LABELS as CTRL_LABELS, CONTROLLER_COLORS as CTRL_COLORS } from "../constants/controllers";
 
@@ -23,6 +23,7 @@ const STORY_ROWS: StoryRow[] = [
   { controller: "max_pressure", trips: "10,408", timeloss: "342.9", backlog: "3,755", teleports: "50.3", wait: "12.62" },
   { controller: "ppo", trips: "9,546", timeloss: "354.7", backlog: "4,112", teleports: "19.0", wait: "7.61" },
   { controller: "ippo", trips: "9,520", timeloss: "347.8", backlog: "4,086", teleports: "10.0", wait: "5.26" },
+  { controller: "ippo_phase_select", trips: "9,441", timeloss: "291.5", backlog: "4,420", teleports: "712.7", wait: "34.10" },
 ];
 
 const SectionCard: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
@@ -225,23 +226,69 @@ export const StoryPage: React.FC = () => {
         </p>
       </SectionCard>
 
-      {/* 8. Where things stand right now */}
+      {/* 8. The retrain finished — where things actually stand */}
       <SectionCard style={{ border: "1px solid rgba(245,158,11,0.3)" }}>
         <SectionHeading
-          icon={<Clock size={18} color="var(--signal-yellow)" aria-hidden="true" />}
-          title="Where things stand right now"
-          badge={<span className="badge-yellow">IN PROGRESS</span>}
+          icon={<FlaskConical size={18} color="var(--signal-yellow)" aria-hidden="true" />}
+          title="The retrain finished — still not enough"
+          badge={<span className="badge-yellow">FINAL RESULT</span>}
         />
+        <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, marginBottom: "0.85rem" }}>
+          The full retrain under the fixed reward completed (controller id{" "}
+          <code style={{ fontFamily: "var(--font-mono)", fontSize: "0.82rem" }}>ippo_phase_select</code>, 100
+          real episodes, 7,056,000 timesteps — interrupted twice along the way by infrastructure issues, not by
+          the policy, and resumed cleanly from checkpoint each time). The 3-seed evaluation is in the table in
+          section 3. The fix worked, in the direction the diagnosis predicted:
+        </p>
+        <div style={{ overflowX: "auto", marginBottom: "0.85rem" }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Trips Completed</th>
+                <th>Mean TimeLoss (s)</th>
+                <th>Backlog</th>
+                <th>Teleports</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>First attempt (section 6)</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>7,716</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>355.2</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>5,853</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>1,817</td>
+              </tr>
+              <tr>
+                <td>After the reward fix</td>
+                <td style={{ fontFamily: "var(--font-mono)", color: "var(--signal-green)" }}>9,441 (+22%)</td>
+                <td style={{ fontFamily: "var(--font-mono)", color: "var(--signal-green)" }}>291.5 (2nd best of all 6)</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>4,420</td>
+                <td style={{ fontFamily: "var(--font-mono)", color: "var(--signal-green)" }}>712.7 (&minus;61%)</td>
+              </tr>
+              <tr>
+                <td>Best baseline (sumo_actuated)</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>11,600</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>284.4</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>3,257</td>
+                <td style={{ fontFamily: "var(--font-mono)" }}>7.7</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, marginBottom: "0.6rem" }}>
-          A full retrain under the fixed reward (controller id{" "}
-          <code style={{ fontFamily: "var(--font-mono)", fontSize: "0.82rem" }}>ippo_phase_select</code>) is
-          currently running. It has already been interrupted twice by infrastructure issues and resumed from
-          checkpoint — not by any bug in the policy itself.
+          Reproducible, not noise: trips completed varied by only ±0.4% across the three seeds (9,422 / 9,403 /
+          9,499). Mean trip timeloss (291.5s) actually lands second-best of all six controllers here, beaten only
+          by the calibrated actuated baseline. Teleports dropped 61% from the first attempt. The reward fix's own
+          diagnosis was correct and the numbers moved exactly where it predicted.
         </p>
         <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
-          There is no final evaluated result for it yet, so it does not appear in the table in section 3 and it
-          makes no performance claim here. A fix for the section 6 failure is training now; results will appear
-          once evaluation completes. Check the Comparison page for the latest evaluated numbers.
+          It still doesn't beat the baselines. Teleports remain roughly 90&times; every baseline's, trips
+          completed still trails all four, and backlog is worse than everything. "Much better than a broken
+          reward" is not "better than fixed-time." That is the honest final state of this project: two real bugs
+          found and fixed, a harder action-space redesign built and proven to work mechanically, a reward flaw
+          diagnosed and corrected with a measurable, reproducible improvement — and still no RL controller here
+          beats calibrated actuated signal control. Reported directly, not around.
         </p>
       </SectionCard>
     </div>

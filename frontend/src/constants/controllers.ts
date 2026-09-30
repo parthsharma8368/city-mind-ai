@@ -9,7 +9,7 @@ export const CONTROLLER_LABELS: Record<string, string> = {
   fixed_time: "Fixed-Time",
   max_pressure: "Max-Pressure",
   sumo_actuated: "SUMO-Actuated (Calibrated)",
-  ippo_phase_select: "IPPO Phase-Select (training)",
+  ippo_phase_select: "IPPO Phase-Select",
 };
 
 export const CONTROLLER_COLORS: Record<string, string> = {

@@ -12,8 +12,11 @@ import { QueueTrendSparkline } from "../components/QueueTrendSparkline";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued, buildQueueTrend } from "../utils/trajectory";
 import { CONTROLLER_LABELS, CONTROLLER_COLORS, CONTROLLER_HEX, replayWindowStart, REPLAY_WINDOW_SECONDS } from "../constants/controllers";
 
-const CONTROLLER_IDS = ["ppo", "ippo", "fixed_time", "max_pressure", "sumo_actuated"] as const;
-const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ppo" || id === "ippo");
+const CONTROLLER_IDS = ["ppo", "ippo", "ippo_phase_select", "fixed_time", "max_pressure", "sumo_actuated"] as const;
+const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ppo" || id === "ippo" || id === "ippo_phase_select");
+// Short button labels for the RL-selector group — id.toUpperCase() alone
+// would render "IPPO_PHASE_SELECT" with the underscore intact.
+const RL_SHORT_LABELS: Record<string, string> = { ppo: "PPO", ippo: "IPPO", ippo_phase_select: "PHASE-SELECT" };
 // Split view's left-hand panel: which baseline to compare the RL controller against.
 const BASELINE_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "fixed_time" || id === "sumo_actuated");
 
@@ -452,7 +455,7 @@ export const ReplayPage: React.FC = () => {
                     onClick={() => setSplitRlController(id)}
                     aria-pressed={splitRlController === id}
                   >
-                    {id.toUpperCase()}
+                    {RL_SHORT_LABELS[id] ?? id.toUpperCase()}
                   </button>
                 ))}
               </div>

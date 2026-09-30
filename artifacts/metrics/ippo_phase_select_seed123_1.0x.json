@@ -1,0 +1,23 @@
+{
+  "controller": "ippo_phase_select",
+  "seed": 123,
+  "demand_id": "1.0x",
+  "total_steps": 720,
+  "episode_duration": 3595.0,
+  "mean_waiting_time": 34.45186400969386,
+  "total_waiting_time": 80261648.0,
+  "mean_queue": 0.5256384623587119,
+  "max_queue": 24.0,
+  "throughput": 0.7022404779686333,
+  "total_arrived": 9403,
+  "total_departed": 13390,
+  "mean_speed": 10.77432978598446,
+  "total_switches": 23834,
+  "cumulative_reward": -626941.6263309577,
+  "source_run_id": "run_20260924_085542_seed42",
+  "total_teleports": 713,
+  "backlog": 4431,
+  "trips_completed": 9403,
+  "mean_trip_duration": 626.2694884611294,
+  "mean_trip_timeloss": 290.0147899606512
+}
