@@ -7,7 +7,6 @@ transitions, enforcing:
   - maximum green time
   - yellow clearance duration
   - all-red clearance duration
-  - minimum red time
 
 The safety layer is fully decoupled from the neural policy and independently
 testable.  The RL policy NEVER directly writes signal states to SUMO —
@@ -15,9 +14,7 @@ all transitions go through this layer.
 """
 from __future__ import annotations
 
-import os
-import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from src.environment.sumo_connection import traci
 
@@ -45,13 +42,16 @@ class SafetyConfig:
     transition phases (its real yellow, and an all-red only where the
     program has one) instead of synthesizing a state string. They remain
     as a defensive floor for the rare degenerate case of a zero-duration
-    transition phase in the source data.
+    transition phase in the source data. They ARE the timing of the
+    synthesized yellow / all-red bridge used by phase-selection jumps.
+
+    (``min_red`` was removed 2026-10: it was documented but never read --
+    rl-core-013d. A YAML ``safety.min_red`` key is simply ignored.)
     """
     min_green: float = 5.0       # seconds — fallback when no per-phase min_dur applies
     max_green: float = 60.0      # seconds — fallback when no per-phase max_dur applies
     yellow_duration: float = 3.0 # seconds — defensive floor, not the primary timing source
     all_red_duration: float = 1.0 # seconds — defensive floor, not the primary timing source
-    min_red: float = 0.0          # seconds (rarely needed)
 
 
 class SafetyLayer:
@@ -80,6 +80,10 @@ class SafetyLayer:
     # always >= 0; -1 already means "not in transition") for a synthesized
     # all-red buffer that has no corresponding entry in spec.phases.
     _SYNTHETIC_ALL_RED = -2
+    # Synthesized yellow: the last displayed state with every G/g link turned
+    # to 'y' (rl-core-001) -- also clears the residual permissive 'g' links that
+    # authored yellow phases keep green.
+    _SYNTHETIC_YELLOW = -3
 
     def __init__(
         self,
@@ -122,7 +126,10 @@ class SafetyLayer:
         """
         for tls_id, state in self._states.items():
             spec = self.specs[tls_id]
-            action = actions.get(tls_id, 0)
+            # rl-core-013a: a TLS missing from `actions` HOLDS in both modes
+            # (it used to be treated as action 0 = "first green phase" in
+            # phase_select mode, forcing every omitted TLS to switch).
+            action = actions.get(tls_id)
             self._step_single(tls_id, spec, state, sim_time, action, dt, mode)
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -135,11 +142,11 @@ class SafetyLayer:
         spec: TLSSpec,
         state: TLSRuntimeState,
         sim_time: float,
-        action: int,
+        action: int | None,
         dt: float,
         mode: str = "binary",
     ) -> None:
-        """State machine for one TLS."""
+        """State machine for one TLS. ``action=None`` means hold."""
 
         current_phase = spec.phases[state.current_phase]
 
@@ -151,6 +158,8 @@ class SafetyLayer:
             state.yellow_elapsed += dt
             if state.transition_display_phase == self._SYNTHETIC_ALL_RED:
                 sub_duration = self.cfg.all_red_duration
+            elif state.transition_display_phase == self._SYNTHETIC_YELLOW:
+                sub_duration = self.cfg.yellow_duration
             else:
                 active = spec.phases[state.transition_display_phase]
                 sub_duration = active.duration if active.duration > 0 else (
@@ -164,7 +173,7 @@ class SafetyLayer:
                 next_idx = state.transition_queue.pop(0)
                 state.transition_display_phase = next_idx
                 state.yellow_elapsed = 0.0
-                self._apply_display_phase(tls_id, spec, next_idx)
+                self._apply_display_phase(tls_id, spec, state, next_idx)
                 return
 
             # Transition complete → switch to target green phase
@@ -174,22 +183,29 @@ class SafetyLayer:
             state.phase_elapsed = 0.0
             state.last_switch_time = sim_time
             state.transition_display_phase = -1
-            self._apply_phase(tls_id, spec, target)
+            self._apply_phase(tls_id, spec, state, target)
             return
 
         # ── Case 2: currently in a stable green/red phase ─────────────────
-        state.phase_elapsed += dt
+        if state.defer_first_tick:
+            state.defer_first_tick = False
+        else:
+            state.phase_elapsed += dt
 
         min_green, max_green = self._green_bounds(current_phase)
 
-        # Force advance if max_green exceeded
+        # Force advance if max_green exceeded -- or, for a STABLE non-green
+        # phase (only possible when the env adopted a yellow/all-red phase as
+        # the starting phase), after one yellow duration: a held non-green
+        # phase would otherwise never be left (no-stuck-state invariant).
         force_advance = (
-            current_phase.is_green
-            and state.phase_elapsed >= max_green
+            current_phase.is_green and state.phase_elapsed >= max_green
+        ) or (
+            not current_phase.is_green and state.phase_elapsed >= self.cfg.yellow_duration
         )
 
         if mode == "phase_select":
-            mapped = spec.action_to_phase_index(action)
+            mapped = spec.action_to_phase_index(action) if action is not None else None
             requested_target = mapped if mapped is not None else state.current_phase
             wants_advance = requested_target != state.current_phase
         else:
@@ -224,7 +240,7 @@ class SafetyLayer:
                     state.yellow_elapsed = 0.0
                     state.transition_queue = queue
                     state.transition_display_phase = first
-                    self._apply_display_phase(tls_id, spec, first)
+                    self._apply_display_phase(tls_id, spec, state, first)
                 else:
                     # Zero-hop: the program's own phase sequence allows a
                     # direct switch between these two green phases with no
@@ -236,7 +252,7 @@ class SafetyLayer:
                     state.current_phase = target
                     state.phase_elapsed = 0.0
                     state.last_switch_time = sim_time
-                    self._apply_phase(tls_id, spec, target)
+                    self._apply_phase(tls_id, spec, state, target)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Per-phase timing / native transition helpers (2026-09-21)
@@ -280,47 +296,101 @@ class SafetyLayer:
         is NOT the immediate next one in the fixed cycle.
 
         Walking the program's own phase sequence (as _build_transition_queue
-        does) isn't safe here — it would pass through, and briefly grant a
+        does) isn't safe here -- it would pass through, and briefly grant a
         real green window to, whichever other green phase(s) sit between
-        current and the target in cycle order. Instead: this TLS's own
-        dedicated yellow (the phase immediately after current_idx, if the
-        program places one there — true for the large majority; see
-        SafetyLayer's module docstring for the 3/303 zero-hop exception)
-        clears current's own movements, then a synthesized all-red buffer
-        (self.cfg.all_red_duration, same floor used elsewhere) — not a
-        native phase — separates it from the target's green. All-red is
-        universally legal for any signal regardless of link count, so this
-        needs no per-TLS data beyond the current phase's own state length.
+        current and the target in cycle order. Instead (rl-core-001 fix):
+
+          1. SYNTHESIZED yellow: the last displayed state with EVERY G/g link
+             mapped to 'y', held for cfg.yellow_duration. This clears the
+             residual permissive 'g' links that authored yellow phases keep
+             green (e.g. "rGgy"), and also covers the 3/303 greens whose
+             successor is not a yellow phase -- no link ever goes green->red
+             without passing through yellow.
+          2. SYNTHESIZED all-red for cfg.all_red_duration, then the target.
+
+        Both strings are derived from the TLS's own last displayed state, so
+        no per-TLS data is needed beyond what was already written to SUMO.
         """
-        n = len(spec.phases)
-        queue: list[int] = []
-        nxt = (current_idx + 1) % n
-        if spec.phases[nxt].is_yellow:
-            queue.append(nxt)
-        queue.append(self._SYNTHETIC_ALL_RED)
-        return queue
+        return [self._SYNTHETIC_YELLOW, self._SYNTHETIC_ALL_RED]
 
     # ──────────────────────────────────────────────────────────────────────────
     # SUMO signal application helpers
     # ──────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _apply_phase(tls_id: str, spec: TLSSpec, phase_idx: int) -> None:
-        """Write a full phase state string to SUMO via TraCI."""
-        state_str = spec.phases[phase_idx].state
+    def yellow_of(state_str: str) -> str:
+        """Every green link (G/g) becomes yellow; r/y/others are unchanged."""
+        return "".join("y" if c in ("G", "g") else c for c in state_str)
+
+    @staticmethod
+    def _write_state(tls_id: str, state: TLSRuntimeState, state_str: str) -> None:
         traci.trafficlight.setRedYellowGreenState(tls_id, state_str)
+        state.displayed_state = state_str
 
     @classmethod
-    def _apply_display_phase(cls, tls_id: str, spec: TLSSpec, phase_idx: int) -> None:
-        """Like _apply_phase, but also handles the synthesized all-red
-        bridge sentinel (_SYNTHETIC_ALL_RED), which has no entry in
-        spec.phases — its state string is built on the fly as all-red,
-        sized to match this TLS's own link count."""
+    def _apply_phase(cls, tls_id: str, spec: TLSSpec, state: TLSRuntimeState, phase_idx: int) -> None:
+        """Write a full authored phase state string to SUMO via TraCI."""
+        cls._write_state(tls_id, state, spec.phases[phase_idx].state)
+
+    @classmethod
+    def _apply_display_phase(
+        cls, tls_id: str, spec: TLSSpec, state: TLSRuntimeState, phase_idx: int
+    ) -> None:
+        """Like _apply_phase, but also handles the synthesized bridge
+        sentinels, which have no entry in spec.phases: all-red is sized to
+        this TLS's own link count; yellow is derived from the last state
+        written to SUMO."""
         if phase_idx == cls._SYNTHETIC_ALL_RED:
             n_links = len(spec.phases[0].state) if spec.phases else 0
-            traci.trafficlight.setRedYellowGreenState(tls_id, "r" * n_links)
+            cls._write_state(tls_id, state, "r" * n_links)
             return
-        cls._apply_phase(tls_id, spec, phase_idx)
+        if phase_idx == cls._SYNTHETIC_YELLOW:
+            last = state.displayed_state or spec.phases[state.current_phase].state
+            cls._write_state(tls_id, state, cls.yellow_of(last))
+            return
+        cls._apply_phase(tls_id, spec, state, phase_idx)
+
+    def displayed_state(self, tls_id: str) -> str:
+        """The signal string SUMO is displaying for this TLS right now
+        (yellow / all-red clearance included -- not the frozen green that
+        TLSRuntimeState.current_phase keeps pointing at during a transition)."""
+        state = self._states[tls_id]
+        if state.displayed_state:
+            return state.displayed_state
+        spec = self.specs[tls_id]
+        return spec.phases[state.current_phase].state if state.current_phase < len(spec.phases) else ""
+
+    def take_over(self, tls_ids: list[str] | None = None) -> None:
+        """Freeze SUMO's native program and make this layer the sole owner of
+        the signals from t0 (rl-core-003 / tests-reliability-005).
+
+        For every TLS: read SUMO's current phase index, adopt it as the
+        believed phase and immediately WRITE that authored state string, which
+        replaces SUMO's own (actuated) program with a held 'online' program.
+        Afterwards displayed == believed at every step until the layer itself
+        switches. Call once, right after traci.start() and before the first
+        simulationStep(); used identically by the RL envs and
+        MaxPressureController so both see the same initial conditions.
+        """
+        for tid, state in self._states.items():
+            if tls_ids is not None and tid not in tls_ids:
+                continue
+            spec = self.specs[tid]
+            if not spec.phases:
+                continue
+            try:
+                phase = int(traci.trafficlight.getPhase(tid))
+            except traci.exceptions.TraCIException:
+                phase = 0
+            if not 0 <= phase < len(spec.phases):
+                phase = 0
+            state.current_phase = phase
+            state.phase_elapsed = 0.0
+            state.defer_first_tick = True
+            state.yellow_pending = False
+            state.transition_queue = []
+            state.transition_display_phase = -1
+            self._apply_phase(tid, spec, state, phase)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Diagnostics

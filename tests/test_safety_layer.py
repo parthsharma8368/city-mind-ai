@@ -389,42 +389,40 @@ class TestSafetyLayerPhaseSelect:
         assert state.transition_display_phase == 1  # native yellow (index 1), not the synthetic sentinel
 
     @patch("src.environment.safety.traci")
-    def test_nonadjacent_jump_uses_yellow_then_synthetic_all_red_bridge(self, mock_traci):
+    def test_nonadjacent_jump_uses_synthetic_yellow_then_all_red_bridge(self, mock_traci):
         """action=2 (this TLS's own 3rd green, native phase index 4) skips
-        over phase 2's green entirely — must never display phase 2's own
-        green state, and must route through current's native yellow (index
-        1) then the synthesized all-red sentinel before landing on phase 4."""
+        over phase 2's green entirely -- must never display phase 2's own
+        green state, and must route through a SYNTHESIZED yellow (every G/g of
+        the current state -> y, rl-core-001) then a synthesized all-red before
+        landing on phase 4."""
         spec = make_three_phase_spec()
         state = make_state(spec.tls_id)
-        cfg = SafetyConfig(min_green=10.0, all_red_duration=2.0)
+        cfg = SafetyConfig(min_green=10.0, yellow_duration=3.0, all_red_duration=2.0)
         layer = SafetyLayer([spec], cfg)
         layer.register_states({spec.tls_id: state})
+        applied_states = []
+        mock_traci.trafficlight.setRedYellowGreenState.side_effect = (
+            lambda tls_id, s: applied_states.append(s)
+        )
 
         state.phase_elapsed = 15.0
         layer.step(sim_time=15.0, actions={spec.tls_id: 2}, dt=1.0, mode="phase_select")
 
         assert state.yellow_pending
         assert state.yellow_target_phase == 4
-        assert state.transition_display_phase == 1  # current's own native yellow first
+        assert state.transition_display_phase == SafetyLayer._SYNTHETIC_YELLOW
         assert state.transition_queue == [SafetyLayer._SYNTHETIC_ALL_RED]
+        assert applied_states == ["yyrrrr"]  # exactly the current green with G->y
 
-        # Walk the rest of the transition and confirm phase 2's green is
-        # never the displayed state, and the applied all-red string is sized
-        # to this TLS's own link count (6, from make_three_phase_spec).
-        applied_states = []
-        mock_traci.trafficlight.setRedYellowGreenState.side_effect = (
-            lambda tls_id, s: applied_states.append(s)
-        )
-
-        layer.step(sim_time=18.0, actions={spec.tls_id: 2}, dt=3.0, mode="phase_select")  # native yellow duration elapses
+        layer.step(sim_time=18.0, actions={spec.tls_id: 2}, dt=3.0, mode="phase_select")  # yellow_duration elapses
         assert state.transition_display_phase == SafetyLayer._SYNTHETIC_ALL_RED
+        assert applied_states[-1] == "rrrrrr"  # sized to this TLS's own link count
 
         layer.step(sim_time=20.0, actions={spec.tls_id: 2}, dt=2.0, mode="phase_select")  # all_red_duration elapses
         assert not state.yellow_pending
         assert state.current_phase == 4
-
-        assert "GG" not in "".join(applied_states[:-1])  # no intervening green ever displayed
-        assert applied_states[-2] == "rrrrrr"  # synthesized all-red, 6 chars
+        assert applied_states == ["yyrrrr", "rrrrrr", "rrrrGG"]
+        assert "rrGGrr" not in applied_states  # intervening green never displayed
 
     @patch("src.environment.safety.traci")
     def test_out_of_range_action_falls_back_to_hold(self, mock_traci):
@@ -474,3 +472,216 @@ class TestSafetyLayerPhaseSelect:
         state.phase_elapsed = 15.0
         layer.step(sim_time=15.0, actions={spec.tls_id: 2}, dt=1.0, mode="phase_select")
         assert state.yellow_pending  # masked-in action accepted as a real switch
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Mutation-killing tests (tests-reliability-002): exact boundaries, exact strings
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _layer(spec, state, cfg=None):
+    layer = SafetyLayer([spec], cfg or SafetyConfig())
+    layer.register_states({spec.tls_id: state})
+    return layer
+
+
+class TestExactBoundaries:
+    @patch("src.environment.safety.traci")
+    def test_min_green_boundary_is_inclusive_to_the_second(self, mock_traci):
+        """Phase 0 has min_dur=10: elapsed 9 -> no switch, elapsed 10 -> switch."""
+        spec, state = make_spec(), make_state()
+        layer = _layer(spec, state)
+        state.phase_elapsed = 8.0
+        layer.step(0.0, {spec.tls_id: 1}, 1.0)          # elapsed becomes 9
+        assert not state.yellow_pending
+        layer.step(1.0, {spec.tls_id: 1}, 1.0)          # elapsed becomes 10 == min_dur
+        assert state.yellow_pending
+        assert state.yellow_target_phase == 2
+
+    @patch("src.environment.safety.traci")
+    def test_max_green_boundary_forces_exactly_at_max(self, mock_traci):
+        spec, state = make_spec(), make_state()          # max_dur=90
+        layer = _layer(spec, state)
+        state.phase_elapsed = 88.0
+        layer.step(0.0, {spec.tls_id: 0}, 1.0)           # 89: below max
+        assert not state.yellow_pending
+        layer.step(1.0, {spec.tls_id: 0}, 1.0)           # 90: forced
+        assert state.yellow_pending
+
+    @patch("src.environment.safety.traci")
+    def test_binary_mode_only_action_one_advances(self, mock_traci):
+        spec, state = make_spec(), make_state()
+        layer = _layer(spec, state)
+        state.phase_elapsed = 20.0
+        for a in (0, 2, 5, -1):
+            layer.step(0.0, {spec.tls_id: a}, 1.0)
+            assert not state.yellow_pending, f"action {a} must not advance in binary mode"
+        layer.step(0.0, {spec.tls_id: 1}, 1.0)
+        assert state.yellow_pending
+
+    @patch("src.environment.safety.traci")
+    def test_exact_strings_written_and_last_switch_time_set(self, mock_traci):
+        spec, state = make_spec(), make_state()
+        layer = _layer(spec, state)
+        written = []
+        mock_traci.trafficlight.setRedYellowGreenState.side_effect = lambda t, s: written.append((t, s))
+        state.phase_elapsed = 20.0
+        layer.step(100.0, {spec.tls_id: 1}, 1.0)         # starts yellow (phase 1)
+        for t in (101.0, 102.0, 103.0):
+            layer.step(t, {spec.tls_id: 1}, 1.0)         # 3 s yellow, then phase 2
+        assert written == [("TLS_1", "yyrr"), ("TLS_1", "rrGG")]
+        assert state.current_phase == 2
+        assert state.last_switch_time == 103.0
+        assert state.phase_elapsed == 0.0
+        assert state.displayed_state == "rrGG"
+
+    @patch("src.environment.safety.traci")
+    def test_writes_the_state_of_the_phase_not_phase_zero(self, mock_traci):
+        spec = make_three_phase_spec()
+        state = make_state(spec.tls_id)
+        layer = _layer(spec, state, SafetyConfig(min_green=1.0))
+        written = []
+        mock_traci.trafficlight.setRedYellowGreenState.side_effect = lambda t, s: written.append(s)
+        state.phase_elapsed = 50.0
+        layer.step(0.0, {spec.tls_id: 1}, 1.0)
+        for t in range(1, 5):
+            layer.step(float(t), {spec.tls_id: 1}, 1.0)
+        assert written[-1] == "rrGGrr"                   # phase 2's string, not phase 0's "GGrrrr"
+
+    @patch("src.environment.safety.traci")
+    def test_synthetic_all_red_actually_lasts_all_red_duration(self, mock_traci):
+        spec = make_three_phase_spec()
+        state = make_state(spec.tls_id)
+        cfg = SafetyConfig(min_green=1.0, yellow_duration=3.0, all_red_duration=4.0)
+        layer = _layer(spec, state, cfg)
+        state.phase_elapsed = 50.0
+        layer.step(0.0, {spec.tls_id: 2}, 1.0, mode="phase_select")
+        layer.step(1.0, {spec.tls_id: 2}, 1.0, mode="phase_select")
+        layer.step(2.0, {spec.tls_id: 2}, 1.0, mode="phase_select")
+        layer.step(3.0, {spec.tls_id: 2}, 1.0, mode="phase_select")      # yellow done -> all-red
+        assert state.transition_display_phase == SafetyLayer._SYNTHETIC_ALL_RED
+        for t in (4.0, 5.0, 6.0):
+            layer.step(t, {spec.tls_id: 2}, 1.0, mode="phase_select")
+            assert state.yellow_pending, "all-red must hold for the full 4 s"
+        layer.step(7.0, {spec.tls_id: 2}, 1.0, mode="phase_select")
+        assert not state.yellow_pending and state.current_phase == 4
+
+
+class TestBridgeYellowNeverSkipped:
+    @patch("src.environment.safety.traci")
+    def test_residual_g_link_goes_through_yellow_before_red(self, mock_traci):
+        """rl-core-001: an authored yellow like 'rGgy'-style keeps a g link green;
+        the bridge must yellow EVERY green link of the displayed state first."""
+        phases = [
+            PhaseSpec(index=0, state="GGrrrrrg", duration=30.0, min_dur=5.0, max_dur=60.0),
+            PhaseSpec(index=1, state="yyrrrrrg", duration=3.0),
+            PhaseSpec(index=2, state="rrGGrrrr", duration=30.0, min_dur=5.0, max_dur=60.0),
+            PhaseSpec(index=3, state="rryyrrrr", duration=3.0),
+            PhaseSpec(index=4, state="rrrrGGrr", duration=30.0, min_dur=5.0, max_dur=60.0),
+            PhaseSpec(index=5, state="rrrryyrr", duration=3.0),
+        ]
+        spec = TLSSpec("T", "0", "actuated", "T", phases, ["l"] * 8)
+        state = TLSRuntimeState(tls_id="T")
+        layer = _layer(spec, state)
+        written = []
+        mock_traci.trafficlight.setRedYellowGreenState.side_effect = lambda t, s: written.append(s)
+        state.displayed_state = "GGrrrrrg"
+        state.phase_elapsed = 30.0
+        layer.step(0.0, {"T": 2}, 1.0, mode="phase_select")
+        assert written == ["yyrrrrry"]                   # the residual 'g' link is yellowed too
+
+    def test_yellow_of_maps_only_green_links(self):
+        assert SafetyLayer.yellow_of("GgrsyuG") == "yyrsyuy"
+
+
+class TestHoldAndOwnership:
+    @patch("src.environment.safety.traci")
+    def test_missing_action_holds_in_phase_select_mode(self, mock_traci):
+        spec = make_three_phase_spec()
+        state = make_state(spec.tls_id)
+        state.current_phase = 2
+        layer = _layer(spec, state)
+        state.phase_elapsed = 50.0
+        layer.step(0.0, {}, 1.0, mode="phase_select")      # TLS omitted entirely
+        assert not state.yellow_pending and state.current_phase == 2
+
+    @patch("src.environment.safety.traci")
+    def test_take_over_writes_believed_phase_and_defers_first_tick(self, mock_traci):
+        spec = make_three_phase_spec()
+        state = TLSRuntimeState(tls_id=spec.tls_id)
+        layer = _layer(spec, state)
+        mock_traci.trafficlight.getPhase.return_value = 2
+        layer.take_over()
+        mock_traci.trafficlight.setRedYellowGreenState.assert_called_once_with(spec.tls_id, "rrGGrr")
+        assert state.current_phase == 2 and state.displayed_state == "rrGGrr"
+        assert layer.displayed_state(spec.tls_id) == "rrGGrr"
+        layer.step(0.0, {}, 1.0)
+        assert state.phase_elapsed == 0.0                  # first step must not count a not-yet-displayed second
+        layer.step(1.0, {}, 1.0)
+        assert state.phase_elapsed == 1.0
+
+    @patch("src.environment.safety.traci")
+    def test_take_over_falls_back_to_phase_zero_on_traci_error(self, mock_traci):
+        import traci.exceptions as texc
+        mock_traci.exceptions.TraCIException = texc.TraCIException
+        mock_traci.trafficlight.getPhase.side_effect = texc.TraCIException("x")
+        spec, state = make_spec(), make_state()
+        _layer(spec, state).take_over()
+        assert state.current_phase == 0 and state.displayed_state == "GGrr"
+
+    @patch("src.environment.safety.traci")
+    def test_displayed_state_during_transition_is_the_clearance_not_the_frozen_green(self, mock_traci):
+        spec, state = make_spec(), make_state()
+        layer = _layer(spec, state)
+        state.phase_elapsed = 20.0
+        layer.step(0.0, {spec.tls_id: 1}, 1.0)
+        assert state.current_phase == 0                    # frozen green...
+        assert layer.displayed_state(spec.tls_id) == "yyrr"  # ...but the junction shows yellow
+
+    @patch("src.environment.safety.traci")
+    def test_stable_non_green_start_phase_is_left_after_yellow_duration(self, mock_traci):
+        spec, state = make_spec(), make_state()
+        state.current_phase = 1                            # authored yellow as the starting phase
+        layer = _layer(spec, state, SafetyConfig(yellow_duration=3.0))
+        layer.step(0.0, {}, 1.0)
+        layer.step(1.0, {}, 1.0)
+        assert state.current_phase == 1                    # elapsed 2 < yellow_duration: still held
+        layer.step(2.0, {}, 1.0)                           # elapsed 3 == yellow_duration: forced out
+        assert state.current_phase == 2
+
+
+class TestPhaseObsVector:
+    def test_one_hot_bounds(self):
+        s = TLSRuntimeState(tls_id="t", current_phase=3, phase_elapsed=7.0)
+        assert s.phase_obs_vector(4) == [0.0, 0.0, 0.0, 1.0, 7.0]
+        s.current_phase = 4                                  # == num_phases: out of range
+        assert s.phase_obs_vector(4) == [0.0, 0.0, 0.0, 0.0, 7.0]
+        s.current_phase = -1
+        assert s.phase_obs_vector(4) == [0.0, 0.0, 0.0, 0.0, 7.0]
+        s.current_phase = 0
+        assert s.phase_obs_vector(4) == [1.0, 0.0, 0.0, 0.0, 7.0]
+
+
+class TestLoader:
+    def test_loader_sorts_by_tls_id_defaults_min_max_to_duration_and_reads_signal_lanes(self, tmp_path):
+        import json
+
+        from src.scenario.tls_metadata import load_tls_specs
+
+        def entry(tid, **kw):
+            e = {"tls_id": tid, "program_id": "0", "type": "static",
+                 "phases": [{"index": 0, "state": "Gr", "duration": 12.0}], "controlled_lanes": ["a", "b"]}
+            e.update(kw)
+            return e
+
+        p = tmp_path / "m.json"
+        p.write_text(json.dumps([entry("zz"), entry("aa", signal_lanes=[["a"], ["b", "c"]])]))
+        specs = load_tls_specs(p)
+        assert [s.tls_id for s in specs] == ["aa", "zz"]
+        ph = specs[0].phases[0]
+        assert (ph.min_dur, ph.max_dur) == (12.0, 12.0)    # default to the nominal duration
+        assert specs[0].junction_id == "aa"
+        assert specs[0].signal_lanes == [["a"], ["b", "c"]]
+        assert specs[0].incoming_lanes_for_signal(1) == ["b", "c"]
+        assert specs[0].incoming_lanes_for_signal(7) == []
+        # legacy metadata (no signal_lanes) falls back to positional lookup
+        assert specs[1].incoming_lanes_for_signal(1) == ["b"]

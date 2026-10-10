@@ -11,11 +11,8 @@ Uses Stable-Baselines3 PPO with:
 """
 from __future__ import annotations
 
-import os
 import time
-import json
 from pathlib import Path
-from typing import Any
 
 import torch
 import yaml
@@ -30,10 +27,16 @@ from stable_baselines3.common.callbacks import (
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
 
+from src.agents.model_contract import (
+    build_artifact,
+    validate_model_contract,
+    write_run_artifacts,
+)
 from src.environment.centralized_sumo_env import CentralizedSumoEnv
-from src.environment.observation import ObservationConfig
+from src.environment.observation import ObservationBuilder, ObservationConfig
 from src.environment.reward import RewardConfig
 from src.environment.safety import SafetyConfig
+from src.scenario.tls_metadata import load_tls_specs
 
 
 def make_env(
@@ -49,11 +52,16 @@ def make_env(
     begin_time: int = 0,
     record_trajectories: bool = False,
     tripinfo_path: str | None = None,
+    seed_mode: str = "fixed",
+    warm_start_seconds: float = 0.0,
 ) -> Monitor:
     """Factory for a single monitored CentralizedSumoEnv.
 
     episode_duration is the ABSOLUTE simulation end-time, not a duration
     relative to begin_time (matches make_ippo_env's convention).
+
+    seed_mode "fixed" (default -- evaluation) keeps ``seed`` for every episode;
+    PPOAgent training passes "per_episode" (rl-core-005).
     """
     sumo_extra_args = ["--begin", str(begin_time), "--end", str(episode_duration)]
     if tripinfo_path:
@@ -74,6 +82,8 @@ def make_env(
         record_trajectories=record_trajectories,
         episode_duration=episode_duration,
         sumo_extra_args=sumo_extra_args,
+        seed_mode=seed_mode,
+        warm_start_seconds=warm_start_seconds,
     )
     return Monitor(env)
 
@@ -125,8 +135,10 @@ class PPOAgent:
 
         self.model: PPO | None = None
         self._run_id = f"run_{time.strftime('%Y%m%d_%H%M%S')}_seed{seed}"
+        # The run directory is created lazily (build_model/train), NOT here:
+        # constructing an agent just to load a model for evaluation used to
+        # leave an empty experiment run behind every time (eval-scripts-14).
         self.run_dir = self.output_dir / self._run_id
-        self.run_dir.mkdir(parents=True, exist_ok=True)
 
     def _build_sub_configs(self):
         """Build typed config objects from YAML dicts."""
@@ -153,6 +165,7 @@ class PPOAgent:
         """Instantiate the PPO model with the configured environment."""
         set_random_seed(self.seed)
         obs_cfg, rwd_cfg, saf_cfg = self._build_sub_configs()
+        self.run_dir.mkdir(parents=True, exist_ok=True)
 
         sumo_cfg_dict = self.env_cfg.get("sumo", {})
         env = make_env(
@@ -166,6 +179,9 @@ class PPOAgent:
             decision_interval=self.env_cfg.get("decision_interval", 5),
             episode_duration=int(sumo_cfg_dict.get("end", 3600)),
             begin_time=int(sumo_cfg_dict.get("begin", 0)),
+            # Training default: a fresh traffic realisation per episode.
+            seed_mode=self.env_cfg.get("seed_mode", "per_episode"),
+            warm_start_seconds=float(sumo_cfg_dict.get("warm_start_seconds", 0.0)),
         )
 
         ppo = self.ppo_cfg
@@ -203,8 +219,18 @@ class PPOAgent:
               f"Act={self.model.action_space}")
         return self.model
 
+    def expected_obs_size(self) -> int:
+        """Observation size the centralized env produces for this TLS metadata
+        (computed without starting SUMO)."""
+        obs_cfg, _, _ = self._build_sub_configs()
+        specs = load_tls_specs(Path(self.tls_metadata_json))
+        return ObservationBuilder(specs, obs_cfg).compute_obs_size()
+
     def train(self) -> PPO:
-        """Run training with callbacks and save artifacts."""
+        """Run training with callbacks and save artifacts.
+
+        config.yaml is written BEFORE learning starts (so a crashed/killed run
+        still has one) and rewritten at the end with the real num_timesteps."""
         if self.model is None:
             self.build_model()
 
@@ -222,51 +248,61 @@ class PPOAgent:
         print(f"\n[PPOAgent] Starting training — {total_timesteps:,} timesteps")
         print(f"[PPOAgent] Run dir: {self.run_dir}\n")
 
-        self.model.learn(
-            total_timesteps=total_timesteps,
-            callback=callbacks,
-            tb_log_name="ppo",
-            progress_bar=True,
-        )
+        self._save_config_artifact(total_timesteps, status="started")
+        try:
+            self.model.learn(
+                total_timesteps=total_timesteps,
+                callback=callbacks,
+                tb_log_name="ppo",
+                progress_bar=True,
+            )
+        except BaseException:
+            self._save_config_artifact(total_timesteps, status="failed")
+            raise
+        finally:
+            # SB3 does not close the env; without this the SUMO child outlives a
+            # failed or finished run.
+            try:
+                self.model.env.close()
+            except Exception as exc:  # noqa: BLE001
+                print(f"[PPOAgent] Warning: env.close() raised {exc!r}")
 
         # Save final model
         model_path = self.run_dir / "model_final.zip"
         self.model.save(str(model_path))
         print(f"\n[PPOAgent] Model saved: {model_path}")
 
-        # Save config artifact
-        self._save_config_artifact(total_timesteps)
+        self._save_config_artifact(total_timesteps, status="finished")
         return self.model
 
-    def _save_config_artifact(self, total_timesteps: int) -> None:
-        """Write config.yaml + metadata to run_dir."""
-        artifact = {
-            "algorithm": "PPO",
-            "seed": self.seed,
-            "total_timesteps": total_timesteps,
-            "device": self.device,
-            "demand_id": self.demand_id,
-            "ppo_config": self.ppo_cfg,
-            "env_config": self.env_cfg,
-        }
-        with open(self.run_dir / "config.yaml", "w") as f:
-            yaml.dump(artifact, f, default_flow_style=False)
-
-        # git commit hash
-        try:
-            import subprocess
-            commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-            ).decode().strip()
-        except Exception:
-            commit = "unknown"
-        (self.run_dir / "git_commit.txt").write_text(commit)
-
-        print(f"[PPOAgent] Config artifact saved: {self.run_dir / 'config.yaml'}")
+    def _save_config_artifact(self, total_timesteps: int, status: str = "finished") -> None:
+        """Write config.yaml (+ git_commit.txt): obs_size, action space, schema
+        versions and git commit included; num_timesteps is the ACTUAL count."""
+        model = self.model
+        artifact = build_artifact(
+            algorithm="PPO",
+            seed=self.seed,
+            device=self.device,
+            demand_id=self.demand_id,
+            ppo_cfg=self.ppo_cfg,
+            env_cfg=self.env_cfg,
+            obs_size=int(model.observation_space.shape[0]) if model is not None else None,
+            action_space=str(model.action_space) if model is not None else None,
+            requested_timesteps=total_timesteps,
+            num_timesteps=int(model.num_timesteps) if model is not None else 0,
+            status=status,
+            extra={"sumo_cfg": self.sumo_cfg, "tls_metadata_json": self.tls_metadata_json,
+                   "seed_mode": self.env_cfg.get("seed_mode", "per_episode")},
+        )
+        write_run_artifacts(self.run_dir, artifact)
+        print(f"[PPOAgent] Config artifact saved ({status}): {self.run_dir / 'config.yaml'}")
 
     def load(self, model_path: str) -> PPO:
-        """Load a saved model for evaluation."""
-        self.model = PPO.load(model_path, device=self.device)
+        """Load a saved model for evaluation. Raises ModelContractError (before
+        any SUMO is started) if its observation space does not match the env."""
+        model = PPO.load(model_path, device=self.device)
+        validate_model_contract(model, self.expected_obs_size(), model_path=model_path)
+        self.model = model
         return self.model
 
     def predict(self, obs: np.ndarray, deterministic: bool = True):

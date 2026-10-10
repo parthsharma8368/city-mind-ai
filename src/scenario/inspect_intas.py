@@ -22,15 +22,14 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-# ── SUMO_HOME guard ──────────────────────────────────────────────────────────
-SUMO_HOME = os.environ.get("SUMO_HOME")
+# ── SUMO_HOME guard (import-safe: resolves the macOS default / PATH sumo) ───
+from src.environment.sumo_connection import resolve_sumo_home  # noqa: E402
+
+SUMO_HOME = resolve_sumo_home()
 if SUMO_HOME is None:
     raise EnvironmentError(
-        "SUMO_HOME is not set. "
-        "On macOS with the .dmg installer, run:\n"
-        "  export SUMO_HOME=/Library/Frameworks/EclipseSUMO.framework/Versions/"
-        "Current/EclipseSUMO/share/sumo\n"
-        "and add it to your shell profile."
+        "SUMO_HOME is not set and no `sumo` binary was found on PATH. "
+        "Export SUMO_HOME to your SUMO installation's share/sumo directory."
     )
 if os.path.join(SUMO_HOME, "tools") not in sys.path:
     sys.path.insert(0, os.path.join(SUMO_HOME, "tools"))
@@ -58,6 +57,8 @@ class TLSInfo:
     phases: list[PhaseInfo] = field(default_factory=list)
     controlled_lanes: list[str] = field(default_factory=list)
     controlled_links: list[list] = field(default_factory=list)
+    # rl-core-007: signal_lanes[i] = incoming lane(s) of signal index i
+    signal_lanes: list[list[str]] = field(default_factory=list)
     junction_id: str = ""
 
 @dataclass
@@ -149,6 +150,38 @@ def parse_sumocfg(cfg_path: Path) -> dict[str, Any]:
 # Network inspection via TraCI (short simulation)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def signal_lanes_from_links(controlled_links) -> list[list[str]]:
+    """traci.trafficlight.getControlledLinks(tid) -> per-signal list of the
+    distinct INCOMING lanes (link tuples are (inLane, outLane, viaLane))."""
+    out: list[list[str]] = []
+    for signal_links in controlled_links:
+        lanes: list[str] = []
+        for link in signal_links:
+            if link and link[0] and link[0] not in lanes:
+                lanes.append(link[0])
+        out.append(lanes)
+    return out
+
+
+def add_signal_lanes_to_metadata(json_path: Path, cfg_path: Path, begin: float = 0.0) -> int:
+    """Additively patch an existing tls_metadata.json with ``signal_lanes``
+    (no other field is touched). Returns the number of TLS patched."""
+    data = json.loads(Path(json_path).read_text())
+    cmd = ["sumo", "--configuration-file", str(cfg_path), "--begin", str(begin),
+           "--end", str(begin + 2), "--no-warnings", "--no-step-log"]
+    traci.start(cmd, label="signal_lanes")
+    try:
+        patched = 0
+        for entry in data:
+            links = traci.trafficlight.getControlledLinks(entry["tls_id"])
+            entry["signal_lanes"] = signal_lanes_from_links(links)
+            patched += 1
+    finally:
+        traci.close()
+    Path(json_path).write_text(json.dumps(data, indent=2, default=str))
+    return patched
+
+
 def inspect_via_traci(cfg: dict[str, Any]) -> tuple[list[TLSInfo], NetworkMetadata]:
     """
     Start SUMO headlessly for one step to interrogate TraCI.
@@ -187,6 +220,7 @@ def inspect_via_traci(cfg: dict[str, Any]) -> tuple[list[TLSInfo], NetworkMetada
                 for i, ph in enumerate(active_logic.phases)
             ]
             controlled_lanes = list(traci.trafficlight.getControlledLanes(tid))
+            signal_lanes = signal_lanes_from_links(traci.trafficlight.getControlledLinks(tid))
             junction_id = ""
             # In SUMO the TLS id often equals the junction id
             all_junctions = traci.junction.getIDList()
@@ -199,6 +233,7 @@ def inspect_via_traci(cfg: dict[str, Any]) -> tuple[list[TLSInfo], NetworkMetada
                 type=str(active_logic.type),
                 phases=phases,
                 controlled_lanes=controlled_lanes,
+                signal_lanes=signal_lanes,
                 junction_id=junction_id,
             ))
 
@@ -290,6 +325,7 @@ def tls_to_dict(t: TLSInfo) -> dict:
         "phase_count": len(t.phases),
         "controlled_lane_count": len(t.controlled_lanes),
         "controlled_lanes": t.controlled_lanes,
+        "signal_lanes": t.signal_lanes,
         "phases": [asdict(ph) for ph in t.phases],
     }
 
@@ -314,7 +350,19 @@ def main() -> None:
         default=Path("artifacts/scenario"),
         help="Directory for metadata JSON outputs",
     )
+    parser.add_argument(
+        "--patch-signal-lanes", type=Path, default=None, metavar="SUMOCFG",
+        help="Only add the per-signal `signal_lanes` field to an existing "
+             "<output-dir>/tls_metadata.json using this .sumocfg, then exit.",
+    )
     args = parser.parse_args()
+
+    if args.patch_signal_lanes is not None:
+        n = add_signal_lanes_to_metadata(
+            args.output_dir.resolve() / "tls_metadata.json", args.patch_signal_lanes.resolve()
+        )
+        print(f"Patched signal_lanes for {n} TLS.")
+        return
 
     scenario_dir = args.scenario_dir.resolve()
     output_dir = args.output_dir.resolve()

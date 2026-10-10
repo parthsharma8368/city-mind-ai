@@ -178,3 +178,64 @@ def test_neglected_pressure_disabled_by_default_is_a_no_op(mock_traci):
     reward, info = calc.compute("A", spec, queue_sum=0.0, switched=False, neglected_pressure=999.0)
     assert reward == 0.0
     assert info["reward/neglected_pressure_component"] == 0.0
+
+
+@patch("src.environment.local_reward.traci")
+def test_reward_clip_bounds_both_directions(mock_traci):
+    import traci.exceptions as texc
+
+    mock_traci.exceptions.TraCIException = texc.TraCIException
+    spec = make_spec("A", ["a_lane"])
+    calc = LocalRewardCalculator(LocalRewardConfig(
+        waiting_delta_weight=0.0, switching_penalty=0.0, spillback_weight=0.0,
+        neglected_pressure_weight=1.0, reward_clip=10.0))
+    calc.reset()
+    mock_traci.vehicle.getIDList.return_value = []
+    calc.refresh_lane_waiting()
+    reward, _ = calc.compute("A", spec, queue_sum=0.0, switched=False, neglected_pressure=500.0)
+    assert reward == -10.0
+    unclipped = LocalRewardCalculator(LocalRewardConfig(
+        waiting_delta_weight=0.0, switching_penalty=0.0, spillback_weight=0.0,
+        neglected_pressure_weight=1.0, reward_clip=None))
+    unclipped.reset()
+    unclipped.refresh_lane_waiting()
+    assert unclipped.compute("A", spec, 0.0, False, neglected_pressure=500.0)[0] == -500.0
+
+
+@patch("src.environment.local_reward.traci")
+def test_refresh_lane_waiting_sums_every_vehicle_on_a_lane(mock_traci):
+    import traci.exceptions as texc
+
+    mock_traci.exceptions.TraCIException = texc.TraCIException
+    mock_traci.vehicle.getIDList.return_value = ["v1", "v2", "v3"]
+    mock_traci.vehicle.getLaneID.side_effect = lambda v: {"v1": "L", "v2": "L", "v3": "M"}[v]
+    mock_traci.vehicle.getWaitingTime.side_effect = lambda v: {"v1": 4.0, "v2": 6.0, "v3": 1.0}[v]
+    calc = LocalRewardCalculator()
+    calc.refresh_lane_waiting()
+    assert calc._lane_waiting == {"L": 10.0, "M": 1.0}      # not just the last vehicle per lane
+    calc.reset()
+    spec = make_spec("A", ["L", "M"])
+    calc.refresh_lane_waiting()
+    calc.compute("A", spec, 0.0, False)                       # baseline
+    mock_traci.vehicle.getWaitingTime.side_effect = lambda v: {"v1": 14.0, "v2": 6.0, "v3": 1.0}[v]
+    calc.refresh_lane_waiting()
+    reward, info = calc.compute("A", spec, 0.0, False)
+    assert info["metrics/local_waiting"] == 21.0
+    assert reward == pytest.approx(-10.0 * 1.0)               # -(21 - 11) * waiting_delta_weight
+
+
+@patch("src.environment.local_reward.traci")
+def test_queue_weight_term_uses_queue_sum(mock_traci):
+    import traci.exceptions as texc
+
+    mock_traci.exceptions.TraCIException = texc.TraCIException
+    mock_traci.vehicle.getIDList.return_value = []
+    spec = make_spec("A", ["a"])
+    calc = LocalRewardCalculator(LocalRewardConfig(
+        waiting_delta_weight=0.0, queue_weight=0.5, switching_penalty=0.0, spillback_weight=0.0))
+    calc.refresh_lane_waiting()
+    reward, info = calc.compute("A", spec, queue_sum=8.0, switched=False)
+    assert reward == -4.0 and info["reward/queue_component"] == -4.0
+
+
+import pytest  # noqa: E402

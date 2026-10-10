@@ -141,20 +141,22 @@ def compute_per_phase_pressure(
         phase = spec.phases[idx]
         p = 0.0
         for i, sig in enumerate(phase.state):
-            if sig not in ("G", "g") or i >= len(spec.controlled_lanes):
+            if sig not in ("G", "g"):
                 continue
-            lane_id = spec.controlled_lanes[i]
-            try:
-                upstream = traci.lane.getLastStepHaltingNumber(lane_id)
-            except traci.exceptions.TraCIException:
-                upstream = 0.0
-            downstream = 0.0
-            for dl in get_downstream_lanes(lane_id, downstream_cache):
+            # rl-core-007: signal index -> its own incoming lane(s)
+            # (spec.signal_lanes), not controlled_lanes[i] (flattened per link).
+            for lane_id in spec.incoming_lanes_for_signal(i):
                 try:
-                    downstream += traci.lane.getLastStepHaltingNumber(dl)
+                    upstream = traci.lane.getLastStepHaltingNumber(lane_id)
                 except traci.exceptions.TraCIException:
-                    pass
-            p += upstream - downstream
+                    upstream = 0.0
+                downstream = 0.0
+                for dl in get_downstream_lanes(lane_id, downstream_cache):
+                    try:
+                        downstream += traci.lane.getLastStepHaltingNumber(dl)
+                    except traci.exceptions.TraCIException:
+                        pass
+                p += upstream - downstream
         pressures.append(p)
     return pressures
 

@@ -95,3 +95,33 @@ def test_obs_shape_stable(mock_traci):
     obs1 = builder.build(states)
     obs2 = builder.build(states)
     assert obs1.shape == obs2.shape, "Observation shape changed between calls"
+
+
+@patch("src.environment.observation.traci")
+def test_obs_exact_values_and_write_back_of_raw_units(mock_traci):
+    """Exact normalized vector for a known lane state (replaces the shape-only
+    check): [one_hot(4), elapsed, queue x2, vcount x2, speed x2, density x2, global x2]."""
+    mock_traci.lane.getLastStepHaltingNumber.side_effect = lambda lid: {"TLS_1_lane_0": 10, "TLS_1_lane_1": 100}[lid]
+    mock_traci.lane.getLastStepVehicleNumber.return_value = 25
+    mock_traci.lane.getLastStepMeanSpeed.side_effect = lambda lid: {"TLS_1_lane_0": 6.95, "TLS_1_lane_1": -1.0}[lid]
+    mock_traci.lane.getLastStepOccupancy.return_value = 40.0
+    mock_traci.vehicle.getIDList.return_value = ["v1", "v2"]
+    mock_traci.vehicle.getWaitingTime.side_effect = lambda v: {"v1": 30.0, "v2": 90.0}[v]
+    mock_traci.exceptions.TraCIException = Exception
+
+    spec = make_simple_spec("TLS_1", n_lanes=2, n_phases=4)
+    state = make_state("TLS_1")             # phase 0, elapsed 10
+    builder = ObservationBuilder([spec], ObservationConfig())
+    obs = builder.build({"TLS_1": state})
+
+    expected = [1, 0, 0, 0, 10 / 120,
+                10 / 50, 1.0,               # queue: clipped at 1
+                25 / 50, 25 / 50,
+                6.95 / 13.9, 0.0,           # negative speed clamped to 0
+                0.4, 0.4,
+                2 / 2000, 120 / 3600]
+    assert obs.dtype == np.float32 and obs.shape == (builder.compute_obs_size(),)
+    np.testing.assert_allclose(obs, expected, rtol=1e-5, atol=1e-6)
+    # shared runtime state keeps RAW units for reward/metrics
+    assert state.lane_queue == [10.0, 100.0] and state.lane_speed == [6.95, -1.0]
+    assert builder.last_step_cache["total_waiting"] == 120.0

@@ -26,13 +26,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.environment.sumo_connection import traci, USING_LIBSUMO
-
-from src.controllers.base import BaseController, ControllerResult
+from src.controllers.base import (
+    BaseController,
+    ControllerResult,
+    append_tls_row,
+    append_vehicle_rows,
+    is_sample_step,
+    result_from_summary,
+)
 from src.environment.metrics import MetricsCollector
-from src.environment.safety import SafetyLayer, SafetyConfig
+from src.environment.safety import SafetyConfig, SafetyLayer
+from src.environment.sumo_args import build_sumo_command
+from src.environment.sumo_connection import USING_LIBSUMO, traci
 from src.evaluation.tripinfo import parse_tripinfo
-from src.scenario.tls_metadata import TLSSpec, TLSRuntimeState, PhaseSpec, load_tls_specs
+from src.scenario.tls_metadata import PhaseSpec, TLSRuntimeState, TLSSpec, load_tls_specs
 
 
 class MaxPressureController(BaseController):
@@ -45,7 +52,8 @@ class MaxPressureController(BaseController):
     based on which side of that choice has higher Varaiya pressure. This is
     still a *decentralized* decision rule, unlike the centralized RL policy,
     but it is now mechanically constrained the same way (same legal
-    transitions, same metrics units) so the comparison is fair.
+    transitions, same metrics definition, same takeover-at-t0 and sampling
+    grid) so the comparison is fair.
     """
 
     def __init__(
@@ -60,7 +68,11 @@ class MaxPressureController(BaseController):
         pressure_margin: float = 0.0,
         sumo_binary: str = "sumo",
         sumo_extra_args: list[str] | None = None,
+        route_steps: int | None = None,
+        teleport_time: float | None = None,
     ) -> None:
+        self.route_steps = route_steps
+        self.teleport_time = teleport_time
         self.decision_interval = decision_interval
         self.step_length = step_length
         self.episode_duration = episode_duration
@@ -87,6 +99,14 @@ class MaxPressureController(BaseController):
     def name(self) -> str:
         return "max_pressure"
 
+    def build_command(self, sumo_cfg: str, seed: int, tripinfo_path: str | None = None) -> list[str]:
+        """The exact SUMO argv (shared builder -- see environment.sumo_args)."""
+        return build_sumo_command(
+            self.sumo_binary, sumo_cfg, step_length=self.step_length, seed=seed,
+            route_steps=self.route_steps, teleport_time=self.teleport_time,
+            tripinfo_output=tripinfo_path, extra_args=self.sumo_extra_args,
+        )
+
     def run_episode(
         self,
         sumo_cfg: str,
@@ -108,40 +128,27 @@ class MaxPressureController(BaseController):
         if tripinfo_path:
             Path(tripinfo_path).parent.mkdir(parents=True, exist_ok=True)
 
-        cmd = [
-            self.sumo_binary,
-            "--configuration-file", sumo_cfg,
-            "--step-length", str(self.step_length),
-            "--no-warnings",
-            "--no-step-log",
-            "--seed", str(seed),
-        ] + (["--tripinfo-output", str(tripinfo_path)] if tripinfo_path else []) + self.sumo_extra_args
-
+        cmd = self.build_command(sumo_cfg, seed, tripinfo_path)
         if USING_LIBSUMO:
             traci.start(cmd)
         else:
             traci.start(cmd, label=f"max_pressure_{seed}_{demand_id}")
 
-        # Sync initial phases from SUMO (same as CentralizedSumoEnv.reset()).
-        for tid, state in runtime_states.items():
-            try:
-                state.current_phase = traci.trafficlight.getPhase(tid)
-            except traci.exceptions.TraCIException:
-                state.current_phase = 0
-            state.phase_elapsed = 0.0
-
         collector = MetricsCollector()
-        collector.reset("max_pressure", seed, demand_id)
-
-        trajectory_rows = []
-        step = 0
-        action_dict: dict[str, int] = {tid: 0 for tid in runtime_states}
-        total_switches_prev = {tid: s.current_phase for tid, s in runtime_states.items()}
+        trajectory_rows: list[dict] = []
         total_switches = 0
-
         try:
+            # Freeze SUMO's native program at t0 and own the signals from the
+            # first step (rl-core-003) -- identical to what the RL envs do.
+            safety.take_over()
+
+            collector.reset("max_pressure", seed, demand_id, sumo_command=cmd)
+
+            step = 0
+            interval_switches = 0
+            action_dict: dict[str, int] = {tid: 0 for tid in runtime_states}
             while traci.simulation.getMinExpectedNumber() > 0:
-                sim_time = traci.simulation.getTime()
+                t_before = traci.simulation.getTime()
 
                 if step % self.decision_interval == 0:
                     action_dict = {
@@ -150,45 +157,37 @@ class MaxPressureController(BaseController):
                     }
 
                 prev_phases = {tid: s.current_phase for tid, s in runtime_states.items()}
-                safety.step(sim_time, action_dict, self.step_length)
+                safety.step(t_before, action_dict, self.step_length)
                 for tid, state in runtime_states.items():
                     if state.current_phase != prev_phases[tid]:
                         total_switches += 1
+                        interval_switches += 1
 
                 traci.simulationStep()
                 collector.tick()
+                # Post-step time: same sampling grid as every other controller
+                # (eval-scripts-14: this loop used to read the time BEFORE
+                # stepping and ran one extra second).
+                sim_time = traci.simulation.getTime()
 
-                if step % self.decision_interval == 0:
-                    # No states= here: this keeps max-pressure on the same raw,
-                    # all-network-lane TraCI query fixed_time.py uses, so mean_queue
-                    # / mean_speed stay on identical units across every controller.
-                    collector.record_step(step, sim_time, 0.0, total_switches)
+                if is_sample_step(step, self.decision_interval):
+                    collector.record_step(step, sim_time, 0.0, interval_switches)
+                    interval_switches = 0
                     if trajectory_path:
-                        for vid in traci.vehicle.getIDList():
-                            x, y = traci.vehicle.getPosition(vid)
-                            spd = traci.vehicle.getSpeed(vid)
-                            trajectory_rows.append({
-                                "time": sim_time, "vehicle_id": vid, "x": x, "y": y, "speed": spd,
-                                "tls_id": None, "phase": None, "tls_state": None,
-                            })
-                        # The safety layer drives signals via raw state strings, so our
-                        # own tracked phase (not traci's program cursor) is authoritative.
+                        append_vehicle_rows(trajectory_rows, sim_time)
+                        # The signal string SUMO is actually displaying (yellow /
+                        # all-red clearance included), not the frozen green.
                         for tid, state in runtime_states.items():
-                            spec = specs_by_id[tid]
-                            phase_idx = state.current_phase
-                            state_str = (
-                                spec.phases[phase_idx].state if phase_idx < len(spec.phases) else ""
+                            append_tls_row(
+                                trajectory_rows, sim_time, tid, state.current_phase,
+                                safety.displayed_state(tid),
                             )
-                            trajectory_rows.append({
-                                "time": sim_time, "vehicle_id": None, "x": None, "y": None, "speed": None,
-                                "tls_id": tid, "phase": phase_idx, "tls_state": state_str,
-                            })
 
                 step += 1
                 if sim_time >= self.episode_duration:
                     break
-        finally:
             collector.record_backlog()
+        finally:
             traci.close()
 
         if trajectory_path and trajectory_rows:
@@ -198,26 +197,9 @@ class MaxPressureController(BaseController):
 
         summary = collector.summarize()
         trip_summary = parse_tripinfo(tripinfo_path) if tripinfo_path else None
-        return ControllerResult(
-            controller="max_pressure",
-            seed=seed,
-            demand_id=demand_id,
-            total_steps=summary.episode_steps,
-            episode_duration=summary.episode_duration,
-            mean_waiting_time=summary.mean_waiting_time,
-            total_waiting_time=summary.total_waiting_time_sum,
-            mean_queue=summary.mean_queue,
-            max_queue=summary.max_queue,
-            throughput=summary.throughput,
-            total_arrived=summary.total_arrived,
-            total_departed=summary.total_departed,
-            mean_speed=summary.mean_speed,
-            total_switches=total_switches,
-            total_teleports=summary.total_teleports,
-            backlog=summary.backlog,
-            trips_completed=trip_summary.trips_completed if trip_summary else 0,
-            mean_trip_duration=trip_summary.mean_trip_duration if trip_summary else 0.0,
-            mean_trip_timeloss=trip_summary.mean_trip_timeloss if trip_summary else 0.0,
+        return result_from_summary(
+            "max_pressure", summary, seed=seed, demand_id=demand_id,
+            total_switches=total_switches, trip_summary=trip_summary, sumo_command=cmd,
         )
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -240,27 +222,30 @@ class MaxPressureController(BaseController):
         """Varaiya pressure: sum over green movements of (upstream - downstream queue)."""
         pressure = 0.0
         for i, sig in enumerate(phase.state):
-            if sig not in ("G", "g") or i >= len(spec.controlled_lanes):
+            if sig not in ("G", "g"):
                 continue
-            lane_id = spec.controlled_lanes[i]
-            try:
-                upstream = traci.lane.getLastStepHaltingNumber(lane_id)
-            except traci.exceptions.TraCIException:
-                upstream = 0.0
-
-            downstream_lanes = downstream_cache.get(lane_id)
-            if downstream_lanes is None:
-                downstream_lanes = self._get_downstream_lanes(lane_id)
-                downstream_cache[lane_id] = downstream_lanes
-
-            downstream = 0.0
-            for dl in downstream_lanes:
+            # rl-core-007: signal index i -> its own incoming lane(s) via
+            # spec.signal_lanes (controlled_lanes is flattened per link and is
+            # NOT indexable by signal for 5 TLS).
+            for lane_id in spec.incoming_lanes_for_signal(i):
                 try:
-                    downstream += traci.lane.getLastStepHaltingNumber(dl)
+                    upstream = traci.lane.getLastStepHaltingNumber(lane_id)
                 except traci.exceptions.TraCIException:
-                    pass
+                    upstream = 0.0
 
-            pressure += upstream - downstream
+                downstream_lanes = downstream_cache.get(lane_id)
+                if downstream_lanes is None:
+                    downstream_lanes = self._get_downstream_lanes(lane_id)
+                    downstream_cache[lane_id] = downstream_lanes
+
+                downstream = 0.0
+                for dl in downstream_lanes:
+                    try:
+                        downstream += traci.lane.getLastStepHaltingNumber(dl)
+                    except traci.exceptions.TraCIException:
+                        pass
+
+                pressure += upstream - downstream
         return pressure
 
     def _decide_action(

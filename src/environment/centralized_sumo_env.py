@@ -13,13 +13,7 @@ Design constraints (from PROJECT_RESEARCH_AND_VISION.md):
 """
 from __future__ import annotations
 
-import os
-import sys
-import time
-import json
-import subprocess
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -34,9 +28,10 @@ from src.environment.action import ActionDecoder
 from src.environment.reward import RewardCalculator, RewardConfig
 from src.environment.safety import SafetyLayer, SafetyConfig
 from src.environment.metrics import MetricsCollector
+from src.environment.sumo_session import SumoSessionMixin, mark_time_limit
 
 
-class CentralizedSumoEnv(gym.Env):
+class CentralizedSumoEnv(SumoSessionMixin, gym.Env):
     """
     Centralized single-agent Gymnasium environment wrapping Eclipse SUMO.
 
@@ -71,6 +66,17 @@ class CentralizedSumoEnv(gym.Env):
         Where to save trajectory Parquet files.
     sumo_extra_args : list[str]
         Extra arguments passed directly to SUMO.
+    seed_mode : "fixed" | "per_episode"
+        "fixed" (default; what evaluation uses) re-uses ``seed`` for every
+        episode. "per_episode" (training) uses ``seed + episode_index`` so the
+        policy sees a new traffic realisation each episode (rl-core-005).
+    warm_start_seconds : float
+        Start SUMO this many seconds before ``--begin`` and run native signals,
+        so the first decision happens in a loaded network. 0 = off.
+    freeze_native_program : bool
+        Take over every TLS at reset (write the believed phase, replacing
+        SUMO's own program) so displayed == believed from t0 (rl-core-003).
+    route_steps, teleport_time : optional SUMO overrides (shared command builder).
     """
 
     metadata = {"render_modes": ["human", "rgb_array"]}
@@ -93,6 +99,11 @@ class CentralizedSumoEnv(gym.Env):
         episode_duration: float = 3600.0,
         sumo_extra_args: list[str] | None = None,
         render_mode: str | None = None,
+        seed_mode: str = "fixed",
+        warm_start_seconds: float = 0.0,
+        freeze_native_program: bool = True,
+        route_steps: int | None = None,
+        teleport_time: float | None = None,
     ) -> None:
         super().__init__()
 
@@ -109,6 +120,12 @@ class CentralizedSumoEnv(gym.Env):
         self.episode_duration = float(episode_duration)
         self.sumo_extra_args = sumo_extra_args or []
         self.render_mode = render_mode
+        self._init_session(
+            seed_mode=seed_mode, warm_start_seconds=warm_start_seconds,
+            freeze_native_program=freeze_native_program, route_steps=route_steps,
+            teleport_time=teleport_time, label_prefix="citymind",
+        )
+        self._sim_running = False
 
         # ── Load TLS specifications ──────────────────────────────────────────
         self.tls_specs: list[TLSSpec] = load_tls_specs(Path(self.tls_metadata_json))
@@ -151,8 +168,7 @@ class CentralizedSumoEnv(gym.Env):
         options: dict | None = None,
     ) -> tuple[np.ndarray, dict]:
         """Start a new episode."""
-        if seed is not None:
-            self._seed = seed
+        self._resolve_episode_seed(seed)
         super().reset(seed=self._seed)
 
         # Close previous simulation if running
@@ -164,11 +180,12 @@ class CentralizedSumoEnv(gym.Env):
         for spec in self.tls_specs:
             self._runtime_states[spec.tls_id] = TLSRuntimeState(tls_id=spec.tls_id)
 
-        # Start SUMO
+        # Start SUMO (shared command builder; optional native warm start; the
+        # native signal program is frozen via SafetyLayer.take_over(), which
+        # also adopts SUMO's current phase as the believed phase).
         self._start_sumo()
-
-        # Initialize TLS phases from SUMO's current state
-        self._sync_tls_phases_from_sumo()
+        if not self.freeze_native_program:
+            self._sync_tls_phases_from_sumo()
 
         # Reset sub-modules
         self.reward_calc.reset()
@@ -176,6 +193,7 @@ class CentralizedSumoEnv(gym.Env):
             controller=self.controller_name,
             seed=self._seed,
             demand_id=self.demand_id,
+            sumo_command=self.last_sumo_command,
         )
 
         self._step_count = 0
@@ -183,7 +201,10 @@ class CentralizedSumoEnv(gym.Env):
         self._trajectory = []
 
         obs = self.obs_builder.build(self._runtime_states)
-        info = {"sim_time": 0.0, "controller": self.controller_name}
+        info = {
+            "sim_time": 0.0, "controller": self.controller_name, "seed": self._seed,
+            "sumo_command": list(self.last_sumo_command),
+        }
         return obs, info
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -223,9 +244,10 @@ class CentralizedSumoEnv(gym.Env):
             traci.simulationStep()
             self.metrics.tick()
 
-            # Record trajectory if needed
+            # Record trajectory if needed (post-step time, post-step vehicles:
+            # the same labelling the baselines use -- rl-core-008)
             if self.record_trajectories:
-                self._record_trajectory_frame(sim_time)
+                self._record_trajectory_frame(traci.simulation.getTime())
 
         self._step_count += 1
         self._switch_count_episode += step_switches
@@ -250,12 +272,11 @@ class CentralizedSumoEnv(gym.Env):
             reward=reward,
             switch_count=step_switches,
             cached_metrics=cache,
-            states=self._runtime_states,
         )
 
-        # 6. Check termination
-        terminated = self._check_terminated(sim_time)
-        truncated = sim_time >= self.episode_duration
+        # 6. Check termination: the time limit is a TRUNCATION (terminated
+        # False) so value bootstrapping is not cut off (rl-core-006).
+        terminated, truncated = self._episode_end_flags(sim_time)
 
         # 7. Build info dict
         info = {
@@ -264,53 +285,18 @@ class CentralizedSumoEnv(gym.Env):
             "switch_count": step_switches,
             **reward_info,
         }
+        mark_time_limit(info, terminated, truncated)
 
         return obs, reward, terminated, truncated, info
 
     # ──────────────────────────────────────────────────────────────────────────
-    # Gymnasium interface: close
+    # SUMO lifecycle: close(), _start_sumo(), _close_sumo(), _check_terminated()
+    # come from SumoSessionMixin (shared with DecentralizedSumoEnv).
     # ──────────────────────────────────────────────────────────────────────────
-
-    def close(self) -> None:
-        if self._sim_running:
-            self._close_sumo()
-
-    # ──────────────────────────────────────────────────────────────────────────
-    # SUMO lifecycle
-    # ──────────────────────────────────────────────────────────────────────────
-
-    def _start_sumo(self) -> None:
-        """Launch SUMO subprocess and connect via TraCI/libsumo."""
-        cmd = [
-            self.sumo_binary,
-            "--configuration-file", self.sumo_cfg,
-            "--step-length", str(self.step_length),
-            "--no-warnings",
-            "--no-step-log",
-            "--seed", str(self._seed),
-        ] + self.sumo_extra_args
-
-        if USING_LIBSUMO:
-            traci.start(cmd)
-        else:
-            traci.start(cmd, label=f"citymind_{self._seed}_{int(time.time())}")
-
-        self._sim_running = True
-
-    def _close_sumo(self) -> None:
-        """Safely close TraCI/libsumo connection."""
-        try:
-            self.metrics.record_backlog()
-        except Exception:
-            pass
-        try:
-            traci.close()
-        except Exception:
-            pass
-        self._sim_running = False
 
     def _sync_tls_phases_from_sumo(self) -> None:
-        """Read initial phase from SUMO for each TLS."""
+        """Legacy (freeze_native_program=False): read initial phase from SUMO
+        for each TLS WITHOUT taking over the signals."""
         for spec in self.tls_specs:
             tid = spec.tls_id
             try:
@@ -320,16 +306,6 @@ class CentralizedSumoEnv(gym.Env):
             state = self._runtime_states[tid]
             state.current_phase = phase
             state.phase_elapsed = 0.0
-
-    def _check_terminated(self, sim_time: float) -> bool:
-        """Episode ends when the simulation time reaches the configured end or minExpected==0."""
-        if sim_time >= self.episode_duration:
-            return True
-        try:
-            min_expected = traci.simulation.getMinExpectedNumber()
-            return min_expected == 0
-        except Exception:
-            return True
 
     # ──────────────────────────────────────────────────────────────────────────
     # Trajectory recording
@@ -351,8 +327,9 @@ class CentralizedSumoEnv(gym.Env):
                 tls_states.append({
                     "id": tid,
                     "phase": state.current_phase,
-                    "state": spec.phases[state.current_phase].state
-                    if state.current_phase < len(spec.phases) else "",
+                    # The string SUMO is DISPLAYING (yellow / all-red included),
+                    # not the frozen green current_phase points at (rl-core-008).
+                    "state": self.safety.displayed_state(tid),
                 })
 
             self._trajectory.append({
@@ -360,8 +337,9 @@ class CentralizedSumoEnv(gym.Env):
                 "vehicles": vehicles,
                 "tls": tls_states,
             })
-        except Exception:
-            pass
+        except traci.exceptions.TraCIException as exc:
+            import logging
+            logging.getLogger(__name__).warning("trajectory frame skipped: %r", exc)
 
     def save_trajectory(self, path: str) -> None:
         """

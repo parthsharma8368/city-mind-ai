@@ -6,16 +6,25 @@ Episode-level metrics collector.
 Collects per-step data and computes episode summaries.
 All metrics use the same SUMO TraCI values regardless of which controller is active
 (fair comparison protocol).
+
+ONE DEFINITION (metrics_schema_version 2 -- see src/environment/schema.py):
+queue/speed are computed by `compute_network_queue_speed()` for EVERY
+controller and environment. Before v2 the RL environments averaged per-lane
+mean speeds (empty lanes report free-flow speed, inflating it ~19%) over a
+per-link-duplicated lane list while the baselines used per-vehicle speeds and
+unique lanes, so RL-vs-baseline mean_speed/mean_queue were not comparable.
 """
 from __future__ import annotations
 
-import os
-import sys
+import logging
 from dataclasses import dataclass, field
 
 import numpy as np
 
+from src.environment.schema import METRICS_SCHEMA_VERSION
 from src.environment.sumo_connection import traci
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -69,8 +78,78 @@ class EpisodeSummary:
     # Reward
     cumulative_reward: float = 0.0
 
+    # Provenance: bump-able definition version + the exact SUMO argv used.
+    metrics_schema_version: int = METRICS_SCHEMA_VERSION
+    sumo_command: list[str] = field(default_factory=list)
+
     # Per-step records (not exported to summary, used for Parquet)
     step_records: list[StepRecord] = field(default_factory=list, repr=False)
+
+
+def unique_controlled_lanes() -> list[str]:
+    """De-duplicated, sorted incoming lanes of every traffic light -- the ONE
+    lane set queue metrics are defined over (falls back to all lanes when the
+    network has no TLS)."""
+    lanes: set[str] = set()
+    for tid in traci.trafficlight.getIDList():
+        lanes.update(traci.trafficlight.getControlledLanes(tid))
+    if not lanes:
+        lanes.update(traci.lane.getIDList())
+    return sorted(lanes)
+
+
+def compute_network_queue_speed(
+    tracked_lanes: list[str], vehicle_ids=None
+) -> tuple[float, float, float, float]:
+    """THE shared queue/speed definition for every controller and env.
+
+    Returns (total_queue, mean_queue, max_queue, mean_speed):
+      * queue values are traci.lane.getLastStepHaltingNumber over the UNIQUE
+        tracked lanes (total = sum, mean/max over lanes);
+      * mean_speed is the mean of traci.vehicle.getSpeed over every vehicle in
+        the network (per-vehicle, so empty lanes cannot inflate it).
+    """
+    lane_queues: list[float] = []
+    for lid in tracked_lanes:
+        try:
+            lane_queues.append(float(traci.lane.getLastStepHaltingNumber(lid)))
+        except traci.exceptions.TraCIException:
+            pass  # lane vanished / not loaded: skip it, like the old baseline path
+    total_q = float(sum(lane_queues))
+    avg_q = float(np.mean(lane_queues)) if lane_queues else 0.0
+    max_q = float(max(lane_queues)) if lane_queues else 0.0
+
+    ids = vehicle_ids if vehicle_ids is not None else traci.vehicle.getIDList()
+    speeds = [traci.vehicle.getSpeed(v) for v in ids]
+    avg_spd = float(np.mean(speeds)) if speeds else 0.0
+    return total_q, avg_q, max_q, avg_spd
+
+
+def is_green_state(state_str: str) -> bool:
+    """Same rule as PhaseSpec.is_green, on a raw RYG state string."""
+    low = state_str.lower()
+    return "g" in low and "y" not in low
+
+
+class GreenSwitchCounter:
+    """Counts LOGICAL switches (the displayed stable green state changing to a
+    different green state) from raw per-step RYG strings, so SUMO-native
+    baselines get a switch count on the same footing as the safety-layer
+    controllers (rl-core-010; they used to hard-code 0)."""
+
+    def __init__(self) -> None:
+        self._last_green: dict[str, str] = {}
+        self.total = 0
+
+    def update(self, tls_id: str, state_str: str) -> bool:
+        if not is_green_state(state_str):
+            return False
+        prev = self._last_green.get(tls_id)
+        self._last_green[tls_id] = state_str
+        if prev is not None and prev != state_str:
+            self.total += 1
+            return True
+        return False
 
 
 class MetricsCollector:
@@ -95,8 +174,12 @@ class MetricsCollector:
         self._pending_arrived: int = 0
         self._pending_teleports: int = 0
         self._backlog: int = 0
+        self._sumo_command: list[str] = []
 
-    def reset(self, controller: str, seed: int, demand_id: str) -> None:
+    def reset(
+        self, controller: str, seed: int, demand_id: str, sumo_command: list[str] | None = None
+    ) -> None:
+        self._sumo_command = list(sumo_command or [])
         self._records = []
         self._controller = controller
         self._seed = seed
@@ -120,20 +203,47 @@ class MetricsCollector:
         interval) but call simulationStep() every raw step were dropping
         (N-1)/N of all departures and arrivals — this accumulator makes
         counting correct regardless of how often record_step() is called.
+
+        Only the expected TraCIException is swallowed (and logged); a dead
+        SUMO (FatalTraCIError) now propagates instead of silently zeroing
+        counts (rl-core-013b).
         """
         try:
-            self._pending_departed += traci.simulation.getDepartedNumber()
-            self._pending_arrived += traci.simulation.getArrivedNumber()
-            self._pending_teleports += traci.simulation.getStartingTeleportNumber()
-        except Exception:
-            pass
+            dep = traci.simulation.getDepartedNumber()
+            arr = traci.simulation.getArrivedNumber()
+            tel = traci.simulation.getStartingTeleportNumber()
+        except traci.exceptions.TraCIException as exc:
+            log.warning("MetricsCollector.tick(): TraCI read failed, counts for this step lost: %r", exc)
+            return
+        self._pending_departed += dep
+        self._pending_arrived += arr
+        self._pending_teleports += tel
 
     def record_backlog(self) -> None:
-        """Call once, right before closing SUMO, to record vehicles still in-network."""
+        """Call once, right before closing SUMO. backlog = vehicles in the
+        network + vehicles waiting for insertion (pending). Independent of the
+        config's --route-steps look-ahead (the old getMinExpectedNumber counted
+        every vehicle already LOADED for the future, which depends on it)."""
         try:
-            self._backlog = traci.simulation.getMinExpectedNumber()
-        except Exception:
+            backlog = len(traci.vehicle.getIDList())
+            try:
+                backlog += len(traci.simulation.getPendingVehicles())
+            except traci.exceptions.TraCIException:
+                pass
+            self._backlog = backlog
+        except traci.exceptions.TraCIException as exc:
+            log.warning("MetricsCollector.record_backlog(): %r", exc)
             self._backlog = 0
+
+    def flush(self) -> None:
+        """Fold counters accumulated after the last record_step() (a final
+        partial interval) into the last record so nothing is dropped."""
+        if self._records and (self._pending_departed or self._pending_arrived):
+            last = self._records[-1]
+            last.departed_vehicles += self._pending_departed
+            last.arrived_vehicles += self._pending_arrived
+            self._pending_departed = 0
+            self._pending_arrived = 0
 
     def record_step(
         self,
@@ -144,21 +254,18 @@ class MetricsCollector:
         cached_metrics: dict | None = None,
         states: dict | None = None,
     ) -> StepRecord:
-        """Read TraCI values (or reuse cached values) and create a step record."""
-        try:
-            # Drain the tick() accumulator rather than calling
-            # getDepartedNumber()/getArrivedNumber() fresh here: those are
-            # "since last call" counters, and tick() is what has been
-            # calling them once per raw simulationStep() in between.
-            departed = self._pending_departed
-            arrived = self._pending_arrived
-            self._pending_departed = 0
-            self._pending_arrived = 0
+        """Read TraCI values (or reuse cached values) and create a step record.
 
+        ``states`` is accepted for backwards compatibility and IGNORED: queue
+        and speed always come from compute_network_queue_speed() so every
+        controller reports the same definition (eval-scripts-2).
+        """
+        try:
             if cached_metrics is not None:
                 n_vehicles = int(cached_metrics.get("total_vehicles", 0))
                 total_wait = float(cached_metrics.get("total_waiting", 0.0))
                 avg_wait = float(cached_metrics.get("avg_waiting", 0.0))
+                vehicle_ids = cached_metrics.get("vehicle_ids") if "vehicle_ids" in cached_metrics else None
             else:
                 vehicle_ids = traci.vehicle.getIDList()
                 n_vehicles = len(vehicle_ids)
@@ -166,43 +273,18 @@ class MetricsCollector:
                 total_wait = sum(waiting_times)
                 avg_wait = float(np.mean(waiting_times)) if waiting_times else 0.0
 
-            if states is not None:
-                all_queues = [q for s in states.values() for q in s.lane_queue]
-                total_q = float(sum(all_queues))
-                avg_q = float(np.mean(all_queues)) if all_queues else 0.0
-                max_q = float(max(all_queues)) if all_queues else 0.0
-
-                all_speeds = [spd for s in states.values() for spd in s.lane_speed if spd >= 0]
-                avg_spd = float(np.mean(all_speeds)) if all_speeds else 0.0
-            else:
-                lane_queues = []
-                if self._tracked_lanes is None:
-                    try:
-                        lanes = set()
-                        for tid in traci.trafficlight.getIDList():
-                            lanes.update(traci.trafficlight.getControlledLanes(tid))
-                        self._tracked_lanes = list(lanes) if lanes else list(traci.lane.getIDList())
-                    except Exception:
-                        self._tracked_lanes = []
-
-                for lid in self._tracked_lanes:
-                    try:
-                        lane_queues.append(traci.lane.getLastStepHaltingNumber(lid))
-                    except Exception:
-                        pass
-                total_q = float(sum(lane_queues))
-                avg_q = float(np.mean(lane_queues)) if lane_queues else 0.0
-                max_q = float(max(lane_queues)) if lane_queues else 0.0
-
-                vehicle_ids = (
-                    cached_metrics.get("vehicle_ids", [])
-                    if cached_metrics and "vehicle_ids" in cached_metrics
-                    else traci.vehicle.getIDList()
-                )
-                speeds = [traci.vehicle.getSpeed(v) for v in vehicle_ids]
-                avg_spd = float(np.mean(speeds)) if speeds else 0.0
-
-        except traci.exceptions.TraCIException:
+            if self._tracked_lanes is None:
+                self._tracked_lanes = unique_controlled_lanes()
+            total_q, avg_q, max_q, avg_spd = compute_network_queue_speed(
+                self._tracked_lanes, vehicle_ids
+            )
+            # Drain the tick() accumulator only AFTER every read succeeded, so
+            # a TraCIException here cannot zero the pending counts.
+            departed, arrived = self._pending_departed, self._pending_arrived
+            self._pending_departed = 0
+            self._pending_arrived = 0
+        except traci.exceptions.TraCIException as exc:
+            log.warning("MetricsCollector.record_step(): TraCI read failed at t=%s: %r", sim_time, exc)
             n_vehicles, departed, arrived = 0, 0, 0
             total_wait, avg_wait = 0.0, 0.0
             total_q, avg_q, max_q = 0.0, 0.0, 0.0
@@ -228,6 +310,7 @@ class MetricsCollector:
 
     def summarize(self) -> EpisodeSummary:
         """Aggregate per-step records into an EpisodeSummary."""
+        self.flush()
         if not self._records:
             return EpisodeSummary(
                 controller=self._controller,
@@ -235,6 +318,7 @@ class MetricsCollector:
                 demand_id=self._demand_id,
                 episode_steps=0,
                 episode_duration=0.0,
+                sumo_command=list(self._sumo_command),
             )
 
         recs = self._records
@@ -263,6 +347,7 @@ class MetricsCollector:
             mean_speed=float(np.mean([r.average_speed for r in recs])),
             total_switches=sum(r.signal_switch_count for r in recs),
             cumulative_reward=sum(r.reward for r in recs),
+            sumo_command=list(self._sumo_command),
             step_records=recs,
         )
         return summary

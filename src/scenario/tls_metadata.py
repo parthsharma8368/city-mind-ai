@@ -72,7 +72,26 @@ class TLSSpec:
     type: str
     junction_id: str
     phases: list[PhaseSpec] = field(default_factory=list)
+    # traci.trafficlight.getControlledLanes(): flattened PER LINK, de-duplication
+    # NOT applied -- length != len(state) for some TLS and index i is NOT
+    # signal i's lane. Use only for lane SETS (observation features, rewards).
     controlled_lanes: list[str] = field(default_factory=list)
+    # rl-core-007: signal_lanes[i] = incoming lane(s) of signal/link index i of
+    # the state strings (from traci.trafficlight.getControlledLinks). Empty for
+    # metadata written before this field existed (legacy fallback below).
+    signal_lanes: list[list[str]] = field(default_factory=list)
+
+    def incoming_lanes_for_signal(self, i: int) -> list[str]:
+        """Distinct incoming lanes controlled by signal index ``i`` of a phase
+        state string. Falls back to the legacy (buggy for 5 TLS) positional
+        lookup only when the metadata has no ``signal_lanes``."""
+        if self.signal_lanes:
+            if 0 <= i < len(self.signal_lanes):
+                return list(dict.fromkeys(self.signal_lanes[i]))
+            return []
+        if 0 <= i < len(self.controlled_lanes):
+            return [self.controlled_lanes[i]]
+        return []
 
     @property
     def green_phase_count(self) -> int:
@@ -137,7 +156,18 @@ class TLSRuntimeState:
     # one phase change per logical switch, whether the program's own
     # sequence needs zero, one, or two intermediate clearance phases.
     transition_display_phase: int = -1
+    # Items are native phase indices (>=0) or SafetyLayer synthetic sentinels (<0).
     transition_queue: list[int] = field(default_factory=list)
+    # The exact signal state string most recently written to SUMO for this TLS
+    # (rl-core-008): what the junction actually DISPLAYS, including yellow /
+    # all-red clearance while current_phase stays frozen at the old green.
+    # Empty until the safety layer first writes (or takes over) the TLS.
+    displayed_state: str = ""
+    # Set by SafetyLayer.take_over(): the believed phase was written at the SAME
+    # sim time as the first layer.step(), so that first step must not count a
+    # second of dwell that has not been displayed yet (otherwise the initial
+    # green would be shown 1 s less than min_green).
+    defer_first_tick: bool = False
 
     # Collected per-step (reset each step)
     lane_queue: list[float] = field(default_factory=list)    # halting vehicles per lane
@@ -184,6 +214,7 @@ def load_tls_specs(json_path: Path) -> list[TLSSpec]:
             junction_id=entry.get("junction_id", entry["tls_id"]),
             phases=phases,
             controlled_lanes=entry.get("controlled_lanes", []),
+            signal_lanes=[list(x) for x in entry.get("signal_lanes", [])],
         ))
 
     specs.sort(key=lambda s: s.tls_id)

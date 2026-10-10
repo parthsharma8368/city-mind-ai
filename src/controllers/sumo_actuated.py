@@ -23,10 +23,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.environment.sumo_connection import traci, USING_LIBSUMO
-
-from src.controllers.base import BaseController, ControllerResult
-from src.environment.metrics import MetricsCollector
+from src.controllers.base import (
+    BaseController,
+    ControllerResult,
+    append_tls_row,
+    append_vehicle_rows,
+    is_sample_step,
+    result_from_summary,
+)
+from src.environment.metrics import GreenSwitchCounter, MetricsCollector
+from src.environment.sumo_args import build_sumo_command
+from src.environment.sumo_connection import USING_LIBSUMO, traci
 from src.evaluation.tripinfo import parse_tripinfo
 
 
@@ -37,6 +44,8 @@ class SumoActuatedController(BaseController):
 
     No TraCI signal commands are issued beyond the initial connection.
     SUMO executes its own programs from the .sumocfg / additional files.
+    total_switches counts logical green-to-green changes of the displayed
+    state (metrics.GreenSwitchCounter) -- it used to be hard-coded to 0.
     """
 
     def __init__(
@@ -45,15 +54,29 @@ class SumoActuatedController(BaseController):
         episode_duration: int = 3600,
         sumo_binary: str = "sumo",
         sumo_extra_args: list[str] | None = None,
+        decision_interval: int = 5,
+        route_steps: int | None = None,
+        teleport_time: float | None = None,
     ) -> None:
         self.step_length = step_length
         self.episode_duration = episode_duration
         self.sumo_binary = sumo_binary
         self.sumo_extra_args = sumo_extra_args or []
+        self.decision_interval = decision_interval
+        self.route_steps = route_steps
+        self.teleport_time = teleport_time
 
     @property
     def name(self) -> str:
         return "sumo_actuated"
+
+    def build_command(self, sumo_cfg: str, seed: int, tripinfo_path: str | None = None) -> list[str]:
+        """The exact SUMO argv (shared builder -- see environment.sumo_args)."""
+        return build_sumo_command(
+            self.sumo_binary, sumo_cfg, step_length=self.step_length, seed=seed,
+            route_steps=self.route_steps, teleport_time=self.teleport_time,
+            tripinfo_output=tripinfo_path, extra_args=self.sumo_extra_args,
+        )
 
     def run_episode(
         self,
@@ -67,42 +90,32 @@ class SumoActuatedController(BaseController):
         if tripinfo_path:
             Path(tripinfo_path).parent.mkdir(parents=True, exist_ok=True)
 
-        cmd = [
-            self.sumo_binary,
-            "--configuration-file", sumo_cfg,
-            "--step-length", str(self.step_length),
-            "--no-warnings",
-            "--no-step-log",
-            "--seed", str(seed),
-        ] + (["--tripinfo-output", str(tripinfo_path)] if tripinfo_path else []) + self.sumo_extra_args
-
+        cmd = self.build_command(sumo_cfg, seed, tripinfo_path)
         if USING_LIBSUMO:
             traci.start(cmd)
         else:
             traci.start(cmd, label=f"sumo_actuated_{seed}")
 
         collector = MetricsCollector()
-        collector.reset("sumo_actuated", seed, demand_id)
-        tls_ids = list(traci.trafficlight.getIDList())
-
-        trajectory_rows = []
-        step = 0
+        switches = GreenSwitchCounter()
+        trajectory_rows: list[dict] = []
         try:
+            collector.reset("sumo_actuated", seed, demand_id, sumo_command=cmd)
+            tls_ids = list(traci.trafficlight.getIDList())
+            step = 0
+            interval_switches = 0
             while traci.simulation.getMinExpectedNumber() > 0:
                 traci.simulationStep()
                 collector.tick()
                 sim_time = traci.simulation.getTime()
-                # Record metrics every 5 seconds (decision_interval)
-                if step % 5 == 0:
-                    collector.record_step(step, sim_time, 0.0, 0)
+                for tid in tls_ids:
+                    if switches.update(tid, traci.trafficlight.getRedYellowGreenState(tid)):
+                        interval_switches += 1
+                if is_sample_step(step, self.decision_interval):
+                    collector.record_step(step, sim_time, 0.0, interval_switches)
+                    interval_switches = 0
                     if trajectory_path:
-                        for vid in traci.vehicle.getIDList():
-                            x, y = traci.vehicle.getPosition(vid)
-                            spd = traci.vehicle.getSpeed(vid)
-                            trajectory_rows.append({
-                                "time": sim_time, "vehicle_id": vid, "x": x, "y": y, "speed": spd,
-                                "tls_id": None, "phase": None, "tls_state": None,
-                            })
+                        append_vehicle_rows(trajectory_rows, sim_time)
                         # SUMO owns these signal programs directly, so
                         # traci's own phase/state is authoritative here.
                         for tid in tls_ids:
@@ -111,15 +124,12 @@ class SumoActuatedController(BaseController):
                                 state_str = traci.trafficlight.getRedYellowGreenState(tid)
                             except traci.exceptions.TraCIException:
                                 continue
-                            trajectory_rows.append({
-                                "time": sim_time, "vehicle_id": None, "x": None, "y": None, "speed": None,
-                                "tls_id": tid, "phase": phase, "tls_state": state_str,
-                            })
+                            append_tls_row(trajectory_rows, sim_time, tid, phase, state_str)
                 step += 1
                 if sim_time >= self.episode_duration:
                     break
-        finally:
             collector.record_backlog()
+        finally:
             traci.close()
 
         if trajectory_path and trajectory_rows:
@@ -129,24 +139,7 @@ class SumoActuatedController(BaseController):
 
         summary = collector.summarize()
         trip_summary = parse_tripinfo(tripinfo_path) if tripinfo_path else None
-        return ControllerResult(
-            controller="sumo_actuated",
-            seed=seed,
-            demand_id=demand_id,
-            total_steps=summary.episode_steps,
-            episode_duration=summary.episode_duration,
-            mean_waiting_time=summary.mean_waiting_time,
-            total_waiting_time=summary.total_waiting_time_sum,
-            mean_queue=summary.mean_queue,
-            max_queue=summary.max_queue,
-            throughput=summary.throughput,
-            total_arrived=summary.total_arrived,
-            total_departed=summary.total_departed,
-            mean_speed=summary.mean_speed,
-            total_switches=0,
-            total_teleports=summary.total_teleports,
-            backlog=summary.backlog,
-            trips_completed=trip_summary.trips_completed if trip_summary else 0,
-            mean_trip_duration=trip_summary.mean_trip_duration if trip_summary else 0.0,
-            mean_trip_timeloss=trip_summary.mean_trip_timeloss if trip_summary else 0.0,
+        return result_from_summary(
+            "sumo_actuated", summary, seed=seed, demand_id=demand_id,
+            total_switches=switches.total, trip_summary=trip_summary, sumo_command=cmd,
         )

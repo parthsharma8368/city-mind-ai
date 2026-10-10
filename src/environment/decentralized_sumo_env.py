@@ -21,15 +21,14 @@ from __future__ import annotations
 
 import functools
 import math
-import time
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 from gymnasium import spaces
 from pettingzoo.utils.env import ParallelEnv
 
-from src.environment.sumo_connection import traci, USING_LIBSUMO
+from src.environment.sumo_connection import traci
+from src.environment.sumo_session import SumoSessionMixin, mark_time_limit
 from src.environment.local_observation import (
     LOCAL_OBS_SIZE,
     N_NEIGHBORS,
@@ -47,7 +46,7 @@ from src.environment.safety import SafetyConfig, SafetyLayer
 from src.scenario.tls_metadata import MAX_GREEN_PHASES, TLSRuntimeState, load_tls_specs
 
 
-class DecentralizedSumoEnv(ParallelEnv):
+class DecentralizedSumoEnv(SumoSessionMixin, ParallelEnv):
     """One agent per TLS, parameter-shared local observation/reward/action."""
 
     metadata = {"name": "citymind_decentralized_v0", "is_parallelizable": True}
@@ -67,7 +66,15 @@ class DecentralizedSumoEnv(ParallelEnv):
         demand_id: str = "1.0x",
         episode_duration: float = 3600.0,
         sumo_extra_args: list[str] | None = None,
+        seed_mode: str = "fixed",
+        warm_start_seconds: float = 0.0,
+        freeze_native_program: bool = True,
+        route_steps: int | None = None,
+        teleport_time: float | None = None,
     ) -> None:
+        """seed_mode "fixed" (default, evaluation) | "per_episode" (training:
+        seed + episode_index, rl-core-005); warm_start_seconds / freeze_native_program
+        / route_steps / teleport_time: see CentralizedSumoEnv and sumo_session.py."""
         self.sumo_cfg = str(Path(sumo_cfg).resolve())
         self.tls_metadata_json = str(Path(tls_metadata_json).resolve())
         self.sumo_binary = sumo_binary
@@ -77,6 +84,11 @@ class DecentralizedSumoEnv(ParallelEnv):
         self.demand_id = demand_id
         self.episode_duration = float(episode_duration)
         self.sumo_extra_args = sumo_extra_args or []
+        self._init_session(
+            seed_mode=seed_mode, warm_start_seconds=warm_start_seconds,
+            freeze_native_program=freeze_native_program, route_steps=route_steps,
+            teleport_time=teleport_time, label_prefix="citymind_ippo",
+        )
 
         self.tls_specs = load_tls_specs(Path(self.tls_metadata_json))
         self.specs_by_id = {s.tls_id: s for s in self.tls_specs}
@@ -135,8 +147,7 @@ class DecentralizedSumoEnv(ParallelEnv):
     def reset(
         self, seed: int | None = None, options: dict | None = None
     ) -> tuple[dict[str, np.ndarray], dict[str, dict]]:
-        if seed is not None:
-            self._seed = seed
+        self._resolve_episode_seed(seed)
         if self._sim_running:
             self._close_sumo()
 
@@ -145,20 +156,34 @@ class DecentralizedSumoEnv(ParallelEnv):
         for spec in self.tls_specs:
             self._runtime_states[spec.tls_id] = TLSRuntimeState(tls_id=spec.tls_id)
 
+        # Shared command builder + native warm start + takeover (freezes SUMO's
+        # own program and adopts its phase as the believed phase). If anything
+        # below fails the SUMO child is closed, never leaked.
         self._start_sumo()
-        if self._neighbor_map is None:
-            self._neighbor_map = self._compute_neighbor_map()
-        for spec in self.tls_specs:
-            tid = spec.tls_id
-            try:
-                phase = traci.trafficlight.getPhase(tid)
-            except traci.exceptions.TraCIException:
-                phase = 0
-            self._runtime_states[tid].current_phase = phase
-            self._runtime_states[tid].phase_elapsed = 0.0
+        try:
+            if self._neighbor_map is None:
+                self._neighbor_map = self._compute_neighbor_map()
+            if not self.freeze_native_program:
+                for spec in self.tls_specs:
+                    tid = spec.tls_id
+                    try:
+                        phase = traci.trafficlight.getPhase(tid)
+                    except traci.exceptions.TraCIException:
+                        phase = 0
+                    self._runtime_states[tid].current_phase = phase
+                    self._runtime_states[tid].phase_elapsed = 0.0
 
+            return self._finish_reset()
+        except BaseException:
+            self._close_sumo()
+            raise
+
+    def _finish_reset(self) -> tuple[dict[str, np.ndarray], dict[str, dict]]:
         self.local_reward.reset()
-        self.metrics.reset(controller="ippo", seed=self._seed, demand_id=self.demand_id)
+        self.metrics.reset(
+            controller="ippo", seed=self._seed, demand_id=self.demand_id,
+            sumo_command=self.last_sumo_command,
+        )
         self._step_count = 0
 
         self.obs_builder.build(self._runtime_states)
@@ -177,7 +202,10 @@ class DecentralizedSumoEnv(ParallelEnv):
             for tid in self.agents
         }
         masks = self.action_masks()
-        infos = {tid: {"action_mask": masks[tid]} for tid in self.agents}
+        infos = {
+            tid: {"action_mask": masks[tid], "seed": self._seed, "sumo_command": self.last_sumo_command}
+            for tid in self.agents
+        }
         return observations, infos
 
     def step(
@@ -208,8 +236,9 @@ class DecentralizedSumoEnv(ParallelEnv):
         own_queue_norms, own_downstream_sums, own_pressures, own_phase_pressures = self._compute_per_tls_aux()
 
         sim_time = traci.simulation.getTime()
-        terminated_all = self._check_terminated(sim_time)
-        truncated_all = sim_time >= self.episode_duration
+        # Time limit => truncated only (terminated False), so GAE bootstraps
+        # from the last state's value (rl-core-006).
+        terminated_all, truncated_all = self._episode_end_flags(sim_time)
         masks = self.action_masks()
 
         observations, rewards, terminations, truncations, infos = {}, {}, {}, {}, {}
@@ -236,6 +265,7 @@ class DecentralizedSumoEnv(ParallelEnv):
                 neglected_pressure=neglected_pressure,
             )
             info["action_mask"] = masks[tid]
+            mark_time_limit(info, terminated_all, truncated_all)
             rewards[tid] = reward
             terminations[tid] = terminated_all
             truncations[tid] = truncated_all
@@ -247,17 +277,12 @@ class DecentralizedSumoEnv(ParallelEnv):
             reward=sum(rewards.values()),
             switch_count=step_switches,
             cached_metrics=cache,
-            states=self._runtime_states,
         )
 
         if terminated_all or truncated_all:
             self.agents = []
 
         return observations, rewards, terminations, truncations, infos
-
-    def close(self) -> None:
-        if self._sim_running:
-            self._close_sumo()
 
     # ──────────────────────────────────────────────────────────────────────
     # Neighbor coordination support (2026-09-20)
@@ -339,40 +364,5 @@ class DecentralizedSumoEnv(ParallelEnv):
             neighbor_map[tid] = [other for _, other in distances[:k]]
         return neighbor_map
 
-    # ──────────────────────────────────────────────────────────────────────
-    # SUMO lifecycle (mirrors CentralizedSumoEnv)
-    # ──────────────────────────────────────────────────────────────────────
-
-    def _start_sumo(self) -> None:
-        cmd = [
-            self.sumo_binary,
-            "--configuration-file", self.sumo_cfg,
-            "--step-length", str(self.step_length),
-            "--no-warnings",
-            "--no-step-log",
-            "--seed", str(self._seed),
-        ] + self.sumo_extra_args
-        if USING_LIBSUMO:
-            traci.start(cmd)
-        else:
-            traci.start(cmd, label=f"citymind_ippo_{self._seed}_{int(time.time())}")
-        self._sim_running = True
-
-    def _close_sumo(self) -> None:
-        try:
-            self.metrics.record_backlog()
-        except Exception:
-            pass
-        try:
-            traci.close()
-        except Exception:
-            pass
-        self._sim_running = False
-
-    def _check_terminated(self, sim_time: float) -> bool:
-        if sim_time >= self.episode_duration:
-            return True
-        try:
-            return traci.simulation.getMinExpectedNumber() == 0
-        except Exception:
-            return True
+    # SUMO lifecycle (close/_start_sumo/_close_sumo/_check_terminated) comes from
+    # SumoSessionMixin, shared with CentralizedSumoEnv.

@@ -179,3 +179,114 @@ def test_compute_per_phase_pressure_matches_max_pressure_controller_convention(m
 
     pressures = compute_per_phase_pressure(spec, {})
     assert pressures == [8.0 - 3.0, 2.0 - 1.0]  # one entry per green phase, cycle order, yellow skipped
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Mutation-killing + signal-lane mapping tests (tests-reliability-002, rl-core-007)
+# ──────────────────────────────────────────────────────────────────────────────
+import traci.exceptions as _texc  # noqa: E402
+
+from src.environment.local_observation import (  # noqa: E402
+    N_NEIGHBORS,
+    compute_downstream_queue_sum,
+    compute_intersection_pressure,
+    compute_mean_queue_norm,
+)
+
+
+def _wire(mock_traci):
+    mock_traci.exceptions.TraCIException = _texc.TraCIException
+
+
+def _state(tid="t", phase=0, elapsed=0.0, q=(1.0,), speed=(5.0,), dens=(0.1,)):
+    s = TLSRuntimeState(tls_id=tid, current_phase=phase, phase_elapsed=elapsed)
+    s.lane_queue, s.lane_speed, s.lane_density = list(q), list(speed), list(dens)
+    return s
+
+
+@patch("src.environment.local_observation.traci")
+def test_neighbors_are_truncated_to_n_neighbors_and_padded(mock_traci):
+    _wire(mock_traci)
+    mock_traci.lane.getLinks.return_value = []
+    spec = make_spec("t", 1, 2)
+    cfg = LocalObservationConfig()
+    obs = build_local_observation(spec, _state(), cfg, {}, 10, 10, neighbor_queue_norms=[0.1, 0.2, 0.9, 0.9])
+    assert N_NEIGHBORS == 2
+    assert (obs[8], obs[9]) == pytest.approx((0.1, 0.2))
+    assert obs[10] == pytest.approx(10 / cfg.max_total_vehicles)    # the 3rd neighbour did not shift anything
+    one = build_local_observation(spec, _state(), cfg, {}, 10, 10, neighbor_queue_norms=[0.4])
+    assert (one[8], one[9]) == pytest.approx((0.4, 0.0))
+
+
+@patch("src.environment.local_observation.traci")
+def test_feature_values_at_documented_indices(mock_traci):
+    """Exact normalization of every own-state feature (kills clamp/sign/sum mutants)."""
+    _wire(mock_traci)
+    mock_traci.lane.getLinks.side_effect = lambda lane: [("d0", 0), ("d1", 0)] if lane == "l0" else []
+    mock_traci.lane.getLastStepHaltingNumber.side_effect = lambda lane: {"d0": 10.0, "d1": 20.0}.get(lane, 0.0)
+    spec = make_spec("t", 2, 5)                       # 5 phases -> progress = phase/(5-1)
+    spec.controlled_lanes = ["l0", "l1"]
+    cfg = LocalObservationConfig()
+    st = _state(phase=3, elapsed=60.0, q=(10.0, 30.0), speed=(6.95, -1.0), dens=(0.2, 0.6))
+    obs = build_local_observation(spec, st, cfg, {}, total_vehicles=1000, total_waiting=1800)
+    assert obs[0] == pytest.approx(60.0 / 120.0)       # phase_elapsed_norm
+    assert obs[1] == pytest.approx(3 / 4)              # phase_progress_norm
+    assert obs[2] == pytest.approx(20.0 / 50.0)        # mean queue
+    assert obs[3] == pytest.approx(30.0 / 50.0)        # max queue
+    assert obs[4] == pytest.approx((6.95 - 1.0) / 2 / 13.9)   # mean speed (negative values averaged, then clamped >= 0)
+    assert obs[5] == pytest.approx(0.4)                # mean density
+    assert obs[6] == pytest.approx(2 / 20.0)           # num lanes
+    assert obs[7] == pytest.approx(15.0 / 50.0)        # downstream = MEAN of (10, 20), not the sum
+    assert obs[10] == pytest.approx(0.5) and obs[11] == pytest.approx(0.5)
+
+
+@patch("src.environment.local_observation.traci")
+def test_pressure_is_upstream_minus_downstream_and_uses_the_whole_queue(mock_traci):
+    _wire(mock_traci)
+    mock_traci.lane.getLinks.side_effect = lambda lane: [("down", 0)] if lane in ("l0", "l1") else []
+    mock_traci.lane.getLastStepHaltingNumber.side_effect = lambda lane: {"down": 4.0}.get(lane, 0.0)
+    spec = make_spec("t", 2, 2)
+    spec.controlled_lanes = ["l0", "l1"]
+    st = _state(q=(3.0, 5.0))
+    # upstream 8 - downstream (4 + 4)  = 0 ;  with an empty downstream it would be +8
+    assert compute_intersection_pressure(spec, st, {}) == pytest.approx(0.0)
+    mock_traci.lane.getLastStepHaltingNumber.side_effect = lambda lane: {"down": 10.0}.get(lane, 0.0)
+    assert compute_intersection_pressure(spec, st, {}) == pytest.approx(8.0 - 20.0)   # negative = spillback risk
+
+
+@patch("src.environment.local_observation.traci")
+def test_lowercase_g_movements_count_for_phase_pressure(mock_traci):
+    _wire(mock_traci)
+    mock_traci.lane.getLinks.return_value = []
+    mock_traci.lane.getLastStepHaltingNumber.side_effect = lambda lane: {"l0": 5.0, "l1": 7.0}[lane]
+    spec = TLSSpec("t", "0", "static", "t", [PhaseSpec(0, "gr", 10.0), PhaseSpec(1, "rG", 10.0)], ["l0", "l1"])
+    assert compute_per_phase_pressure(spec, {}) == [5.0, 7.0]
+
+
+@patch("src.environment.local_observation.traci")
+def test_per_phase_pressure_uses_signal_lanes_not_the_flattened_controlled_lanes(mock_traci):
+    """rl-core-007: controlled_lanes is flattened per LINK, so index i is not signal i.
+    Signal 0 has 2 links (lanes A, A), signal 1 has lane B, signal 2 has lane C."""
+    _wire(mock_traci)
+    mock_traci.lane.getLinks.return_value = []
+    halting = {"A": 1.0, "B": 20.0, "C": 300.0}
+    mock_traci.lane.getLastStepHaltingNumber.side_effect = lambda lane: halting[lane]
+    phases = [PhaseSpec(0, "rGr", 10.0), PhaseSpec(1, "rrG", 10.0)]
+    spec = TLSSpec("t", "0", "static", "t", phases,
+                   controlled_lanes=["A", "A", "B", "C"],           # flattened per link (length 4 != 3)
+                   signal_lanes=[["A"], ["B"], ["C"]])
+    # correct: signal 1 -> B (20), signal 2 -> C (300).  Legacy positional lookup would give A (1) and B (20)... 
+    assert compute_per_phase_pressure(spec, {}) == [20.0, 300.0]
+    legacy = TLSSpec("t", "0", "static", "t", phases, controlled_lanes=["A", "A", "B", "C"])
+    assert compute_per_phase_pressure(legacy, {}) == [1.0, 20.0]     # documents the old (wrong) mapping
+
+
+@patch("src.environment.local_observation.traci")
+def test_mean_queue_norm_and_downstream_sum_edge_cases(mock_traci):
+    _wire(mock_traci)
+    cfg = LocalObservationConfig()
+    assert compute_mean_queue_norm(_state(q=()), cfg) == 0.0
+    assert compute_mean_queue_norm(_state(q=(100.0,)), cfg) == 1.0       # clipped at 1
+    mock_traci.lane.getLinks.return_value = []
+    spec = make_spec("t", 1, 2)
+    assert compute_downstream_queue_sum(spec, {}) == 0.0

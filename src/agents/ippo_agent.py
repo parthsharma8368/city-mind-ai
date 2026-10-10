@@ -24,8 +24,9 @@ from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import VecMonitor
 
+from src.agents.model_contract import build_artifact, validate_model_contract, write_run_artifacts
 from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
-from src.environment.local_observation import LocalObservationConfig
+from src.environment.local_observation import LOCAL_OBS_SIZE, LocalObservationConfig
 from src.environment.local_reward import LocalRewardConfig
 from src.environment.safety import SafetyConfig
 
@@ -42,6 +43,8 @@ def make_ippo_env(
     episode_duration: int = 3600,
     begin_time: int = 0,
     num_vec_envs: int = 1,
+    seed_mode: str = "fixed",
+    warm_start_seconds: float = 0.0,
 ):
     """Build DecentralizedSumoEnv and wrap it as an SB3-compatible VecEnv
     (98 agents x num_vec_envs parallel SUMO instances).
@@ -77,6 +80,8 @@ def make_ippo_env(
         safety_config=safety_config,
         episode_duration=episode_duration,
         sumo_extra_args=["--begin", str(begin_time), "--end", str(episode_duration)],
+        seed_mode=seed_mode,
+        warm_start_seconds=warm_start_seconds,
     )
     vec_env = ss.pettingzoo_env_to_vec_env_v1(env)
     vec_env = ss.concat_vec_envs_v1(
@@ -171,11 +176,13 @@ class IPPOAgent:
 
         self.model: PPO | None = None
         self._run_id = f"run_{time.strftime('%Y%m%d_%H%M%S')}_seed{seed}"
+        # Created lazily in build_model(): constructing an agent only to load a
+        # model must not leave an empty experiment run behind.
         self.run_dir = self.output_dir / self._run_id
-        self.run_dir.mkdir(parents=True, exist_ok=True)
 
     def build_model(self) -> PPO:
         set_random_seed(self.seed)
+        self.run_dir.mkdir(parents=True, exist_ok=True)
         reward_cfg = LocalRewardConfig(
             waiting_delta_weight=self.env_cfg["reward"].get("waiting_delta_weight", 1.0),
             queue_weight=self.env_cfg["reward"].get("queue_weight", 0.0),
@@ -206,6 +213,8 @@ class IPPOAgent:
             episode_duration=end_time,
             begin_time=begin_time,
             num_vec_envs=num_vec_envs,
+            seed_mode=self.env_cfg.get("seed_mode", "per_episode"),
+            warm_start_seconds=float(sumo_cfg_dict.get("warm_start_seconds", 0.0)),
         )
 
         ppo = self.ppo_cfg
@@ -269,45 +278,49 @@ class IPPOAgent:
 
         print(f"\n[IPPOAgent] Starting training — {total_timesteps:,} timesteps "
               f"({total_timesteps // self.model.n_envs:,} real decision steps across {self.model.n_envs} agents)")
-        self.model.learn(total_timesteps=total_timesteps, callback=callbacks, tb_log_name="ippo", progress_bar=True)
-
-        model_path = self.run_dir / "model_final.zip"
-        self.model.save(str(model_path))
-        print(f"\n[IPPOAgent] Model saved: {model_path}")
-        self._save_config_artifact(total_timesteps)
-
-        # Without this, num_vec_envs>1's ProcConcatVec worker subprocesses
-        # (each holding its own SUMO instance) are simply orphaned when this
-        # function returns — SB3 does not close the env on save/exit.
-        # Found live 2026-09-21: a finished 2-instance smoke run's Python
-        # parent and both SUMO children were still alive, idle, minutes
-        # after "Model saved" printed. self.model.env is the VecMonitor
-        # wrapper; .close() propagates through VecMonitor -> SB3VecEnvWrapper
-        # -> ProcConcatVec, which sends each subprocess a shutdown signal.
-        _close_env_with_timeout(self.model.env, timeout=30.0)
+        self._save_config_artifact(total_timesteps, status="started")
+        status = "failed"
+        try:
+            self.model.learn(total_timesteps=total_timesteps, callback=callbacks, tb_log_name="ippo", progress_bar=True)
+            status = "finished"
+            model_path = self.run_dir / "model_final.zip"
+            self.model.save(str(model_path))
+            print(f"\n[IPPOAgent] Model saved: {model_path}")
+        finally:
+            self._save_config_artifact(total_timesteps, status=status)
+            # Without this, num_vec_envs>1's ProcConcatVec worker subprocesses
+            # (each holding its own SUMO instance) are orphaned when this
+            # function returns or raises -- SB3 does not close the env.
+            # self.model.env is the VecMonitor wrapper; .close() propagates
+            # through VecMonitor -> SB3VecEnvWrapper -> ProcConcatVec.
+            _close_env_with_timeout(self.model.env, timeout=30.0)
         return self.model
 
-    def _save_config_artifact(self, total_timesteps: int) -> None:
-        artifact = {
-            "algorithm": "IPPO (parameter-shared)",
-            "seed": self.seed,
-            "total_timesteps": total_timesteps,
-            "device": self.device,
-            "demand_id": self.demand_id,
-            "ppo_config": self.ppo_cfg,
-            "env_config": self.env_cfg,
-        }
-        with open(self.run_dir / "config.yaml", "w") as f:
-            yaml.dump(artifact, f, default_flow_style=False)
-        try:
-            import subprocess
-            commit = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
-        except Exception:
-            commit = "unknown"
-        (self.run_dir / "git_commit.txt").write_text(commit)
+    def _save_config_artifact(self, total_timesteps: int, status: str = "finished") -> None:
+        model = self.model
+        artifact = build_artifact(
+            algorithm="IPPO (parameter-shared)",
+            seed=self.seed,
+            device=self.device,
+            demand_id=self.demand_id,
+            ppo_cfg=self.ppo_cfg,
+            env_cfg=self.env_cfg,
+            obs_size=int(model.observation_space.shape[0]) if model is not None else LOCAL_OBS_SIZE,
+            action_space=str(model.action_space) if model is not None else None,
+            requested_timesteps=total_timesteps,
+            num_timesteps=int(model.num_timesteps) if model is not None else 0,
+            status=status,
+            extra={"local_obs_size": LOCAL_OBS_SIZE, "sumo_cfg": self.sumo_cfg,
+                   "tls_metadata_json": self.tls_metadata_json,
+                   "seed_mode": self.env_cfg.get("seed_mode", "per_episode")},
+        )
+        write_run_artifacts(self.run_dir, artifact)
 
     def load(self, model_path: str) -> PPO:
-        self.model = PPO.load(model_path, device=self.device)
+        """Load a saved model; raises ModelContractError on an obs/action mismatch."""
+        model = PPO.load(model_path, device=self.device)
+        validate_model_contract(model, LOCAL_OBS_SIZE, model_path=model_path)
+        self.model = model
         return self.model
 
     def predict(self, obs, deterministic: bool = True):
