@@ -17,12 +17,10 @@ seeds:
 demand_scales:
   - 1.0
 
+# Non-canonical window: results go to artifacts/metrics/runs/b0_d3600/ (see evaluation.yaml).
 begin_time: 0               # 00:00:00 — historical window, do not use for new results
 episode_duration: 3600
-decision_interval: 5
 
 output_dir: artifacts/metrics
 trajectory_dir: artifacts/trajectories
 report_dir: artifacts/reports
-save_trajectories: true
-trajectory_interval: 1

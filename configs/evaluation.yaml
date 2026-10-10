@@ -1,8 +1,16 @@
 # ─── Evaluation Protocol ─────────────────────────────────────────────────────
-# Only the keys below are actually read by EvaluationRunner
-# (src/evaluation/evaluate.py) — which controllers run and what model paths
-# they use come from run_evaluation.py's own CLI flags (--ppo-model,
-# --ippo-model), not from this file.
+# Keys read by EvaluationRunner (src/evaluation/evaluate.py):
+#   seeds, demand_scales, begin_time, episode_duration   the protocol itself
+#   output_dir, trajectory_dir   defaults, overridden by --output-dir/--trajectory-dir.
+#                                A NON-canonical window (anything but 25200 + 3600) is
+#                                redirected to <dir>/runs/b<begin>_d<duration>/ so it
+#                                cannot replace the published peak-hour artifacts.
+#   report_dir                   comparison plots (run_evaluation.py --plot)
+# Which controllers run and their model paths come from run_evaluation.py's CLI
+# flags (--controllers, --ppo-model, --ippo-model, --phase-select-model), not
+# from this file. The decision interval is a property of each controller/env
+# (decision_interval=5; see environment*.yaml), not read here. Results of a
+# different configuration are never overwritten without --overwrite.
 
 seeds:
   - 42
@@ -24,11 +32,8 @@ demand_scales:
 # original low-traffic window (historical comparison only).
 begin_time: 25200          # 07:00:00
 episode_duration: 3600     # seconds (1 hour)
-decision_interval: 5
 
 # Output
 output_dir: artifacts/metrics
 trajectory_dir: artifacts/trajectories
 report_dir: artifacts/reports
-save_trajectories: true
-trajectory_interval: 1     # record every N simulation seconds

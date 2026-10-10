@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from src.environment.observation import ObservationConfig
 from src.environment.local_observation import LOCAL_OBS_SIZE
-from src.scenario.tls_metadata import TLSSpec, load_tls_specs
+from src.scenario.tls_metadata import MAX_GREEN_PHASES, TLSSpec, load_tls_specs
 
 
 @dataclass
@@ -162,7 +162,12 @@ class XAIExplainer:
         from stable_baselines3 import PPO
 
         self.device = torch.device(device)
-        self.model = PPO.load(model_path, device=self.device)
+        try:
+            self.model = PPO.load(model_path, device=self.device)
+        except Exception:
+            # phase-selection models are MaskablePPO; the logits path is the same
+            from sb3_contrib import MaskablePPO
+            self.model = MaskablePPO.load(model_path, device=self.device)
         self.specs = load_tls_specs(Path(tls_json_path))
         self.tls_ids = [s.tls_id for s in self.specs]
         self.tls_id_to_idx = {tid: i for i, tid in enumerate(self.tls_ids)}
@@ -377,7 +382,7 @@ def plot_top_drivers(explanation: Dict[str, Any], output_path: str) -> None:
     ax.invert_yaxis()
     ax.axvline(0, color="gray", linewidth=0.8, linestyle="--")
     ax.set_xlabel("Integrated Gradients Attribution Score", fontsize=10)
-    ax.set_title(f"Decision Drivers for Junction {explanation['tls_id']}\nAction: {'SWITCH' if explanation['action'] == 1 else 'HOLD'}", fontsize=12, fontweight="bold")
+    ax.set_title(f"Decision Drivers for Junction {explanation['tls_id']}\nAction: {explanation.get('action_label') or ('SWITCH' if explanation['action'] == 1 else 'HOLD')}", fontsize=12, fontweight="bold")
     plt.tight_layout()
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=150)
@@ -433,11 +438,11 @@ def plot_coordination_heatmap(
 # decision back across the whole tensor, then bucket by whose slice each
 # attributed feature belongs to). IPPO's shared policy instead makes 98
 # *independent* forward passes, one per TLS, each fed only that TLS's own
-# fixed 10-dim LocalObservationConfig vector (local_observation.py) - there
+# fixed 18-dim LocalObservationConfig vector (local_observation.py) - there
 # is no cross-TLS gradient path to measure the same way.
 #
 # What IS still meaningful and ports over almost directly is *per-junction*
-# local attribution: which of that TLS's own 10 features drove its own
+# local attribution: which of that TLS's own 18 features drove its own
 # switch/stay decision. That's IPPOExplainer.explain_junction_local below.
 #
 # For network-level coordination, faking a gradient-based matrix IPPO's
@@ -462,6 +467,11 @@ LOCAL_FEATURE_SPECS: List[Tuple[str, str]] = [
     ("total_vehicles_norm", "global"),
     ("total_waiting_norm", "global"),
 ]
+# Per-phase pressure features (local_observation.py appends these LAST, in
+# phase-index order, padded with 0.0 for TLS with fewer green phases).
+# Derived from MAX_GREEN_PHASES so the spec list can't drift from the
+# observation size again (it did when 12 -> 18 dims, breaking this import).
+LOCAL_FEATURE_SPECS += [(f"phase_pressure_norm_{i}", "own") for i in range(MAX_GREEN_PHASES)]
 assert len(LOCAL_FEATURE_SPECS) == LOCAL_OBS_SIZE
 
 
@@ -495,7 +505,7 @@ class IPPOExplainer:
     Explainability engine for CityMind AI's parameter-shared IPPO policy.
 
     Same Integrated-Gradients machinery as XAIExplainer, adapted for a
-    policy that takes one TLS's 10-dim local observation and outputs a
+    policy that takes one TLS's 18-dim local observation and outputs a
     Discrete(2) (stay/switch) decision - see the module comment above for
     what does and doesn't carry over from the centralized case.
     """
@@ -504,7 +514,12 @@ class IPPOExplainer:
         from stable_baselines3 import PPO
 
         self.device = torch.device(device)
-        self.model = PPO.load(model_path, device=self.device)
+        try:
+            self.model = PPO.load(model_path, device=self.device)
+        except Exception:
+            # phase-selection models are MaskablePPO; the logits path is the same
+            from sb3_contrib import MaskablePPO
+            self.model = MaskablePPO.load(model_path, device=self.device)
         self.specs = load_tls_specs(Path(tls_json_path))
         self.tls_ids = [s.tls_id for s in self.specs]
         self.tls_id_to_idx = {tid: i for i, tid in enumerate(self.tls_ids)}
@@ -535,7 +550,13 @@ class IPPOExplainer:
 
         def _target_gap(obs_t: torch.Tensor) -> torch.Tensor:
             logits = self._get_logits(obs_t)
-            return logits[0, 1] - logits[0, 0]
+            if logits.shape[-1] == 2:
+                return logits[0, 1] - logits[0, 0]
+            # N-way head (phase-selection policy): attribute the margin of the
+            # currently-preferred action over the mean of the other logits.
+            top = int(torch.argmax(logits[0]).item())
+            others = torch.cat([logits[0, :top], logits[0, top + 1:]])
+            return logits[0, top] - others.mean()
 
         if method == "input_x_gradient":
             obs_t = torch.tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -564,7 +585,7 @@ class IPPOExplainer:
         method: str = "integrated_gradients",
     ) -> Dict[str, Any]:
         """Same output shape as XAIExplainer.explain_junction, computed from
-        this one TLS's own 10-dim local observation."""
+        this one TLS's own 18-dim local observation."""
         if tls_id not in self.tls_id_to_idx:
             raise ValueError(f"Unknown TLS ID: {tls_id}")
         tls_idx = self.tls_id_to_idx[tls_id]
@@ -573,8 +594,14 @@ class IPPOExplainer:
         obs_t = torch.tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         with torch.no_grad():
             logits = self._get_logits(obs_t)[0]
-            prob_switch = torch.softmax(logits, dim=-1)[1].item()
-            action = int(prob_switch >= 0.5)
+            probs = torch.softmax(logits, dim=-1)
+            n_actions = int(probs.shape[-1])
+            if n_actions == 2:
+                prob_switch = probs[1].item()
+                action = int(prob_switch >= 0.5)
+            else:  # phase-selection head: action = index of the green phase to select
+                action = int(torch.argmax(probs).item())
+                prob_switch = probs[action].item()
 
         attributions = self.attribute_local(obs, method=method)
 
@@ -607,8 +634,12 @@ class IPPOExplainer:
         global_attr = sum(abs(float(v)) for i, v in enumerate(attributions) if descriptors[i].group == "global")
         total_influence = max(own_attr + neighbor_attr + global_attr, 1e-6)
 
-        action_verb = "SWITCH to the next phase" if action == 1 else "HOLD the current green phase"
-        confidence = prob_switch if action == 1 else (1.0 - prob_switch)
+        if n_actions == 2:
+            action_verb = "SWITCH to the next phase" if action == 1 else "HOLD the current green phase"
+            confidence = prob_switch if action == 1 else (1.0 - prob_switch)
+        else:
+            action_verb = f"SELECT green phase {action}"
+            confidence = prob_switch
 
         primary_drivers = []
         if top_positive:
@@ -633,6 +664,7 @@ class IPPOExplainer:
             "tls_id": tls_id,
             "tls_index": tls_idx,
             "action": action,
+            "action_label": "SWITCH" if (n_actions == 2 and action == 1) else ("HOLD" if n_actions == 2 else f"PHASE {action}"),
             "switch_probability": float(prob_switch),
             "narrative": narrative,
             "local_influence_pct": float(round(own_attr / total_influence * 100, 1)),

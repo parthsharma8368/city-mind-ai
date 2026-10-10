@@ -1,16 +1,14 @@
-# Quick/smoke-test evaluation protocol — only the keys below are actually
-# read by EvaluationRunner (src/evaluation/evaluate.py); see evaluation.yaml.
+# Quick/smoke-test evaluation protocol — see evaluation.yaml for the keys read
+# by EvaluationRunner. This window is non-canonical, so results are redirected to
+# artifacts/metrics/runs/b0_d1800/ (never the published peak-hour artifacts).
 # No begin_time set -> defaults to 0 (midnight): intentional here, purely
 # for a fast sanity check (low traffic = short episodes), NOT a result to
 # report. Use evaluation.yaml (peak hour) for anything that gets reported.
-decision_interval: 5
 demand_scales:
 - 1.0
 episode_duration: 1800
 output_dir: artifacts/metrics
 report_dir: artifacts/reports
-save_trajectories: true
 seeds:
 - 42
 trajectory_dir: artifacts/trajectories
-trajectory_interval: 1

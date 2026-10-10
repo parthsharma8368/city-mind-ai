@@ -20,25 +20,12 @@ sumo:
   # no more room for learning to matter in that window.
   begin: 25200            # 07:00:00
   end: 28800               # 08:00:00 (1-hour episode)
-  no_warnings: true
-  lateral_resolution: 0.0
 
 # ─── RL Decision Frequency ───────────────────────────────────────────────────
 decision_interval: 5     # RL acts every N simulation seconds
 
 # ─── Observation ─────────────────────────────────────────────────────────────
 observation:
-  lane_features:
-    - queue_length        # number of halting vehicles
-    - vehicle_count       # total vehicles on lane
-    - mean_speed          # average speed (m/s)
-    - density             # occupancy [0,1]
-  signal_features:
-    - phase_index         # current phase (int, one-hot encoded)
-    - phase_elapsed       # seconds in current phase
-  global_features:
-    - total_vehicles      # all vehicles in network
-    - total_waiting_time  # sum across all vehicles
   normalize: true
   max_lane_vehicles: 50   # normalization cap
   max_speed: 13.9         # 50 km/h in m/s
@@ -106,6 +93,4 @@ reward:
   # switching_penalty: 0.3
 
 # ─── Episode Termination ─────────────────────────────────────────────────────
-termination:
-  max_steps: null         # null = use sumo end time
-  on_collision: false
+# Episode end = sumo.end (time-limit TRUNCATION) or an empty network; no max_steps/on_collision knobs exist.

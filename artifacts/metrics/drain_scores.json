@@ -1,0 +1,4171 @@
+{
+  "drain_protocol": "drain-v1",
+  "metrics_schema_version": 2,
+  "source_metrics_schema_versions": [
+    1
+  ],
+  "window": [
+    25200.0,
+    28800.0
+  ],
+  "scenario_sumocfg": "data/raw/intas/scenario/InTAS_train.sumocfg",
+  "scheduled": {
+    "cars": 14942,
+    "zero_length_cars": 1864,
+    "buses": 121
+  },
+  "ff_calibration": {
+    "a": 0.9877174633263874,
+    "c": 13.038266572183339,
+    "n": 8658,
+    "r2": 0.9480372372576161,
+    "mae": 12.111774440145387,
+    "source": "fitted on 8658 stored trips"
+  },
+  "summary": [
+    {
+      "controller": "sumo_actuated",
+      "lag_mean": 276.7175316280251,
+      "lag_sd": 1.0553969471069422,
+      "due_mean": 0.8400743840074384,
+      "cars_nz_mean": 9653.0,
+      "never_ins_mean": 539.0,
+      "tele_mean": 7.666666666666667,
+      "tl_nz_mean": 337.642400384241,
+      "n_seeds": 3
+    },
+    {
+      "controller": "fixed_time",
+      "lag_mean": 296.0389522321388,
+      "lag_sd": 6.819772733681452,
+      "due_mean": 0.8273768014876802,
+      "cars_nz_mean": 9508.333333333334,
+      "never_ins_mean": 465.6666666666667,
+      "tele_mean": 7.666666666666667,
+      "tl_nz_mean": 358.8607652753878,
+      "n_seeds": 3
+    },
+    {
+      "controller": "max_pressure",
+      "lag_mean": 407.307970212775,
+      "lag_sd": 5.381149589333697,
+      "due_mean": 0.737738261273826,
+      "cars_nz_mean": 8480.0,
+      "never_ins_mean": 1318.3333333333333,
+      "tele_mean": 50.333333333333336,
+      "tl_nz_mean": 415.3067516152044,
+      "n_seeds": 3
+    },
+    {
+      "controller": "ppo",
+      "lag_mean": 485.2442348806017,
+      "lag_sd": 2.9760044976129074,
+      "due_mean": 0.6627731287773129,
+      "cars_nz_mean": 7620.333333333333,
+      "never_ins_mean": 1818.6666666666667,
+      "tele_mean": 19.0,
+      "tl_nz_mean": 438.3229343169434,
+      "n_seeds": 3
+    },
+    {
+      "controller": "ippo",
+      "lag_mean": 477.4416649435116,
+      "lag_sd": 7.444984625027175,
+      "due_mean": 0.6607391910739191,
+      "cars_nz_mean": 7597.0,
+      "never_ins_mean": 1875.0,
+      "tele_mean": 10.0,
+      "tl_nz_mean": 430.3760552612367,
+      "n_seeds": 3
+    },
+    {
+      "controller": "ippo_phase_select",
+      "lag_mean": 501.10313373394575,
+      "lag_sd": 2.7650688320465115,
+      "due_mean": 0.6563516968851697,
+      "cars_nz_mean": 7543.666666666667,
+      "never_ins_mean": 1657.6666666666667,
+      "tele_mean": 712.6666666666666,
+      "tl_nz_mean": 360.15877733320985,
+      "n_seeds": 3
+    }
+  ],
+  "paired_vs_baseline": {
+    "lag_per_scheduled_car_s": [
+      {
+        "controller": "fixed_time",
+        "baseline": "sumo_actuated",
+        "metric": "lag_per_scheduled_car_s",
+        "n_seeds": 3,
+        "mean_diff": 19.321420604113694,
+        "per_seed_diffs": [
+          13.87980190068265,
+          26.068933208405838,
+          18.01552670325259
+        ],
+        "sd_diff": 6.198608688202463,
+        "t_ci_lo": 3.923223001366713,
+        "t_ci_hi": 34.71961820686067,
+        "boot_ci_lo": 13.87980190068265,
+        "boot_ci_hi": 26.068933208405838,
+        "boot_reliable": false,
+        "mde_80pct_power": 20.232528705859774,
+        "exceeds_mde": false
+      },
+      {
+        "controller": "ippo",
+        "baseline": "sumo_actuated",
+        "metric": "lag_per_scheduled_car_s",
+        "n_seeds": 3,
+        "mean_diff": 200.7241333154865,
+        "per_seed_diffs": [
+          200.64609824655332,
+          208.44364877526436,
+          193.08265292464193
+        ],
+        "sd_diff": 7.680795237779578,
+        "t_ci_lo": 181.64398020908592,
+        "t_ci_hi": 219.8042864218871,
+        "boot_ci_lo": 193.08265292464193,
+        "boot_ci_hi": 208.44364877526436,
+        "boot_reliable": false,
+        "mde_80pct_power": 25.070450152463394,
+        "exceeds_mde": true
+      },
+      {
+        "controller": "ippo_phase_select",
+        "baseline": "sumo_actuated",
+        "metric": "lag_per_scheduled_car_s",
+        "n_seeds": 3,
+        "mean_diff": 224.38560210592064,
+        "per_seed_diffs": [
+          224.82211216704593,
+          227.17333690269038,
+          221.1613572480257
+        ],
+        "sd_diff": 3.029666750176199,
+        "t_ci_lo": 216.85949267777187,
+        "t_ci_hi": 231.9117115340694,
+        "boot_ci_lo": 221.16135724802567,
+        "boot_ci_hi": 227.17333690269038,
+        "boot_reliable": false,
+        "mde_80pct_power": 9.888964213662055,
+        "exceeds_mde": true
+      },
+      {
+        "controller": "max_pressure",
+        "baseline": "sumo_actuated",
+        "metric": "lag_per_scheduled_car_s",
+        "n_seeds": 3,
+        "mean_diff": 130.59043858474993,
+        "per_seed_diffs": [
+          130.27091420157944,
+          136.28938562441442,
+          125.2110159282559
+        ],
+        "sd_diff": 5.546092377049917,
+        "t_ci_lo": 116.8131813580692,
+        "t_ci_hi": 144.36769581143065,
+        "boot_ci_lo": 125.2110159282559,
+        "boot_ci_hi": 136.28938562441442,
+        "boot_reliable": false,
+        "mde_80pct_power": 18.10268704936636,
+        "exceeds_mde": true
+      },
+      {
+        "controller": "ppo",
+        "baseline": "sumo_actuated",
+        "metric": "lag_per_scheduled_car_s",
+        "n_seeds": 3,
+        "mean_diff": 208.5267032525766,
+        "per_seed_diffs": [
+          211.02509704189532,
+          210.33342256726007,
+          204.22159014857448
+        ],
+        "sd_diff": 3.744342735835454,
+        "t_ci_lo": 199.22524025676935,
+        "t_ci_hi": 217.82816624838384,
+        "boot_ci_lo": 204.22159014857448,
+        "boot_ci_hi": 211.0250970418953,
+        "boot_reliable": false,
+        "mde_80pct_power": 12.221697754780726,
+        "exceeds_mde": true
+      }
+    ],
+    "due_completion_ratio": [
+      {
+        "controller": "fixed_time",
+        "baseline": "sumo_actuated",
+        "metric": "due_completion_ratio",
+        "n_seeds": 3,
+        "mean_diff": -0.012697582519758202,
+        "per_seed_diffs": [
+          -0.008455369595536943,
+          -0.0177824267782426,
+          -0.011854951185495066
+        ],
+        "sd_diff": 0.004720277491469844,
+        "t_ci_lo": -0.02442340184624469,
+        "t_ci_hi": -0.0009717631932717151,
+        "boot_ci_lo": -0.0177824267782426,
+        "boot_ci_hi": -0.008455369595536943,
+        "boot_reliable": false,
+        "mde_80pct_power": 0.01540719129884006,
+        "exceeds_mde": false
+      },
+      {
+        "controller": "ippo",
+        "baseline": "sumo_actuated",
+        "metric": "due_completion_ratio",
+        "n_seeds": 3,
+        "mean_diff": -0.1793351929335193,
+        "per_seed_diffs": [
+          -0.1806136680613668,
+          -0.18758716875871684,
+          -0.16980474198047424
+        ],
+        "sd_diff": 0.008959885575178034,
+        "t_ci_lo": -0.20159278258378685,
+        "t_ci_hi": -0.15707760328325174,
+        "boot_ci_lo": -0.18758716875871684,
+        "boot_ci_hi": -0.16980474198047424,
+        "boot_reliable": false,
+        "mde_80pct_power": 0.02924545671773617,
+        "exceeds_mde": true
+      },
+      {
+        "controller": "ippo_phase_select",
+        "baseline": "sumo_actuated",
+        "metric": "due_completion_ratio",
+        "n_seeds": 3,
+        "mean_diff": -0.1837226871222687,
+        "per_seed_diffs": [
+          -0.18723849372384938,
+          -0.1875,
+          -0.1764295676429567
+        ],
+        "sd_diff": 0.00631738000976327,
+        "t_ci_lo": -0.1994159290439793,
+        "t_ci_hi": -0.16802944520055807,
+        "boot_ci_lo": -0.1875,
+        "boot_ci_hi": -0.1764295676429567,
+        "boot_reliable": false,
+        "mde_80pct_power": 0.02062020347189002,
+        "exceeds_mde": true
+      },
+      {
+        "controller": "max_pressure",
+        "baseline": "sumo_actuated",
+        "metric": "due_completion_ratio",
+        "n_seeds": 3,
+        "mean_diff": -0.1023361227336123,
+        "per_seed_diffs": [
+          -0.0988493723849373,
+          -0.10896094839609483,
+          -0.09919804741980476
+        ],
+        "sd_diff": 0.005739915492731605,
+        "t_ci_lo": -0.11659486327136685,
+        "t_ci_hi": -0.08807738219585774,
+        "boot_ci_lo": -0.10896094839609483,
+        "boot_ci_hi": -0.0988493723849373,
+        "boot_reliable": false,
+        "mde_80pct_power": 0.018735334139890494,
+        "exceeds_mde": true
+      },
+      {
+        "controller": "ppo",
+        "baseline": "sumo_actuated",
+        "metric": "due_completion_ratio",
+        "n_seeds": 3,
+        "mean_diff": -0.17730125523012552,
+        "per_seed_diffs": [
+          -0.17895746164574622,
+          -0.18174686192468614,
+          -0.1711994421199442
+        ],
+        "sd_diff": 0.005465279581386757,
+        "t_ci_lo": -0.19087776234350742,
+        "t_ci_hi": -0.16372474811674362,
+        "boot_ci_lo": -0.18174686192468614,
+        "boot_ci_hi": -0.1711994421199442,
+        "boot_reliable": false,
+        "mde_80pct_power": 0.017838910564948563,
+        "exceeds_mde": true
+      }
+    ]
+  },
+  "runs": [
+    {
+      "controller": "fixed_time",
+      "seed": 123,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 11313,
+      "cars_completed_nonzero": 9452,
+      "zero_len_completed": 1861,
+      "due_nz_n": 11472,
+      "due_nz_completed": 9437,
+      "due_completion_ratio": 0.8226115760111576,
+      "lag_per_scheduled_car_s": 303.0547020202082,
+      "lag_per_due_nz_car_s": 394.2361713376875,
+      "lag_area_veh_h": 1257.8453771072086,
+      "overdue_cars": 2038,
+      "mean_timeloss_cars_nonzero": 365.52582417582414,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 383.830663567202,
+      "mean_depart_delay_cars": 15.384248210023866,
+      "completed_veh_km": 59682.45581,
+      "tripinfo_rows": 11396,
+      "tripinfo_zero_length_rows": 1849,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 14628,
+      "never_inserted": 435,
+      "backlog": 3566,
+      "teleports": 8,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 898,
+          "completion_ratio": 0.7708154506437769,
+          "due_nz": 1039,
+          "due_completed": 898,
+          "mean_depart_delay_completed_s": 15.518930957683741,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 132,
+          "completion_ratio": 0.8,
+          "due_nz": 149,
+          "due_completed": 132,
+          "mean_depart_delay_completed_s": 1.0833333333333333,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 106,
+          "completion_ratio": 0.726027397260274,
+          "due_nz": 134,
+          "due_completed": 106,
+          "mean_depart_delay_completed_s": 136.41509433962264,
+          "completed_at_cap": 2
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 778,
+          "completion_ratio": 0.48383084577114427,
+          "due_nz": 1378,
+          "due_completed": 778,
+          "mean_depart_delay_completed_s": 178.90231362467867,
+          "completed_at_cap": 85
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 781,
+          "completion_ratio": 0.8282078472958643,
+          "due_nz": 835,
+          "due_completed": 775,
+          "mean_depart_delay_completed_s": 0.17285531370038412,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 627,
+          "completion_ratio": 0.8038461538461539,
+          "due_nz": 690,
+          "due_completed": 625,
+          "mean_depart_delay_completed_s": 0.2727272727272727,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 518,
+          "completion_ratio": 0.6727272727272727,
+          "due_nz": 672,
+          "due_completed": 518,
+          "mean_depart_delay_completed_s": 0.5984555984555985,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 557,
+          "completion_ratio": 0.7319316688567674,
+          "due_nz": 661,
+          "due_completed": 556,
+          "mean_depart_delay_completed_s": 0.696588868940754,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 350,
+          "completion_ratio": 0.7142857142857143,
+          "due_nz": 431,
+          "due_completed": 347,
+          "mean_depart_delay_completed_s": 0.38571428571428573,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 363,
+          "completion_ratio": 0.7707006369426752,
+          "due_nz": 417,
+          "due_completed": 363,
+          "mean_depart_delay_completed_s": 0.4022038567493113,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 305,
+          "completion_ratio": 0.7475490196078431,
+          "due_nz": 368,
+          "due_completed": 305,
+          "mean_depart_delay_completed_s": 7.413114754098361,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 222,
+          "completion_ratio": 0.6049046321525886,
+          "due_nz": 298,
+          "due_completed": 222,
+          "mean_depart_delay_completed_s": 0.22522522522522523,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2326,
+          "completion_share": 0.9961456102783726
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 2247,
+          "completion_share": 0.9619006849315068
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1947,
+          "completion_share": 0.9013888888888889
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1708,
+          "completion_share": 0.7933116581514166
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 951,
+          "completion_share": 0.4612027158098933
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 273,
+          "completion_share": 0.1343503937007874
+        }
+      ]
+    },
+    {
+      "controller": "fixed_time",
+      "seed": 42,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 11438,
+      "cars_completed_nonzero": 9577,
+      "zero_len_completed": 1861,
+      "due_nz_n": 11472,
+      "due_nz_completed": 9560,
+      "due_completion_ratio": 0.8333333333333334,
+      "lag_per_scheduled_car_s": 289.4337008155502,
+      "lag_per_due_nz_car_s": 376.48312043113236,
+      "lag_area_veh_h": 1201.3106548849864,
+      "overdue_cars": 1915,
+      "mean_timeloss_cars_nonzero": 352.09559065790853,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 371.0052976749036,
+      "mean_depart_delay_cars": 15.902955062073788,
+      "completed_veh_km": 60723.384770000004,
+      "tripinfo_rows": 11523,
+      "tripinfo_zero_length_rows": 1847,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 14566,
+      "never_inserted": 497,
+      "backlog": 3372,
+      "teleports": 5,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 912,
+          "completion_ratio": 0.7828326180257511,
+          "due_nz": 1039,
+          "due_completed": 912,
+          "mean_depart_delay_completed_s": 15.911184210526315,
+          "completed_at_cap": 0,
+          "inserted": 1165,
+          "never_inserted": 0
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 133,
+          "completion_ratio": 0.806060606060606,
+          "due_nz": 149,
+          "due_completed": 133,
+          "mean_depart_delay_completed_s": 1.150375939849624,
+          "completed_at_cap": 0,
+          "inserted": 164,
+          "never_inserted": 1
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 105,
+          "completion_ratio": 0.7191780821917808,
+          "due_nz": 134,
+          "due_completed": 103,
+          "mean_depart_delay_completed_s": 144.71428571428572,
+          "completed_at_cap": 0,
+          "inserted": 129,
+          "never_inserted": 17
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 756,
+          "completion_ratio": 0.4701492537313433,
+          "due_nz": 1378,
+          "due_completed": 756,
+          "mean_depart_delay_completed_s": 193.18783068783068,
+          "completed_at_cap": 106,
+          "inserted": 1150,
+          "never_inserted": 458
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 769,
+          "completion_ratio": 0.8154825026511134,
+          "due_nz": 835,
+          "due_completed": 762,
+          "mean_depart_delay_completed_s": 0.1625487646293888,
+          "completed_at_cap": 0,
+          "inserted": 941,
+          "never_inserted": 2
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 627,
+          "completion_ratio": 0.8038461538461539,
+          "due_nz": 690,
+          "due_completed": 625,
+          "mean_depart_delay_completed_s": 0.3014354066985646,
+          "completed_at_cap": 0,
+          "inserted": 779,
+          "never_inserted": 1
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 536,
+          "completion_ratio": 0.6961038961038961,
+          "due_nz": 672,
+          "due_completed": 536,
+          "mean_depart_delay_completed_s": 0.6305970149253731,
+          "completed_at_cap": 0,
+          "inserted": 770,
+          "never_inserted": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 579,
+          "completion_ratio": 0.7608409986859396,
+          "due_nz": 661,
+          "due_completed": 578,
+          "mean_depart_delay_completed_s": 0.7253886010362695,
+          "completed_at_cap": 0,
+          "inserted": 761,
+          "never_inserted": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 351,
+          "completion_ratio": 0.7163265306122449,
+          "due_nz": 431,
+          "due_completed": 348,
+          "mean_depart_delay_completed_s": 0.3646723646723647,
+          "completed_at_cap": 0,
+          "inserted": 489,
+          "never_inserted": 1
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 367,
+          "completion_ratio": 0.7791932059447984,
+          "due_nz": 417,
+          "due_completed": 367,
+          "mean_depart_delay_completed_s": 0.3651226158038147,
+          "completed_at_cap": 0,
+          "inserted": 471,
+          "never_inserted": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 324,
+          "completion_ratio": 0.7941176470588235,
+          "due_nz": 368,
+          "due_completed": 324,
+          "mean_depart_delay_completed_s": 7.271604938271605,
+          "completed_at_cap": 0,
+          "inserted": 407,
+          "never_inserted": 1
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 224,
+          "completion_ratio": 0.6103542234332425,
+          "due_nz": 298,
+          "due_completed": 224,
+          "mean_depart_delay_completed_s": 0.23214285714285715,
+          "completed_at_cap": 0,
+          "inserted": 364,
+          "never_inserted": 3
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2318,
+          "completion_share": 0.9927194860813704
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 2230,
+          "completion_share": 0.9546232876712328
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 2028,
+          "completion_share": 0.9388888888888889
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1750,
+          "completion_share": 0.8128193218764515
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 974,
+          "completion_share": 0.472356935014549
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 277,
+          "completion_share": 0.13631889763779528
+        }
+      ]
+    },
+    {
+      "controller": "fixed_time",
+      "seed": 777,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 11357,
+      "cars_completed_nonzero": 9496,
+      "zero_len_completed": 1861,
+      "due_nz_n": 11472,
+      "due_nz_completed": 9478,
+      "due_completion_ratio": 0.8261854951185496,
+      "lag_per_scheduled_car_s": 295.62845386065794,
+      "lag_per_due_nz_car_s": 384.55015320658566,
+      "lag_area_veh_h": 1227.022321551653,
+      "overdue_cars": 1997,
+      "mean_timeloss_cars_nonzero": 358.96088099243065,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 376.6596825063079,
+      "mean_depart_delay_cars": 14.90736990402395,
+      "completed_veh_km": 60123.72431,
+      "tripinfo_rows": 11442,
+      "tripinfo_zero_length_rows": 1845,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 14598,
+      "never_inserted": 465,
+      "backlog": 3479,
+      "teleports": 10,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 862,
+          "completion_ratio": 0.7399141630901288,
+          "due_nz": 1039,
+          "due_completed": 862,
+          "mean_depart_delay_completed_s": 16.27726218097448,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 128,
+          "completion_ratio": 0.7757575757575758,
+          "due_nz": 149,
+          "due_completed": 128,
+          "mean_depart_delay_completed_s": 1.28125,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 99,
+          "completion_ratio": 0.678082191780822,
+          "due_nz": 134,
+          "due_completed": 99,
+          "mean_depart_delay_completed_s": 104.6969696969697,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 760,
+          "completion_ratio": 0.472636815920398,
+          "due_nz": 1378,
+          "due_completed": 760,
+          "mean_depart_delay_completed_s": 181.84605263157894,
+          "completed_at_cap": 110
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 772,
+          "completion_ratio": 0.8186638388123012,
+          "due_nz": 835,
+          "due_completed": 765,
+          "mean_depart_delay_completed_s": 0.16321243523316062,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 629,
+          "completion_ratio": 0.8064102564102564,
+          "due_nz": 690,
+          "due_completed": 628,
+          "mean_depart_delay_completed_s": 0.28139904610492844,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 530,
+          "completion_ratio": 0.6883116883116883,
+          "due_nz": 672,
+          "due_completed": 530,
+          "mean_depart_delay_completed_s": 0.6226415094339622,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 570,
+          "completion_ratio": 0.7490144546649146,
+          "due_nz": 661,
+          "due_completed": 569,
+          "mean_depart_delay_completed_s": 0.724561403508772,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 357,
+          "completion_ratio": 0.7285714285714285,
+          "due_nz": 431,
+          "due_completed": 353,
+          "mean_depart_delay_completed_s": 0.35014005602240894,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 363,
+          "completion_ratio": 0.7707006369426752,
+          "due_nz": 417,
+          "due_completed": 363,
+          "mean_depart_delay_completed_s": 0.36363636363636365,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 321,
+          "completion_ratio": 0.7867647058823529,
+          "due_nz": 368,
+          "due_completed": 320,
+          "mean_depart_delay_completed_s": 6.087227414330218,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 236,
+          "completion_ratio": 0.6430517711171662,
+          "due_nz": 298,
+          "due_completed": 236,
+          "mean_depart_delay_completed_s": 0.2542372881355932,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2325,
+          "completion_share": 0.9957173447537473
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 2265,
+          "completion_share": 0.9696061643835616
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1965,
+          "completion_share": 0.9097222222222222
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1696,
+          "completion_share": 0.7877380399442638
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 948,
+          "completion_share": 0.4597478176527643
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 297,
+          "completion_share": 0.14616141732283464
+        }
+      ]
+    },
+    {
+      "controller": "ippo_phase_select",
+      "seed": 123,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9357,
+      "cars_completed_nonzero": 7504,
+      "zero_len_completed": 1853,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7490,
+      "due_completion_ratio": 0.6528940027894002,
+      "lag_per_scheduled_car_s": 504.15910571449274,
+      "lag_per_due_nz_car_s": 654.757266177297,
+      "lag_area_veh_h": 2092.5403771072088,
+      "overdue_cars": 3993,
+      "mean_timeloss_cars_nonzero": 358.57577967003726,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 379.8857849920171,
+      "mean_depart_delay_cars": 17.315592604467245,
+      "completed_veh_km": 49233.57963,
+      "tripinfo_rows": 9403,
+      "tripinfo_zero_length_rows": 1841,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13390,
+      "never_inserted": 1673,
+      "backlog": 4431,
+      "teleports": 713,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 58,
+          "completion_ratio": 0.04978540772532189,
+          "due_nz": 1039,
+          "due_completed": 58,
+          "mean_depart_delay_completed_s": 2.103448275862069,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 11,
+          "completion_ratio": 0.06666666666666667,
+          "due_nz": 149,
+          "due_completed": 11,
+          "mean_depart_delay_completed_s": 0.36363636363636365,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 9,
+          "completion_ratio": 0.06164383561643835,
+          "due_nz": 134,
+          "due_completed": 9,
+          "mean_depart_delay_completed_s": 82.77777777777777,
+          "completed_at_cap": 1
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 743,
+          "completion_ratio": 0.4620646766169154,
+          "due_nz": 1378,
+          "due_completed": 743,
+          "mean_depart_delay_completed_s": 189.9179004037685,
+          "completed_at_cap": 105
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 616,
+          "completion_ratio": 0.6532343584305408,
+          "due_nz": 835,
+          "due_completed": 610,
+          "mean_depart_delay_completed_s": 0.032467532467532464,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 539,
+          "completion_ratio": 0.691025641025641,
+          "due_nz": 690,
+          "due_completed": 537,
+          "mean_depart_delay_completed_s": 0.28385899814471244,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 541,
+          "completion_ratio": 0.7025974025974026,
+          "due_nz": 672,
+          "due_completed": 541,
+          "mean_depart_delay_completed_s": 0.5619223659889094,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 566,
+          "completion_ratio": 0.7437582128777924,
+          "due_nz": 661,
+          "due_completed": 565,
+          "mean_depart_delay_completed_s": 0.676678445229682,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 364,
+          "completion_ratio": 0.7428571428571429,
+          "due_nz": 431,
+          "due_completed": 361,
+          "mean_depart_delay_completed_s": 0.36538461538461536,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 310,
+          "completion_ratio": 0.6581740976645435,
+          "due_nz": 417,
+          "due_completed": 310,
+          "mean_depart_delay_completed_s": 0.33225806451612905,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 304,
+          "completion_ratio": 0.7450980392156863,
+          "due_nz": 368,
+          "due_completed": 304,
+          "mean_depart_delay_completed_s": 48.88486842105263,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 200,
+          "completion_ratio": 0.5449591280653951,
+          "due_nz": 298,
+          "due_completed": 200,
+          "mean_depart_delay_completed_s": 0.27,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 1884,
+          "completion_share": 0.8068522483940043
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1712,
+          "completion_share": 0.7328767123287672
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1514,
+          "completion_share": 0.700925925925926
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1396,
+          "completion_share": 0.6483975847654435
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 770,
+          "completion_share": 0.3734238603297769
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 228,
+          "completion_share": 0.11220472440944881
+        }
+      ]
+    },
+    {
+      "controller": "ippo_phase_select",
+      "seed": 42,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9377,
+      "cars_completed_nonzero": 7523,
+      "zero_len_completed": 1854,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7509,
+      "due_completion_ratio": 0.6545502092050209,
+      "lag_per_scheduled_car_s": 500.3760110819135,
+      "lag_per_due_nz_car_s": 650.0654949081198,
+      "lag_area_veh_h": 2076.8384326627643,
+      "overdue_cars": 3973,
+      "mean_timeloss_cars_nonzero": 359.6322741143691,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 381.64527663526604,
+      "mean_depart_delay_cars": 17.766983043617362,
+      "completed_veh_km": 49316.28449,
+      "tripinfo_rows": 9422,
+      "tripinfo_zero_length_rows": 1840,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13413,
+      "never_inserted": 1650,
+      "backlog": 4450,
+      "teleports": 721,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 80,
+          "completion_ratio": 0.06866952789699571,
+          "due_nz": 1039,
+          "due_completed": 80,
+          "mean_depart_delay_completed_s": 22.025,
+          "completed_at_cap": 4,
+          "inserted": 197,
+          "never_inserted": 968
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 11,
+          "completion_ratio": 0.06666666666666667,
+          "due_nz": 149,
+          "due_completed": 11,
+          "mean_depart_delay_completed_s": 0.09090909090909091,
+          "completed_at_cap": 0,
+          "inserted": 15,
+          "never_inserted": 150
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 8,
+          "completion_ratio": 0.0547945205479452,
+          "due_nz": 134,
+          "due_completed": 8,
+          "mean_depart_delay_completed_s": 142.625,
+          "completed_at_cap": 0,
+          "inserted": 13,
+          "never_inserted": 133
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 763,
+          "completion_ratio": 0.47450248756218905,
+          "due_nz": 1378,
+          "due_completed": 763,
+          "mean_depart_delay_completed_s": 196.59633027522935,
+          "completed_at_cap": 110,
+          "inserted": 1268,
+          "never_inserted": 340
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 598,
+          "completion_ratio": 0.6341463414634146,
+          "due_nz": 835,
+          "due_completed": 591,
+          "mean_depart_delay_completed_s": 0.04013377926421405,
+          "completed_at_cap": 0,
+          "inserted": 943,
+          "never_inserted": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 537,
+          "completion_ratio": 0.6884615384615385,
+          "due_nz": 690,
+          "due_completed": 535,
+          "mean_depart_delay_completed_s": 0.3463687150837989,
+          "completed_at_cap": 0,
+          "inserted": 780,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 534,
+          "completion_ratio": 0.6935064935064935,
+          "due_nz": 672,
+          "due_completed": 534,
+          "mean_depart_delay_completed_s": 0.6104868913857678,
+          "completed_at_cap": 0,
+          "inserted": 770,
+          "never_inserted": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 566,
+          "completion_ratio": 0.7437582128777924,
+          "due_nz": 661,
+          "due_completed": 565,
+          "mean_depart_delay_completed_s": 0.6855123674911661,
+          "completed_at_cap": 0,
+          "inserted": 761,
+          "never_inserted": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 362,
+          "completion_ratio": 0.7387755102040816,
+          "due_nz": 431,
+          "due_completed": 360,
+          "mean_depart_delay_completed_s": 0.3701657458563536,
+          "completed_at_cap": 0,
+          "inserted": 490,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 302,
+          "completion_ratio": 0.6411889596602972,
+          "due_nz": 417,
+          "due_completed": 302,
+          "mean_depart_delay_completed_s": 0.33774834437086093,
+          "completed_at_cap": 0,
+          "inserted": 471,
+          "never_inserted": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 301,
+          "completion_ratio": 0.7377450980392157,
+          "due_nz": 368,
+          "due_completed": 301,
+          "mean_depart_delay_completed_s": 33.352159468438536,
+          "completed_at_cap": 0,
+          "inserted": 408,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 217,
+          "completion_ratio": 0.5912806539509536,
+          "due_nz": 298,
+          "due_completed": 217,
+          "mean_depart_delay_completed_s": 0.25806451612903225,
+          "completed_at_cap": 0,
+          "inserted": 365,
+          "never_inserted": 2
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 1889,
+          "completion_share": 0.8089935760171306
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1734,
+          "completion_share": 0.7422945205479452
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1532,
+          "completion_share": 0.7092592592592593
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1366,
+          "completion_share": 0.6344635392475615
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 774,
+          "completion_share": 0.37536372453928224
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 228,
+          "completion_share": 0.11220472440944881
+        }
+      ]
+    },
+    {
+      "controller": "ippo_phase_select",
+      "seed": 777,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9455,
+      "cars_completed_nonzero": 7604,
+      "zero_len_completed": 1851,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7590,
+      "due_completion_ratio": 0.6616108786610879,
+      "lag_per_scheduled_car_s": 498.77428440543105,
+      "lag_per_due_nz_car_s": 647.4824230810626,
+      "lag_area_veh_h": 2070.1903771072084,
+      "overdue_cars": 3895,
+      "mean_timeloss_cars_nonzero": 362.26827821522306,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 384.50804199475067,
+      "mean_depart_delay_cars": 17.991010047593864,
+      "completed_veh_km": 50201.99694,
+      "tripinfo_rows": 9499,
+      "tripinfo_zero_length_rows": 1835,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13413,
+      "never_inserted": 1650,
+      "backlog": 4379,
+      "teleports": 704,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 72,
+          "completion_ratio": 0.061802575107296136,
+          "due_nz": 1039,
+          "due_completed": 72,
+          "mean_depart_delay_completed_s": 1.625,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 10,
+          "completion_ratio": 0.06060606060606061,
+          "due_nz": 149,
+          "due_completed": 10,
+          "mean_depart_delay_completed_s": 0.9,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 10,
+          "completion_ratio": 0.0684931506849315,
+          "due_nz": 134,
+          "due_completed": 10,
+          "mean_depart_delay_completed_s": 71.6,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 792,
+          "completion_ratio": 0.4925373134328358,
+          "due_nz": 1378,
+          "due_completed": 792,
+          "mean_depart_delay_completed_s": 200.81313131313132,
+          "completed_at_cap": 112
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 620,
+          "completion_ratio": 0.6574761399787911,
+          "due_nz": 835,
+          "due_completed": 614,
+          "mean_depart_delay_completed_s": 0.035483870967741936,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 558,
+          "completion_ratio": 0.7153846153846154,
+          "due_nz": 690,
+          "due_completed": 557,
+          "mean_depart_delay_completed_s": 0.3387096774193548,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 546,
+          "completion_ratio": 0.7090909090909091,
+          "due_nz": 672,
+          "due_completed": 546,
+          "mean_depart_delay_completed_s": 0.6025641025641025,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 574,
+          "completion_ratio": 0.7542706964520368,
+          "due_nz": 661,
+          "due_completed": 573,
+          "mean_depart_delay_completed_s": 0.686411149825784,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 361,
+          "completion_ratio": 0.736734693877551,
+          "due_nz": 431,
+          "due_completed": 357,
+          "mean_depart_delay_completed_s": 0.33518005540166207,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 296,
+          "completion_ratio": 0.6284501061571125,
+          "due_nz": 417,
+          "due_completed": 296,
+          "mean_depart_delay_completed_s": 0.3141891891891892,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 295,
+          "completion_ratio": 0.7230392156862745,
+          "due_nz": 368,
+          "due_completed": 295,
+          "mean_depart_delay_completed_s": 21.440677966101696,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 222,
+          "completion_ratio": 0.6049046321525886,
+          "due_nz": 298,
+          "due_completed": 222,
+          "mean_depart_delay_completed_s": 0.24324324324324326,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 1917,
+          "completion_share": 0.8209850107066381
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1721,
+          "completion_share": 0.7367294520547946
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1536,
+          "completion_share": 0.7111111111111111
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1403,
+          "completion_share": 0.6516488620529494
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 788,
+          "completion_share": 0.3821532492725509
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 239,
+          "completion_share": 0.11761811023622047
+        }
+      ]
+    },
+    {
+      "controller": "ippo",
+      "seed": 123,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9359,
+      "cars_completed_nonzero": 7505,
+      "zero_len_completed": 1854,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7489,
+      "due_completion_ratio": 0.6528068340306834,
+      "lag_per_scheduled_car_s": 485.4294175870667,
+      "lag_per_due_nz_car_s": 630.5331552986358,
+      "lag_area_veh_h": 2014.8017659960974,
+      "overdue_cars": 3993,
+      "mean_timeloss_cars_nonzero": 430.3058129324109,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 454.28199707291117,
+      "mean_depart_delay_cars": 19.471952131637995,
+      "completed_veh_km": 46953.17417,
+      "tripinfo_rows": 9426,
+      "tripinfo_zero_length_rows": 1843,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13183,
+      "never_inserted": 1880,
+      "backlog": 4179,
+      "teleports": 5,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 240,
+          "completion_ratio": 0.20600858369098712,
+          "due_nz": 1039,
+          "due_completed": 240,
+          "mean_depart_delay_completed_s": 213.44583333333333,
+          "completed_at_cap": 44
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 95,
+          "completion_ratio": 0.5757575757575758,
+          "due_nz": 149,
+          "due_completed": 95,
+          "mean_depart_delay_completed_s": 63.873684210526314,
+          "completed_at_cap": 4
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 61,
+          "completion_ratio": 0.4178082191780822,
+          "due_nz": 134,
+          "due_completed": 61,
+          "mean_depart_delay_completed_s": 133.45901639344262,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 362,
+          "completion_ratio": 0.22512437810945274,
+          "due_nz": 1378,
+          "due_completed": 362,
+          "mean_depart_delay_completed_s": 222.71546961325967,
+          "completed_at_cap": 147
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 688,
+          "completion_ratio": 0.7295864262990456,
+          "due_nz": 835,
+          "due_completed": 682,
+          "mean_depart_delay_completed_s": 0.09738372093023256,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 575,
+          "completion_ratio": 0.7371794871794872,
+          "due_nz": 690,
+          "due_completed": 572,
+          "mean_depart_delay_completed_s": 0.32521739130434785,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 448,
+          "completion_ratio": 0.5818181818181818,
+          "due_nz": 672,
+          "due_completed": 448,
+          "mean_depart_delay_completed_s": 0.6026785714285714,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 473,
+          "completion_ratio": 0.621550591327201,
+          "due_nz": 661,
+          "due_completed": 472,
+          "mean_depart_delay_completed_s": 0.733615221987315,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 308,
+          "completion_ratio": 0.6285714285714286,
+          "due_nz": 431,
+          "due_completed": 305,
+          "mean_depart_delay_completed_s": 0.4090909090909091,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 283,
+          "completion_ratio": 0.6008492569002123,
+          "due_nz": 417,
+          "due_completed": 283,
+          "mean_depart_delay_completed_s": 0.3957597173144876,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 258,
+          "completion_ratio": 0.6323529411764706,
+          "due_nz": 368,
+          "due_completed": 258,
+          "mean_depart_delay_completed_s": 119.89147286821705,
+          "completed_at_cap": 2
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 206,
+          "completion_ratio": 0.5613079019073569,
+          "due_nz": 298,
+          "due_completed": 206,
+          "mean_depart_delay_completed_s": 0.23786407766990292,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2162,
+          "completion_share": 0.9259100642398287
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1796,
+          "completion_share": 0.7688356164383562
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1522,
+          "completion_share": 0.7046296296296296
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1123,
+          "completion_share": 0.5215977705527172
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 670,
+          "completion_share": 0.32492725509214354
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 232,
+          "completion_share": 0.1141732283464567
+        }
+      ]
+    },
+    {
+      "controller": "ippo",
+      "seed": 42,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9456,
+      "cars_completed_nonzero": 7602,
+      "zero_len_completed": 1854,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7585,
+      "due_completion_ratio": 0.6611750348675035,
+      "lag_per_scheduled_car_s": 476.19999716142087,
+      "lag_per_due_nz_car_s": 618.5372522302956,
+      "lag_area_veh_h": 1976.4945437738752,
+      "overdue_cars": 3897,
+      "mean_timeloss_cars_nonzero": 428.5636699054621,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 451.4655869222689,
+      "mean_depart_delay_cars": 18.585871404399324,
+      "completed_veh_km": 47739.04208,
+      "tripinfo_rows": 9526,
+      "tripinfo_zero_length_rows": 1840,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13178,
+      "never_inserted": 1885,
+      "backlog": 4070,
+      "teleports": 8,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 252,
+          "completion_ratio": 0.21630901287553647,
+          "due_nz": 1039,
+          "due_completed": 252,
+          "mean_depart_delay_completed_s": 215.31746031746033,
+          "completed_at_cap": 52,
+          "inserted": 252,
+          "never_inserted": 913
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 87,
+          "completion_ratio": 0.5272727272727272,
+          "due_nz": 149,
+          "due_completed": 87,
+          "mean_depart_delay_completed_s": 67.80459770114942,
+          "completed_at_cap": 3,
+          "inserted": 87,
+          "never_inserted": 78
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 61,
+          "completion_ratio": 0.4178082191780822,
+          "due_nz": 134,
+          "due_completed": 59,
+          "mean_depart_delay_completed_s": 138.31147540983608,
+          "completed_at_cap": 3,
+          "inserted": 61,
+          "never_inserted": 85
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 353,
+          "completion_ratio": 0.21952736318407962,
+          "due_nz": 1378,
+          "due_completed": 353,
+          "mean_depart_delay_completed_s": 225.59773371104816,
+          "completed_at_cap": 166,
+          "inserted": 353,
+          "never_inserted": 1255
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 690,
+          "completion_ratio": 0.7317073170731707,
+          "due_nz": 835,
+          "due_completed": 684,
+          "mean_depart_delay_completed_s": 0.1,
+          "completed_at_cap": 0,
+          "inserted": 690,
+          "never_inserted": 253
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 583,
+          "completion_ratio": 0.7474358974358974,
+          "due_nz": 690,
+          "due_completed": 581,
+          "mean_depart_delay_completed_s": 0.30874785591766724,
+          "completed_at_cap": 0,
+          "inserted": 583,
+          "never_inserted": 197
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 463,
+          "completion_ratio": 0.6012987012987013,
+          "due_nz": 672,
+          "due_completed": 463,
+          "mean_depart_delay_completed_s": 0.6198704103671706,
+          "completed_at_cap": 0,
+          "inserted": 463,
+          "never_inserted": 307
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 506,
+          "completion_ratio": 0.6649145860709592,
+          "due_nz": 661,
+          "due_completed": 505,
+          "mean_depart_delay_completed_s": 0.7193675889328063,
+          "completed_at_cap": 0,
+          "inserted": 506,
+          "never_inserted": 255
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 307,
+          "completion_ratio": 0.6265306122448979,
+          "due_nz": 431,
+          "due_completed": 304,
+          "mean_depart_delay_completed_s": 0.3811074918566775,
+          "completed_at_cap": 0,
+          "inserted": 307,
+          "never_inserted": 183
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 282,
+          "completion_ratio": 0.5987261146496815,
+          "due_nz": 417,
+          "due_completed": 282,
+          "mean_depart_delay_completed_s": 0.3404255319148936,
+          "completed_at_cap": 0,
+          "inserted": 282,
+          "never_inserted": 189
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 271,
+          "completion_ratio": 0.6642156862745098,
+          "due_nz": 368,
+          "due_completed": 271,
+          "mean_depart_delay_completed_s": 86.38745387453875,
+          "completed_at_cap": 2,
+          "inserted": 271,
+          "never_inserted": 137
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 205,
+          "completion_ratio": 0.55858310626703,
+          "due_nz": 298,
+          "due_completed": 205,
+          "mean_depart_delay_completed_s": 0.2634146341463415,
+          "completed_at_cap": 0,
+          "inserted": 205,
+          "never_inserted": 162
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2173,
+          "completion_share": 0.9306209850107067
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1822,
+          "completion_share": 0.7799657534246576
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1540,
+          "completion_share": 0.7129629629629629
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1167,
+          "completion_share": 0.5420343706456108
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 673,
+          "completion_share": 0.32638215324927256
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 227,
+          "completion_share": 0.11171259842519685
+        }
+      ]
+    },
+    {
+      "controller": "ippo",
+      "seed": 777,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9541,
+      "cars_completed_nonzero": 7684,
+      "zero_len_completed": 1857,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7666,
+      "due_completion_ratio": 0.6682357043235704,
+      "lag_per_scheduled_car_s": 470.6955800820473,
+      "lag_per_due_nz_car_s": 611.9866943502398,
+      "lag_area_veh_h": 1953.6481548849863,
+      "overdue_cars": 3813,
+      "mean_timeloss_cars_nonzero": 432.25868294583705,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 454.51689829848027,
+      "mean_depart_delay_cars": 18.041400272508124,
+      "completed_veh_km": 48332.76249,
+      "tripinfo_rows": 9609,
+      "tripinfo_zero_length_rows": 1842,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13203,
+      "never_inserted": 1860,
+      "backlog": 4009,
+      "teleports": 17,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 247,
+          "completion_ratio": 0.21201716738197424,
+          "due_nz": 1039,
+          "due_completed": 247,
+          "mean_depart_delay_completed_s": 215.06477732793522,
+          "completed_at_cap": 45
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 84,
+          "completion_ratio": 0.509090909090909,
+          "due_nz": 149,
+          "due_completed": 84,
+          "mean_depart_delay_completed_s": 59.285714285714285,
+          "completed_at_cap": 2
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 59,
+          "completion_ratio": 0.4041095890410959,
+          "due_nz": 134,
+          "due_completed": 57,
+          "mean_depart_delay_completed_s": 130.01694915254237,
+          "completed_at_cap": 2
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 400,
+          "completion_ratio": 0.24875621890547264,
+          "due_nz": 1378,
+          "due_completed": 400,
+          "mean_depart_delay_completed_s": 216.3175,
+          "completed_at_cap": 149
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 692,
+          "completion_ratio": 0.7338282078472959,
+          "due_nz": 835,
+          "due_completed": 685,
+          "mean_depart_delay_completed_s": 0.07514450867052024,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 585,
+          "completion_ratio": 0.75,
+          "due_nz": 690,
+          "due_completed": 584,
+          "mean_depart_delay_completed_s": 0.3162393162393162,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 456,
+          "completion_ratio": 0.5922077922077922,
+          "due_nz": 672,
+          "due_completed": 456,
+          "mean_depart_delay_completed_s": 0.6140350877192983,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 507,
+          "completion_ratio": 0.6662286465177398,
+          "due_nz": 661,
+          "due_completed": 506,
+          "mean_depart_delay_completed_s": 0.7140039447731755,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 300,
+          "completion_ratio": 0.6122448979591837,
+          "due_nz": 431,
+          "due_completed": 296,
+          "mean_depart_delay_completed_s": 0.37,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 286,
+          "completion_ratio": 0.6072186836518046,
+          "due_nz": 417,
+          "due_completed": 286,
+          "mean_depart_delay_completed_s": 0.36363636363636365,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 288,
+          "completion_ratio": 0.7058823529411765,
+          "due_nz": 368,
+          "due_completed": 288,
+          "mean_depart_delay_completed_s": 56.767361111111114,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 204,
+          "completion_ratio": 0.555858310626703,
+          "due_nz": 298,
+          "due_completed": 204,
+          "mean_depart_delay_completed_s": 0.25,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2203,
+          "completion_share": 0.9434689507494647
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1816,
+          "completion_share": 0.7773972602739726
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1551,
+          "completion_share": 0.7180555555555556
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1199,
+          "completion_share": 0.5568973525313516
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 670,
+          "completion_share": 0.32492725509214354
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 245,
+          "completion_share": 0.12057086614173228
+        }
+      ]
+    },
+    {
+      "controller": "max_pressure",
+      "seed": 123,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 10262,
+      "cars_completed_nonzero": 8406,
+      "zero_len_completed": 1856,
+      "due_nz_n": 11472,
+      "due_nz_completed": 8391,
+      "due_completion_ratio": 0.7314330543933054,
+      "lag_per_scheduled_car_s": 413.2751544362168,
+      "lag_per_due_nz_car_s": 536.8295290782733,
+      "lag_area_veh_h": 1715.3214882183197,
+      "overdue_cars": 3089,
+      "mean_timeloss_cars_nonzero": 422.51920171062005,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 449.79634592539793,
+      "mean_depart_delay_cars": 22.552231533814073,
+      "completed_veh_km": 54095.66982,
+      "tripinfo_rows": 10333,
+      "tripinfo_zero_length_rows": 1844,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13774,
+      "never_inserted": 1289,
+      "backlog": 3849,
+      "teleports": 58,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 315,
+          "completion_ratio": 0.2703862660944206,
+          "due_nz": 1039,
+          "due_completed": 315,
+          "mean_depart_delay_completed_s": 169.63492063492063,
+          "completed_at_cap": 36
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 94,
+          "completion_ratio": 0.5696969696969697,
+          "due_nz": 149,
+          "due_completed": 94,
+          "mean_depart_delay_completed_s": 52.648936170212764,
+          "completed_at_cap": 1
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 115,
+          "completion_ratio": 0.7876712328767124,
+          "due_nz": 134,
+          "due_completed": 115,
+          "mean_depart_delay_completed_s": 32.54782608695652,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 699,
+          "completion_ratio": 0.43470149253731344,
+          "due_nz": 1378,
+          "due_completed": 699,
+          "mean_depart_delay_completed_s": 209.0071530758226,
+          "completed_at_cap": 150
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 704,
+          "completion_ratio": 0.7465535524920467,
+          "due_nz": 835,
+          "due_completed": 698,
+          "mean_depart_delay_completed_s": 0.12642045454545456,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 593,
+          "completion_ratio": 0.7602564102564102,
+          "due_nz": 690,
+          "due_completed": 592,
+          "mean_depart_delay_completed_s": 0.3440134907251265,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 518,
+          "completion_ratio": 0.6727272727272727,
+          "due_nz": 672,
+          "due_completed": 518,
+          "mean_depart_delay_completed_s": 0.5984555984555985,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 570,
+          "completion_ratio": 0.7490144546649146,
+          "due_nz": 661,
+          "due_completed": 569,
+          "mean_depart_delay_completed_s": 0.7087719298245614,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 350,
+          "completion_ratio": 0.7142857142857143,
+          "due_nz": 431,
+          "due_completed": 347,
+          "mean_depart_delay_completed_s": 0.3514285714285714,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 318,
+          "completion_ratio": 0.6751592356687898,
+          "due_nz": 417,
+          "due_completed": 318,
+          "mean_depart_delay_completed_s": 0.41823899371069184,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 262,
+          "completion_ratio": 0.6421568627450981,
+          "due_nz": 368,
+          "due_completed": 262,
+          "mean_depart_delay_completed_s": 65.6145038167939,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 228,
+          "completion_ratio": 0.6212534059945504,
+          "due_nz": 298,
+          "due_completed": 228,
+          "mean_depart_delay_completed_s": 0.25877192982456143,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2308,
+          "completion_share": 0.9884368308351178
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1978,
+          "completion_share": 0.8467465753424658
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1717,
+          "completion_share": 0.7949074074074074
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1406,
+          "completion_share": 0.6530422666047375
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 772,
+          "completion_share": 0.3743937924345296
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 225,
+          "completion_share": 0.11072834645669291
+        }
+      ]
+    },
+    {
+      "controller": "max_pressure",
+      "seed": 42,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 10395,
+      "cars_completed_nonzero": 8541,
+      "zero_len_completed": 1854,
+      "due_nz_n": 11472,
+      "due_nz_completed": 8523,
+      "due_completion_ratio": 0.742939330543933,
+      "lag_per_scheduled_car_s": 405.824813116447,
+      "lag_per_due_nz_car_s": 526.7100207100724,
+      "lag_area_veh_h": 1684.3984326627642,
+      "overdue_cars": 2959,
+      "mean_timeloss_cars_nonzero": 413.28062770309754,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 441.74351490356514,
+      "mean_depart_delay_cars": 23.604232804232804,
+      "completed_veh_km": 55136.15666,
+      "tripinfo_rows": 10467,
+      "tripinfo_zero_length_rows": 1840,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13750,
+      "never_inserted": 1313,
+      "backlog": 3708,
+      "teleports": 41,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 310,
+          "completion_ratio": 0.26609442060085836,
+          "due_nz": 1039,
+          "due_completed": 310,
+          "mean_depart_delay_completed_s": 175.97096774193548,
+          "completed_at_cap": 45,
+          "inserted": 475,
+          "never_inserted": 690
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 109,
+          "completion_ratio": 0.6606060606060606,
+          "due_nz": 149,
+          "due_completed": 109,
+          "mean_depart_delay_completed_s": 33.25688073394495,
+          "completed_at_cap": 0,
+          "inserted": 164,
+          "never_inserted": 1
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 116,
+          "completion_ratio": 0.7945205479452054,
+          "due_nz": 134,
+          "due_completed": 115,
+          "mean_depart_delay_completed_s": 29.31896551724138,
+          "completed_at_cap": 0,
+          "inserted": 146,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 700,
+          "completion_ratio": 0.43532338308457713,
+          "due_nz": 1378,
+          "due_completed": 700,
+          "mean_depart_delay_completed_s": 219.96571428571428,
+          "completed_at_cap": 179,
+          "inserted": 1043,
+          "never_inserted": 565
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 727,
+          "completion_ratio": 0.7709437963944857,
+          "due_nz": 835,
+          "due_completed": 720,
+          "mean_depart_delay_completed_s": 0.11141678129298486,
+          "completed_at_cap": 0,
+          "inserted": 943,
+          "never_inserted": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 609,
+          "completion_ratio": 0.7807692307692308,
+          "due_nz": 690,
+          "due_completed": 607,
+          "mean_depart_delay_completed_s": 0.34318555008210183,
+          "completed_at_cap": 0,
+          "inserted": 780,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 517,
+          "completion_ratio": 0.6714285714285714,
+          "due_nz": 672,
+          "due_completed": 517,
+          "mean_depart_delay_completed_s": 0.5783365570599613,
+          "completed_at_cap": 0,
+          "inserted": 770,
+          "never_inserted": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 562,
+          "completion_ratio": 0.7385019710906702,
+          "due_nz": 661,
+          "due_completed": 561,
+          "mean_depart_delay_completed_s": 0.699288256227758,
+          "completed_at_cap": 0,
+          "inserted": 761,
+          "never_inserted": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 343,
+          "completion_ratio": 0.7,
+          "due_nz": 431,
+          "due_completed": 340,
+          "mean_depart_delay_completed_s": 0.3848396501457726,
+          "completed_at_cap": 0,
+          "inserted": 490,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 324,
+          "completion_ratio": 0.6878980891719745,
+          "due_nz": 417,
+          "due_completed": 324,
+          "mean_depart_delay_completed_s": 0.36419753086419754,
+          "completed_at_cap": 0,
+          "inserted": 471,
+          "never_inserted": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 263,
+          "completion_ratio": 0.6446078431372549,
+          "due_nz": 368,
+          "due_completed": 263,
+          "mean_depart_delay_completed_s": 93.90874524714829,
+          "completed_at_cap": 2,
+          "inserted": 382,
+          "never_inserted": 26
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 228,
+          "completion_ratio": 0.6212534059945504,
+          "due_nz": 298,
+          "due_completed": 228,
+          "mean_depart_delay_completed_s": 0.21929824561403508,
+          "completed_at_cap": 0,
+          "inserted": 366,
+          "never_inserted": 1
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2298,
+          "completion_share": 0.9841541755888651
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1972,
+          "completion_share": 0.8441780821917808
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1769,
+          "completion_share": 0.8189814814814815
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1453,
+          "completion_share": 0.6748722712494194
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 822,
+          "completion_share": 0.39864209505334625
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 227,
+          "completion_share": 0.11171259842519685
+        }
+      ]
+    },
+    {
+      "controller": "max_pressure",
+      "seed": 777,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 10351,
+      "cars_completed_nonzero": 8493,
+      "zero_len_completed": 1858,
+      "due_nz_n": 11472,
+      "due_nz_completed": 8476,
+      "due_completion_ratio": 0.7388423988842399,
+      "lag_per_scheduled_car_s": 402.82394308566126,
+      "lag_per_due_nz_car_s": 523.5260946291799,
+      "lag_area_veh_h": 1671.9431548849864,
+      "overdue_cars": 3002,
+      "mean_timeloss_cars_nonzero": 410.1204254318957,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 437.65480079915386,
+      "mean_depart_delay_cars": 22.85972369819341,
+      "completed_veh_km": 54676.64418000001,
+      "tripinfo_rows": 10423,
+      "tripinfo_zero_length_rows": 1842,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13710,
+      "never_inserted": 1353,
+      "backlog": 3709,
+      "teleports": 52,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 330,
+          "completion_ratio": 0.2832618025751073,
+          "due_nz": 1039,
+          "due_completed": 330,
+          "mean_depart_delay_completed_s": 136.15151515151516,
+          "completed_at_cap": 31
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 91,
+          "completion_ratio": 0.5515151515151515,
+          "due_nz": 149,
+          "due_completed": 91,
+          "mean_depart_delay_completed_s": 50.07692307692308,
+          "completed_at_cap": 1
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 111,
+          "completion_ratio": 0.7602739726027398,
+          "due_nz": 134,
+          "due_completed": 110,
+          "mean_depart_delay_completed_s": 33.5945945945946,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 708,
+          "completion_ratio": 0.44029850746268656,
+          "due_nz": 1378,
+          "due_completed": 708,
+          "mean_depart_delay_completed_s": 214.27542372881356,
+          "completed_at_cap": 133
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 707,
+          "completion_ratio": 0.7497348886532343,
+          "due_nz": 835,
+          "due_completed": 701,
+          "mean_depart_delay_completed_s": 0.11315417256011315,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 600,
+          "completion_ratio": 0.7692307692307693,
+          "due_nz": 690,
+          "due_completed": 599,
+          "mean_depart_delay_completed_s": 0.33166666666666667,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 509,
+          "completion_ratio": 0.6610389610389611,
+          "due_nz": 672,
+          "due_completed": 509,
+          "mean_depart_delay_completed_s": 0.5834970530451866,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 576,
+          "completion_ratio": 0.7568988173455979,
+          "due_nz": 661,
+          "due_completed": 575,
+          "mean_depart_delay_completed_s": 0.71875,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 344,
+          "completion_ratio": 0.7020408163265306,
+          "due_nz": 431,
+          "due_completed": 340,
+          "mean_depart_delay_completed_s": 0.36627906976744184,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 321,
+          "completion_ratio": 0.6815286624203821,
+          "due_nz": 417,
+          "due_completed": 321,
+          "mean_depart_delay_completed_s": 0.3302180685358255,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 237,
+          "completion_ratio": 0.5808823529411765,
+          "due_nz": 368,
+          "due_completed": 237,
+          "mean_depart_delay_completed_s": 106.35021097046413,
+          "completed_at_cap": 5
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 237,
+          "completion_ratio": 0.6457765667574932,
+          "due_nz": 298,
+          "due_completed": 237,
+          "mean_depart_delay_completed_s": 0.24050632911392406,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2299,
+          "completion_share": 0.9845824411134904
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1991,
+          "completion_share": 0.8523116438356164
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1728,
+          "completion_share": 0.8
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1434,
+          "completion_share": 0.6660473757547608
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 799,
+          "completion_share": 0.3874878758486906
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 242,
+          "completion_share": 0.11909448818897637
+        }
+      ]
+    },
+    {
+      "controller": "ppo",
+      "seed": 123,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9432,
+      "cars_completed_nonzero": 7572,
+      "zero_len_completed": 1860,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7556,
+      "due_completion_ratio": 0.6586471408647141,
+      "lag_per_scheduled_car_s": 487.31919137906243,
+      "lag_per_due_nz_car_s": 634.099926567813,
+      "lag_area_veh_h": 2022.6453771072086,
+      "overdue_cars": 3920,
+      "mean_timeloss_cars_nonzero": 437.8949228537518,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 459.804193590927,
+      "mean_depart_delay_cars": 17.845525869380833,
+      "completed_veh_km": 46298.51689999999,
+      "tripinfo_rows": 9502,
+      "tripinfo_zero_length_rows": 1849,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13243,
+      "never_inserted": 1820,
+      "backlog": 4158,
+      "teleports": 15,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 320,
+          "completion_ratio": 0.27467811158798283,
+          "due_nz": 1039,
+          "due_completed": 320,
+          "mean_depart_delay_completed_s": 255.1625,
+          "completed_at_cap": 69
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 120,
+          "completion_ratio": 0.7272727272727273,
+          "due_nz": 149,
+          "due_completed": 120,
+          "mean_depart_delay_completed_s": 0.95,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 66,
+          "completion_ratio": 0.4520547945205479,
+          "due_nz": 134,
+          "due_completed": 66,
+          "mean_depart_delay_completed_s": 141.03030303030303,
+          "completed_at_cap": 1
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 307,
+          "completion_ratio": 0.19092039800995025,
+          "due_nz": 1378,
+          "due_completed": 307,
+          "mean_depart_delay_completed_s": 217.11074918566774,
+          "completed_at_cap": 140
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 683,
+          "completion_ratio": 0.7242841993637328,
+          "due_nz": 835,
+          "due_completed": 676,
+          "mean_depart_delay_completed_s": 0.20790629575402636,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 568,
+          "completion_ratio": 0.7282051282051282,
+          "due_nz": 690,
+          "due_completed": 566,
+          "mean_depart_delay_completed_s": 0.29401408450704225,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 450,
+          "completion_ratio": 0.5844155844155844,
+          "due_nz": 672,
+          "due_completed": 450,
+          "mean_depart_delay_completed_s": 0.5955555555555555,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 478,
+          "completion_ratio": 0.6281208935611038,
+          "due_nz": 661,
+          "due_completed": 477,
+          "mean_depart_delay_completed_s": 0.7238493723849372,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 293,
+          "completion_ratio": 0.5979591836734693,
+          "due_nz": 431,
+          "due_completed": 290,
+          "mean_depart_delay_completed_s": 0.3993174061433447,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 325,
+          "completion_ratio": 0.6900212314225053,
+          "due_nz": 417,
+          "due_completed": 325,
+          "mean_depart_delay_completed_s": 0.38461538461538464,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 277,
+          "completion_ratio": 0.678921568627451,
+          "due_nz": 368,
+          "due_completed": 277,
+          "mean_depart_delay_completed_s": 20.23465703971119,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 200,
+          "completion_ratio": 0.5449591280653951,
+          "due_nz": 298,
+          "due_completed": 200,
+          "mean_depart_delay_completed_s": 0.26,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2097,
+          "completion_share": 0.8980728051391863
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1803,
+          "completion_share": 0.771832191780822
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1579,
+          "completion_share": 0.7310185185185185
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1182,
+          "completion_share": 0.5490013934045518
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 673,
+          "completion_share": 0.32638215324927256
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 238,
+          "completion_share": 0.1171259842519685
+        }
+      ]
+    },
+    {
+      "controller": "ppo",
+      "seed": 42,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9479,
+      "cars_completed_nonzero": 7621,
+      "zero_len_completed": 1858,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7604,
+      "due_completion_ratio": 0.6628312412831241,
+      "lag_per_scheduled_car_s": 486.57899595676287,
+      "lag_per_due_nz_car_s": 632.8492292177433,
+      "lag_area_veh_h": 2019.5731548849863,
+      "overdue_cars": 3874,
+      "mean_timeloss_cars_nonzero": 438.0316830386378,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 460.4449115913556,
+      "mean_depart_delay_cars": 18.162675387699124,
+      "completed_veh_km": 46611.04078999999,
+      "tripinfo_rows": 9547,
+      "tripinfo_zero_length_rows": 1844,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13228,
+      "never_inserted": 1835,
+      "backlog": 4093,
+      "teleports": 16,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 321,
+          "completion_ratio": 0.2755364806866953,
+          "due_nz": 1039,
+          "due_completed": 321,
+          "mean_depart_delay_completed_s": 255.71028037383178,
+          "completed_at_cap": 68,
+          "inserted": 486,
+          "never_inserted": 679
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 125,
+          "completion_ratio": 0.7575757575757576,
+          "due_nz": 149,
+          "due_completed": 125,
+          "mean_depart_delay_completed_s": 1.256,
+          "completed_at_cap": 0,
+          "inserted": 165,
+          "never_inserted": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 58,
+          "completion_ratio": 0.3972602739726027,
+          "due_nz": 134,
+          "due_completed": 56,
+          "mean_depart_delay_completed_s": 137.51724137931035,
+          "completed_at_cap": 4,
+          "inserted": 71,
+          "never_inserted": 75
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 317,
+          "completion_ratio": 0.19713930348258707,
+          "due_nz": 1378,
+          "due_completed": 317,
+          "mean_depart_delay_completed_s": 221.82649842271294,
+          "completed_at_cap": 150,
+          "inserted": 558,
+          "never_inserted": 1050
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 692,
+          "completion_ratio": 0.7338282078472959,
+          "due_nz": 835,
+          "due_completed": 685,
+          "mean_depart_delay_completed_s": 0.203757225433526,
+          "completed_at_cap": 0,
+          "inserted": 943,
+          "never_inserted": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 582,
+          "completion_ratio": 0.7461538461538462,
+          "due_nz": 690,
+          "due_completed": 580,
+          "mean_depart_delay_completed_s": 0.3230240549828179,
+          "completed_at_cap": 0,
+          "inserted": 780,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 438,
+          "completion_ratio": 0.5688311688311688,
+          "due_nz": 672,
+          "due_completed": 438,
+          "mean_depart_delay_completed_s": 0.6210045662100456,
+          "completed_at_cap": 0,
+          "inserted": 770,
+          "never_inserted": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 489,
+          "completion_ratio": 0.6425755584756899,
+          "due_nz": 661,
+          "due_completed": 488,
+          "mean_depart_delay_completed_s": 0.721881390593047,
+          "completed_at_cap": 0,
+          "inserted": 761,
+          "never_inserted": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 302,
+          "completion_ratio": 0.6163265306122448,
+          "due_nz": 431,
+          "due_completed": 299,
+          "mean_depart_delay_completed_s": 0.38741721854304634,
+          "completed_at_cap": 0,
+          "inserted": 490,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 318,
+          "completion_ratio": 0.6751592356687898,
+          "due_nz": 417,
+          "due_completed": 318,
+          "mean_depart_delay_completed_s": 0.3553459119496855,
+          "completed_at_cap": 0,
+          "inserted": 471,
+          "never_inserted": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 279,
+          "completion_ratio": 0.6838235294117647,
+          "due_nz": 368,
+          "due_completed": 279,
+          "mean_depart_delay_completed_s": 28.72043010752688,
+          "completed_at_cap": 0,
+          "inserted": 408,
+          "never_inserted": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 197,
+          "completion_ratio": 0.5367847411444142,
+          "due_nz": 298,
+          "due_completed": 197,
+          "mean_depart_delay_completed_s": 0.2436548223350254,
+          "completed_at_cap": 0,
+          "inserted": 365,
+          "never_inserted": 2
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2103,
+          "completion_share": 0.9006423982869379
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1804,
+          "completion_share": 0.7722602739726028
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1573,
+          "completion_share": 0.7282407407407407
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1208,
+          "completion_share": 0.5610775661867162
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 693,
+          "completion_share": 0.33608147429679924
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 240,
+          "completion_share": 0.11811023622047244
+        }
+      ]
+    },
+    {
+      "controller": "ppo",
+      "seed": 777,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 9526,
+      "cars_completed_nonzero": 7668,
+      "zero_len_completed": 1858,
+      "due_nz_n": 11472,
+      "due_nz_completed": 7650,
+      "due_completion_ratio": 0.6668410041841004,
+      "lag_per_scheduled_car_s": 481.83451730597983,
+      "lag_per_due_nz_car_s": 626.585456553866,
+      "lag_area_veh_h": 1999.880932662764,
+      "overdue_cars": 3828,
+      "mean_timeloss_cars_nonzero": 439.04219705844065,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 461.9167252375374,
+      "mean_depart_delay_cars": 18.654944362796556,
+      "completed_veh_km": 47026.55028,
+      "tripinfo_rows": 9590,
+      "tripinfo_zero_length_rows": 1843,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 13262,
+      "never_inserted": 1801,
+      "backlog": 4086,
+      "teleports": 26,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 318,
+          "completion_ratio": 0.2729613733905579,
+          "due_nz": 1039,
+          "due_completed": 318,
+          "mean_depart_delay_completed_s": 256.02515723270443,
+          "completed_at_cap": 72
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 117,
+          "completion_ratio": 0.7090909090909091,
+          "due_nz": 149,
+          "due_completed": 117,
+          "mean_depart_delay_completed_s": 1.2136752136752136,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 65,
+          "completion_ratio": 0.4452054794520548,
+          "due_nz": 134,
+          "due_completed": 63,
+          "mean_depart_delay_completed_s": 143.03076923076924,
+          "completed_at_cap": 3
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 324,
+          "completion_ratio": 0.20149253731343283,
+          "due_nz": 1378,
+          "due_completed": 324,
+          "mean_depart_delay_completed_s": 225.41358024691357,
+          "completed_at_cap": 154
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 683,
+          "completion_ratio": 0.7242841993637328,
+          "due_nz": 835,
+          "due_completed": 677,
+          "mean_depart_delay_completed_s": 0.19912152269399708,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 583,
+          "completion_ratio": 0.7474358974358974,
+          "due_nz": 690,
+          "due_completed": 582,
+          "mean_depart_delay_completed_s": 0.2950257289879931,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 457,
+          "completion_ratio": 0.5935064935064935,
+          "due_nz": 672,
+          "due_completed": 457,
+          "mean_depart_delay_completed_s": 0.6455142231947484,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 493,
+          "completion_ratio": 0.6478318002628121,
+          "due_nz": 661,
+          "due_completed": 492,
+          "mean_depart_delay_completed_s": 0.7403651115618661,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 313,
+          "completion_ratio": 0.6387755102040816,
+          "due_nz": 431,
+          "due_completed": 309,
+          "mean_depart_delay_completed_s": 0.34824281150159747,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 319,
+          "completion_ratio": 0.6772823779193206,
+          "due_nz": 417,
+          "due_completed": 319,
+          "mean_depart_delay_completed_s": 0.32601880877742945,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 269,
+          "completion_ratio": 0.6593137254901961,
+          "due_nz": 368,
+          "due_completed": 269,
+          "mean_depart_delay_completed_s": 33.4089219330855,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 207,
+          "completion_ratio": 0.5640326975476839,
+          "due_nz": 298,
+          "due_completed": 207,
+          "mean_depart_delay_completed_s": 0.25120772946859904,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2129,
+          "completion_share": 0.9117773019271949
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 1823,
+          "completion_share": 0.7803938356164384
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 1567,
+          "completion_share": 0.725462962962963
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1213,
+          "completion_share": 0.5633999071063632
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 698,
+          "completion_share": 0.3385063045586809
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 238,
+          "completion_share": 0.1171259842519685
+        }
+      ]
+    },
+    {
+      "controller": "sumo_actuated",
+      "seed": 123,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 11518,
+      "cars_completed_nonzero": 9655,
+      "zero_len_completed": 1863,
+      "due_nz_n": 11472,
+      "due_nz_completed": 9641,
+      "due_completion_ratio": 0.8403940027894002,
+      "lag_per_scheduled_car_s": 276.98576881180236,
+      "lag_per_due_nz_car_s": 360.6225032763207,
+      "lag_area_veh_h": 1149.644821551653,
+      "overdue_cars": 1832,
+      "mean_timeloss_cars_nonzero": 336.84134581566155,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 354.1759894486397,
+      "mean_depart_delay_cars": 14.634832436186837,
+      "completed_veh_km": 61161.39431999999,
+      "tripinfo_rows": 11602,
+      "tripinfo_zero_length_rows": 1851,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 14521,
+      "never_inserted": 542,
+      "backlog": 3260,
+      "teleports": 12,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 921,
+          "completion_ratio": 0.7905579399141631,
+          "due_nz": 1039,
+          "due_completed": 921,
+          "mean_depart_delay_completed_s": 20.887079261672095,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 140,
+          "completion_ratio": 0.8484848484848485,
+          "due_nz": 149,
+          "due_completed": 140,
+          "mean_depart_delay_completed_s": 1.2357142857142858,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 108,
+          "completion_ratio": 0.7397260273972602,
+          "due_nz": 134,
+          "due_completed": 108,
+          "mean_depart_delay_completed_s": 129.7037037037037,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 731,
+          "completion_ratio": 0.45460199004975127,
+          "due_nz": 1378,
+          "due_completed": 731,
+          "mean_depart_delay_completed_s": 175.60875512995895,
+          "completed_at_cap": 75
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 766,
+          "completion_ratio": 0.8123011664899258,
+          "due_nz": 835,
+          "due_completed": 760,
+          "mean_depart_delay_completed_s": 0.1762402088772846,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 627,
+          "completion_ratio": 0.8038461538461539,
+          "due_nz": 690,
+          "due_completed": 626,
+          "mean_depart_delay_completed_s": 0.266347687400319,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 546,
+          "completion_ratio": 0.7090909090909091,
+          "due_nz": 672,
+          "due_completed": 546,
+          "mean_depart_delay_completed_s": 0.5989010989010989,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 586,
+          "completion_ratio": 0.7700394218134035,
+          "due_nz": 661,
+          "due_completed": 585,
+          "mean_depart_delay_completed_s": 0.7150170648464164,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 374,
+          "completion_ratio": 0.763265306122449,
+          "due_nz": 431,
+          "due_completed": 371,
+          "mean_depart_delay_completed_s": 0.3582887700534759,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 366,
+          "completion_ratio": 0.7770700636942676,
+          "due_nz": 417,
+          "due_completed": 366,
+          "mean_depart_delay_completed_s": 0.5710382513661202,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 327,
+          "completion_ratio": 0.8014705882352942,
+          "due_nz": 368,
+          "due_completed": 327,
+          "mean_depart_delay_completed_s": 6.562691131498471,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 229,
+          "completion_ratio": 0.6239782016348774,
+          "due_nz": 298,
+          "due_completed": 229,
+          "mean_depart_delay_completed_s": 0.2096069868995633,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2330,
+          "completion_share": 0.9978586723768736
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 2227,
+          "completion_share": 0.9533390410958904
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 2015,
+          "completion_share": 0.9328703703703703
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1784,
+          "completion_share": 0.828611240130051
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 1002,
+          "completion_share": 0.4859359844810863
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 297,
+          "completion_share": 0.14616141732283464
+        }
+      ]
+    },
+    {
+      "controller": "sumo_actuated",
+      "seed": 42,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 11535,
+      "cars_completed_nonzero": 9672,
+      "zero_len_completed": 1863,
+      "due_nz_n": 11472,
+      "due_nz_completed": 9657,
+      "due_completion_ratio": 0.8417887029288703,
+      "lag_per_scheduled_car_s": 275.55389891486755,
+      "lag_per_due_nz_car_s": 358.7667675719971,
+      "lag_area_veh_h": 1143.7017659960975,
+      "overdue_cars": 1816,
+      "mean_timeloss_cars_nonzero": 336.5988870534793,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 355.6162316745819,
+      "mean_depart_delay_cars": 16.025834416991763,
+      "completed_veh_km": 61615.01521,
+      "tripinfo_rows": 11621,
+      "tripinfo_zero_length_rows": 1849,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 14503,
+      "never_inserted": 560,
+      "backlog": 3206,
+      "teleports": 6,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 930,
+          "completion_ratio": 0.7982832618025751,
+          "due_nz": 1039,
+          "due_completed": 930,
+          "mean_depart_delay_completed_s": 20.225806451612904,
+          "completed_at_cap": 0,
+          "inserted": 1162,
+          "never_inserted": 3
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 137,
+          "completion_ratio": 0.8303030303030303,
+          "due_nz": 149,
+          "due_completed": 137,
+          "mean_depart_delay_completed_s": 1.4014598540145986,
+          "completed_at_cap": 0,
+          "inserted": 164,
+          "never_inserted": 1
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 100,
+          "completion_ratio": 0.684931506849315,
+          "due_nz": 134,
+          "due_completed": 99,
+          "mean_depart_delay_completed_s": 148.71,
+          "completed_at_cap": 1,
+          "inserted": 128,
+          "never_inserted": 18
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 755,
+          "completion_ratio": 0.4695273631840796,
+          "due_nz": 1378,
+          "due_completed": 755,
+          "mean_depart_delay_completed_s": 190.02913907284767,
+          "completed_at_cap": 108,
+          "inserted": 1088,
+          "never_inserted": 520
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 780,
+          "completion_ratio": 0.8271474019088016,
+          "due_nz": 835,
+          "due_completed": 773,
+          "mean_depart_delay_completed_s": 0.1641025641025641,
+          "completed_at_cap": 0,
+          "inserted": 941,
+          "never_inserted": 2
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 626,
+          "completion_ratio": 0.8025641025641026,
+          "due_nz": 690,
+          "due_completed": 626,
+          "mean_depart_delay_completed_s": 0.2987220447284345,
+          "completed_at_cap": 0,
+          "inserted": 779,
+          "never_inserted": 1
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 550,
+          "completion_ratio": 0.7142857142857143,
+          "due_nz": 672,
+          "due_completed": 550,
+          "mean_depart_delay_completed_s": 0.6036363636363636,
+          "completed_at_cap": 0,
+          "inserted": 770,
+          "never_inserted": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 584,
+          "completion_ratio": 0.7674113009198423,
+          "due_nz": 661,
+          "due_completed": 583,
+          "mean_depart_delay_completed_s": 0.7226027397260274,
+          "completed_at_cap": 0,
+          "inserted": 761,
+          "never_inserted": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 365,
+          "completion_ratio": 0.7448979591836735,
+          "due_nz": 431,
+          "due_completed": 362,
+          "mean_depart_delay_completed_s": 0.36164383561643837,
+          "completed_at_cap": 0,
+          "inserted": 489,
+          "never_inserted": 1
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 368,
+          "completion_ratio": 0.7813163481953291,
+          "due_nz": 417,
+          "due_completed": 368,
+          "mean_depart_delay_completed_s": 0.36141304347826086,
+          "completed_at_cap": 0,
+          "inserted": 471,
+          "never_inserted": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 323,
+          "completion_ratio": 0.7916666666666666,
+          "due_nz": 368,
+          "due_completed": 323,
+          "mean_depart_delay_completed_s": 10.21671826625387,
+          "completed_at_cap": 0,
+          "inserted": 407,
+          "never_inserted": 1
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 236,
+          "completion_ratio": 0.6430517711171662,
+          "due_nz": 298,
+          "due_completed": 236,
+          "mean_depart_delay_completed_s": 0.21610169491525424,
+          "completed_at_cap": 0,
+          "inserted": 364,
+          "never_inserted": 3
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2334,
+          "completion_share": 0.9995717344753747
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 2219,
+          "completion_share": 0.9499143835616438
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 2044,
+          "completion_share": 0.9462962962962963
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1792,
+          "completion_share": 0.8323269856014863
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 1008,
+          "completion_share": 0.48884578079534435
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 275,
+          "completion_share": 0.13533464566929135
+        }
+      ]
+    },
+    {
+      "controller": "sumo_actuated",
+      "seed": 777,
+      "demand_id": "1.0x",
+      "source_metrics_schema_version": 1,
+      "drain_protocol": "drain-v1",
+      "scheduled_cars": 14942,
+      "scheduled_zero_length_cars": 1864,
+      "scheduled_buses": 121,
+      "cars_completed": 11495,
+      "cars_completed_nonzero": 9632,
+      "zero_len_completed": 1863,
+      "due_nz_n": 11472,
+      "due_nz_completed": 9614,
+      "due_completion_ratio": 0.8380404463040446,
+      "lag_per_scheduled_car_s": 277.61292715740535,
+      "lag_per_due_nz_car_s": 361.41922573099293,
+      "lag_area_veh_h": 1152.2478771072085,
+      "overdue_cars": 1859,
+      "mean_timeloss_cars_nonzero": 339.4869682835821,
+      "mean_timeloss_plus_departdelay_cars_nonzero": 359.0752767412935,
+      "mean_depart_delay_cars": 16.499347542409744,
+      "completed_veh_km": 61078.187620000004,
+      "tripinfo_rows": 11577,
+      "tripinfo_zero_length_rows": 1847,
+      "ff_calibration": {
+        "a": 0.9877174633263874,
+        "c": 13.038266572183339
+      },
+      "inserted": 14548,
+      "never_inserted": 515,
+      "backlog": 3305,
+      "teleports": 5,
+      "teleports_source": "MetricsCollector (getStartingTeleportNumber)",
+      "entry_edges": [
+        {
+          "edge": "380271165#0",
+          "role": "entry",
+          "scheduled_nonzero": 1165,
+          "completed": 888,
+          "completion_ratio": 0.7622317596566524,
+          "due_nz": 1039,
+          "due_completed": 888,
+          "mean_depart_delay_completed_s": 24.40653153153153,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "450072140",
+          "role": "entry",
+          "scheduled_nonzero": 165,
+          "completed": 136,
+          "completion_ratio": 0.8242424242424242,
+          "due_nz": 149,
+          "due_completed": 136,
+          "mean_depart_delay_completed_s": 1.2352941176470589,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "266507542",
+          "role": "entry",
+          "scheduled_nonzero": 146,
+          "completed": 105,
+          "completion_ratio": 0.7191780821917808,
+          "due_nz": 134,
+          "due_completed": 104,
+          "mean_depart_delay_completed_s": 138.0952380952381,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-233673422#10",
+          "role": "entry",
+          "scheduled_nonzero": 1608,
+          "completed": 779,
+          "completion_ratio": 0.48445273631840796,
+          "due_nz": 1378,
+          "due_completed": 779,
+          "mean_depart_delay_completed_s": 188.71116816431322,
+          "completed_at_cap": 139
+        },
+        {
+          "edge": "10881203",
+          "role": "top_origin",
+          "scheduled_nonzero": 943,
+          "completed": 778,
+          "completion_ratio": 0.8250265111346765,
+          "due_nz": 835,
+          "due_completed": 771,
+          "mean_depart_delay_completed_s": 0.16580976863753213,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "32976551",
+          "role": "top_origin",
+          "scheduled_nonzero": 780,
+          "completed": 634,
+          "completion_ratio": 0.8128205128205128,
+          "due_nz": 690,
+          "due_completed": 633,
+          "mean_depart_delay_completed_s": 0.26498422712933756,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-139516077#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 770,
+          "completed": 538,
+          "completion_ratio": 0.6987012987012987,
+          "due_nz": 672,
+          "due_completed": 538,
+          "mean_depart_delay_completed_s": 0.5985130111524164,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "325180705#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 761,
+          "completed": 581,
+          "completion_ratio": 0.7634691195795007,
+          "due_nz": 661,
+          "due_completed": 580,
+          "mean_depart_delay_completed_s": 0.7349397590361446,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "320733903#0",
+          "role": "top_origin",
+          "scheduled_nonzero": 490,
+          "completed": 367,
+          "completion_ratio": 0.7489795918367347,
+          "due_nz": 431,
+          "due_completed": 363,
+          "mean_depart_delay_completed_s": 0.34332425068119893,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-41522169#2",
+          "role": "top_origin",
+          "scheduled_nonzero": 471,
+          "completed": 380,
+          "completion_ratio": 0.8067940552016986,
+          "due_nz": 417,
+          "due_completed": 380,
+          "mean_depart_delay_completed_s": 0.3763157894736842,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "gneE179",
+          "role": "top_origin",
+          "scheduled_nonzero": 408,
+          "completed": 319,
+          "completion_ratio": 0.7818627450980392,
+          "due_nz": 368,
+          "due_completed": 319,
+          "mean_depart_delay_completed_s": 7.492163009404389,
+          "completed_at_cap": 0
+        },
+        {
+          "edge": "-54606422#4",
+          "role": "top_origin",
+          "scheduled_nonzero": 367,
+          "completed": 229,
+          "completion_ratio": 0.6239782016348774,
+          "due_nz": 298,
+          "due_completed": 229,
+          "mean_depart_delay_completed_s": 0.23580786026200873,
+          "completed_at_cap": 0
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": "0-10",
+          "scheduled_nonzero": 2335,
+          "completed": 2334,
+          "completion_share": 0.9995717344753747
+        },
+        {
+          "cohort": "10-20",
+          "scheduled_nonzero": 2336,
+          "completed": 2244,
+          "completion_share": 0.9606164383561644
+        },
+        {
+          "cohort": "20-30",
+          "scheduled_nonzero": 2160,
+          "completed": 2025,
+          "completion_share": 0.9375
+        },
+        {
+          "cohort": "30-40",
+          "scheduled_nonzero": 2153,
+          "completed": 1728,
+          "completion_share": 0.8026010218300046
+        },
+        {
+          "cohort": "40-50",
+          "scheduled_nonzero": 2062,
+          "completed": 1004,
+          "completion_share": 0.486905916585839
+        },
+        {
+          "cohort": "50-60",
+          "scheduled_nonzero": 2032,
+          "completed": 297,
+          "completion_share": 0.14616141732283464
+        }
+      ]
+    }
+  ]
+}

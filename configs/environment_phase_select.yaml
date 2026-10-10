@@ -15,23 +15,10 @@ sumo:
   step_length: 1.0
   begin: 25200            # 07:00:00
   end: 28800               # 08:00:00 (1-hour episode) — same peak window as environment.yaml
-  no_warnings: true
-  lateral_resolution: 0.0
 
 decision_interval: 5
 
 observation:
-  lane_features:
-    - queue_length
-    - vehicle_count
-    - mean_speed
-    - density
-  signal_features:
-    - phase_index
-    - phase_elapsed
-  global_features:
-    - total_vehicles
-    - total_waiting_time
   normalize: true
   max_lane_vehicles: 50
   max_speed: 13.9
@@ -49,7 +36,6 @@ action:
   # phases have the extra slots masked out via MaskablePPO — see
   # DecentralizedSumoEnv.action_masks() and src/agents/ippo_maskable_agent.py.
   type: Discrete_per_agent_phase_select
-  max_green_phases: 6
 
 # ─── Safety Layer ────────────────────────────────────────────────────────────
 # Unchanged from environment.yaml — see that file's comment for the
@@ -97,6 +83,4 @@ reward:
   neglected_pressure_weight: 1.0
 
 # ─── Episode Termination ─────────────────────────────────────────────────────
-termination:
-  max_steps: null
-  on_collision: false
+# Episode end = sumo.end (time-limit TRUNCATION) or an empty network; no max_steps/on_collision knobs exist.

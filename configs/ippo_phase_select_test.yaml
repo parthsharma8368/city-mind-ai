@@ -40,6 +40,5 @@ policy_kwargs:
     - 256
   activation_fn: tanh
 
-save_checkpoints: true
 checkpoint_freq: 490
 tensorboard_log: artifacts/tb_logs

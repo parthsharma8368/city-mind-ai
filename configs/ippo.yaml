@@ -37,7 +37,6 @@ gae_lambda: 0.95
 normalize_advantage: true
 
 clip_range: 0.2
-clip_range_vf: null
 
 ent_coef: 0.01
 vf_coef: 0.5
@@ -52,6 +51,5 @@ policy_kwargs:
     - 256
   activation_fn: tanh
 
-save_checkpoints: true
 checkpoint_freq: 4000000
 tensorboard_log: artifacts/tb_logs

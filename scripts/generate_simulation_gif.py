@@ -1,19 +1,43 @@
-"""generate_simulation_gif.py — Generates a high-quality animated GIF of the CityMind AI traffic simulation."""
+"""generate_simulation_gif.py — Generates an animated GIF of a recorded CityMind AI traffic simulation.
+
+Purely illustrative: it replays ONE recorded trajectory (default: the IPPO
+seed-42 run) and says nothing about controller quality. For controller
+comparisons use artifacts/metrics/drain_scores.* (scripts/rescore_drain_metrics.py).
+
+Usage:
+  python scripts/generate_simulation_gif.py [--trajectory PATH] [--output PATH] [--overwrite]
+"""
+import argparse
 import json
 import math
+import sys
 from pathlib import Path
+
 import pandas as pd
 from PIL import Image, ImageDraw
 
+
+def parse_args():
+    root = Path(__file__).resolve().parent.parent
+    p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    p.add_argument("--trajectory", default=str(root / "artifacts" / "trajectories" / "ippo_seed42_1.0x.parquet"))
+    p.add_argument("--output", default=str(root / "artifacts" / "traffic_simulation_showcase.gif"))
+    p.add_argument("--overwrite", action="store_true", help="replace an existing output file")
+    return p.parse_args()
+
+
 def main():
+    args = parse_args()
     root = Path(__file__).resolve().parent.parent
     geojson_path = root / "data" / "processed" / "network.geojson"
     tls_path = root / "artifacts" / "scenario" / "tls_metadata.json"
-    # IPPO (parameter-shared) is the project's best-performing policy
-    # (4.15s mean wait vs the deprecated centralized PPO's 13.47s) - the
-    # showcase visual should depict it, not the superseded model.
-    traj_path = root / "artifacts" / "trajectories" / "ippo_seed42_1.0x.parquet"
-    out_gif = root / "artifacts" / "traffic_simulation_showcase.gif"
+    # NOTE: this depicts a recorded run for illustration only. It is NOT a claim that
+    # the policy is the best controller: on the drain-aware protocol no RL controller
+    # beats the SUMO-actuated baseline (see artifacts/metrics/drain_scores.md).
+    traj_path = Path(args.trajectory)
+    out_gif = Path(args.output)
+    if out_gif.exists() and not args.overwrite:
+        sys.exit(f"{out_gif} exists; pass --overwrite to replace it")
 
     print("Loading network and trajectory data...")
     with open(geojson_path) as f:

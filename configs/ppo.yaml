@@ -32,7 +32,6 @@ normalize_advantage: true
 
 # ── PPO clipping ───────────────────────────────────────────────────────────────
 clip_range: 0.2
-clip_range_vf: null
 
 # ── Loss coefficients ──────────────────────────────────────────────────────────
 ent_coef: 0.01            # entropy bonus — encourages exploration early
@@ -51,6 +50,5 @@ policy_kwargs:
   activation_fn: tanh
 
 # ── Artifacts ──────────────────────────────────────────────────────────────────
-save_checkpoints: true
 checkpoint_freq: 50000    # save every 50K steps (~10 checkpoints total)
 tensorboard_log: artifacts/tb_logs

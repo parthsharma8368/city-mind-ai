@@ -5,6 +5,10 @@ CLI entry point for running Explainable AI (XAI) analysis on trained
 CityMind AI traffic controllers — both the centralized PPO model and the
 parameter-shared decentralized IPPO model.
 
+NOTE: the IPPO path attributes the 18-dim local observation. It supports both
+the legacy Discrete(2) stay/switch head and the N-way phase-selection head
+(MaskablePPO); the PPO path is the legacy centralized explainer.
+
 Usage:
   python scripts/run_xai.py --controller ppo \
     --model artifacts/experiments/ppo/run_20260917_172613_seed42/model_final.zip \
@@ -71,7 +75,7 @@ def main() -> None:
             print(f"\nExplaining decision for Junction {tid}...")
             explanation = explainer.explain_junction(obs=obs, tls_id=tid, top_k=8, method="integrated_gradients")
             reports.append(explanation)
-            print(f"Decision: {'SWITCH' if explanation['action'] == 1 else 'HOLD'}")
+            print(f"Decision: {explanation.get('action_label') or ('SWITCH' if explanation['action'] == 1 else 'HOLD')}")
             print(f"Narrative: {explanation['narrative']}")
             plot_path = out_dir / f"drivers_{tid}.png"
             plot_top_drivers(explanation, str(plot_path))
@@ -96,7 +100,7 @@ def main() -> None:
             print(f"\nExplaining decision for Junction {tid}...")
             explanation = explainer.explain_junction_local(obs=obs, tls_id=tid, top_k=8, method="integrated_gradients")
             reports.append(explanation)
-            print(f"Decision: {'SWITCH' if explanation['action'] == 1 else 'HOLD'}")
+            print(f"Decision: {explanation.get('action_label') or ('SWITCH' if explanation['action'] == 1 else 'HOLD')}")
             print(f"Narrative: {explanation['narrative']}")
             plot_path = out_dir / f"drivers_{tid}.png"
             plot_top_drivers(explanation, str(plot_path))

@@ -24,5 +24,4 @@ policy_kwargs:
     - 256
   activation_fn: tanh
 
-save_checkpoints: true
 checkpoint_freq: 720
