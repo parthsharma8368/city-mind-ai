@@ -1,7 +1,17 @@
 [project]
 name = "citymind-ai"
 version = "0.1.0"
-description = "Centralized Reinforcement Learning for Network-Wide Traffic Signal Control using InTAS and SUMO"
+description = "Deep-RL and classical traffic-signal control benchmarks on SUMO/InTAS (98 signalized junctions), with a FastAPI + React dashboard"
+license = { text = "Apache-2.0" }
+keywords = ["reinforcement-learning", "traffic-signal-control", "sumo", "intas", "ppo", "fastapi"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 authors = [
@@ -28,26 +38,77 @@ dependencies = [
     "supersuit>=3.9.0",
     "psutil>=5.9.0",
     "sb3-contrib>=2.3.0",
+    # transitive via tensorboard; floor set to clear the safe_join CVE (pip-audit)
+    "werkzeug>=3.1.9",
 ]
+
+[project.urls]
+Documentation = "https://github.com/OWNER/REPO/tree/main/docs"  # TODO: set real owner/repo
+Changelog = "https://github.com/OWNER/REPO/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "httpx>=0.27.0",
-    "ruff>=0.3.0",
+    "ruff>=0.8.0",
+    "mypy>=1.10.0",
+    "types-PyYAML",
+    "pip-audit>=2.7.0",
 ]
+# SUMO from PyPI (ships binaries + SUMO_HOME); alternative to apt/brew installs.
+sumo = ["eclipse-sumo>=1.20.0"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src", "api"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["artifacts", "experiments", "data", "frontend", "citymind-ai", ".claude", "docs/da2"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",    # line length: not enforced (no mass reformat)
+    "S101",    # assert is fine outside shipped runtime paths
+    "S603", "S607",  # subprocess calls launch SUMO with fixed argv (no shell)
+    "S311",    # random is used for simulation seeds, not crypto
+    "RUF001", "RUF002", "RUF003",  # intentional unicode (arrows, multiplication signs) in text
+    "B008",    # FastAPI Depends() in defaults is the framework idiom
+    # Baseline debt: existing violations found when the rule set was widened 
+    # Not mass-reformatted on purpose. Remove an
+    # entry after running `ruff check --select <CODE> --fix` on the tree.
+    "I001", "F401", "UP006", "UP035", "UP045", "UP033", "UP024", "F541", "RUF100",
+    "RUF022", "C420", "RUF059", "SIM105", "S110", "F841", "RUF005", "S314",
+    "UP017", "B019", "RUF012", "B007", "E741", "SIM108", "SIM202", "B905",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B011"]
+"scripts/**" = ["S", "E402"]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = false
+no_implicit_optional = true
+exclude = ["^artifacts/", "^experiments/", "^frontend/", "^data/"]
+
+[[tool.mypy.overrides]]
+module = ["traci.*", "sumolib.*", "libsumo.*", "supersuit.*", "pettingzoo.*", "sb3_contrib.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "scripts.*"]
+disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

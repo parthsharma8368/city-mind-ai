@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "description": "Maps headline controllers to the experiment run directory whose model_final.zip produced artifacts/metrics/<controller>_seed*_1.0x.json (source_run_id). Weights are NOT tracked in git (*.zip ignored); distribute as release assets and verify sha256.",
+  "library_versions_at_manifest_time": {
+    "stable-baselines3": "2.9.0",
+    "sb3-contrib": "2.9.0",
+    "torch": "2.14.0",
+    "gymnasium": "1.3.0",
+    "numpy": "1.26.4"
+  },
+  "models": [
+    {
+      "controller": "ppo",
+      "run_id": "run_20260917_174650_seed42",
+      "run_dir": "artifacts/experiments/ppo/run_20260917_174650_seed42",
+      "model_file": "artifacts/experiments/ppo/run_20260917_174650_seed42/model_final.zip",
+      "sha256": "6ada56dcacc6187d070c6adfc82114e89e87d14ff60f6dc52f0169eb9a2341c2",
+      "size_bytes": 31970983,
+      "training_git_commit": "b165297bf7c01396aa9ad1f473bab2168cd04e1c",
+      "seed": 42,
+      "train_config_template": "configs/ppo.yaml",
+      "run_config_snapshot": "artifacts/experiments/ppo/run_20260917_174650_seed42/config.yaml",
+      "metrics_files": "artifacts/metrics/ppo_seed{42,123,777}_1.0x.json",
+      "release_asset": "ppo-run_20260917_174650_seed42.zip"
+    },
+    {
+      "controller": "ippo",
+      "run_id": "run_20260921_194748_seed42",
+      "run_dir": "artifacts/experiments/ippo/run_20260921_194748_seed42",
+      "model_file": "artifacts/experiments/ippo/run_20260921_194748_seed42/model_final.zip",
+      "sha256": "3185128367bfab0f2e490b40687a52b137b2dcb0fd67035d0e4e7c4551452050",
+      "size_bytes": 1740508,
+      "training_git_commit": "3706d23c018b56863cb620a9948486b87a358a79",
+      "seed": 42,
+      "train_config_template": "configs/ippo.yaml",
+      "run_config_snapshot": "artifacts/experiments/ippo/run_20260921_194748_seed42/config.yaml",
+      "metrics_files": "artifacts/metrics/ippo_seed{42,123,777}_1.0x.json",
+      "release_asset": "ippo-run_20260921_194748_seed42.zip"
+    },
+    {
+      "controller": "ippo_phase_select",
+      "run_id": "run_20260924_085542_seed42",
+      "run_dir": "artifacts/experiments/ippo_phase_select/run_20260924_085542_seed42",
+      "model_file": "artifacts/experiments/ippo_phase_select/run_20260924_085542_seed42/model_final.zip",
+      "sha256": "f46f1b85d34ba40bf80767c8071540e02c1aeb3e2e973473af83a9591572d68a",
+      "size_bytes": 1759616,
+      "training_git_commit": "5238b9de72ecfc7696643299e7249e9e69ec36fa",
+      "seed": 42,
+      "train_config_template": "configs/ippo_phase_select.yaml",
+      "run_config_snapshot": "artifacts/experiments/ippo_phase_select/run_20260924_085542_seed42/config.yaml",
+      "metrics_files": "artifacts/metrics/ippo_phase_select_seed{42,123,777}_1.0x.json",
+      "release_asset": "ippo_phase_select-run_20260924_085542_seed42.zip"
+    }
+  ]
+}

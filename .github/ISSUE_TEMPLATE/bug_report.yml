@@ -1,0 +1,15 @@
+name: Bug report
+description: Something is broken or gives wrong results
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: What happened, description: Include the command run and the full error }
+    validations: { required: true }
+  - type: textarea
+    id: env
+    attributes: { label: Environment, description: "OS, Python, SUMO version (sumo --version), commit hash" }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Expected behaviour }

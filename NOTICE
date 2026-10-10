@@ -1,0 +1,38 @@
+CityMind AI
+Copyright 2026 CityMind AI Team
+
+Source code in this repository (src/, api/, frontend/, scripts/, tests/, configs/, docs/)
+is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Licensing rationale (not legal advice)
+--------------------------------------
+* InTAS (https://github.com/silaslobo/InTAS) is GPL-3.0. This repository does NOT
+  redistribute it: data/raw/intas/ is git-ignored and scripts/setup_sumo.sh clones it at a
+  pinned commit on the user's machine. Our code only reads InTAS files at runtime and does
+  not copy, link against, or embed InTAS code, so Apache-2.0 for our code is compatible.
+  (Apache-2.0 code may be combined into GPL-3.0 works; the reverse is not true, so users who
+  redistribute a combined work containing InTAS must follow GPL-3.0 for that combined work.)
+* Eclipse SUMO / TraCI (EPL-2.0 or GPL-2.0-or-later with secondary licence) is used as an
+  external tool/library and is not vendored.
+* Third-party Python and npm dependencies keep their own licences (see their packages).
+
+InTAS-derived files tracked in this repository
+----------------------------------------------
+The following files are derived from the InTAS network/signal programs (lane geometry,
+signal phase programs, counts). Whether such factual/geometric extracts are a "work based on"
+InTAS is unsettled; to be safe, treat them as licensed under GPL-3.0 (NOT Apache-2.0):
+
+  data/processed/network.geojson
+  data/metadata/demand_metadata.json
+  artifacts/scenario/*.json
+  artifacts/scenario/static_programs.add.xml
+  configs/sumo/InTAS_train.sumocfg   (our edit of an InTAS-style config)
+
+Anyone who wants a fully permissive checkout can delete these and regenerate them with
+src/scenario/* and scripts/generate_static_programs.py after running scripts/setup_sumo.sh.
+
+Attribution
+-----------
+Lobo, S., Neumeier, S., Fernandez, E., Facchi, C., "InTAS - The Ingolstadt Traffic Scenario for SUMO",
+SUMO User Conference 2020. https://github.com/silaslobo/InTAS (GPL-3.0).
+Lopez, P. A. et al., "Microscopic Traffic Simulation using SUMO", IEEE ITSC 2018 (SUMO).

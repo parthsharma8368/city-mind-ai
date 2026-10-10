@@ -1,0 +1,14 @@
+.git
+.venv
+node_modules
+frontend/node_modules
+frontend/dist
+data/raw
+artifacts/experiments
+artifacts/audit
+artifacts/eda
+experiments
+**/__pycache__
+*.zip
+.env
+.env.*

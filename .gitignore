@@ -43,6 +43,7 @@ htmlcov/
 # Experiment Artifacts & Trajectories (Large binary/data outputs)
 artifacts/models/*
 !artifacts/models/.gitkeep
+!artifacts/models/MANIFEST.json
 artifacts/trajectories/*
 !artifacts/trajectories/.gitkeep
 artifacts/metrics/tripinfo/*
@@ -71,3 +72,18 @@ events.out.tfevents.*
 node_modules/
 frontend/dist/
 frontend/.env.local
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Scratch outputs (audits, EDA, rendered videos) - not source of truth
+artifacts/audit/
+artifacts/eda/
+artifacts/metrics/_checkpoint_eval_*/
+artifacts/*.webp
+artifacts/rl_training_visualizer.*
+mypy_cache/
+.hypothesis/
+docs/da2/
