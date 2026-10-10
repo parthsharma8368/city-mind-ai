@@ -104,7 +104,15 @@ def test_simple_content_type_and_sec_fetch_rejected(no_real_processes):
     p = {"controller": "fixed_time"}
     assert LOCAL.post(LAUNCH, params=p, headers={"Content-Type": "text/plain"}).status_code == 415
     assert LOCAL.post(LAUNCH, params=p, headers={"Sec-Fetch-Site": "cross-site"}).status_code == 403
+    assert LOCAL.post(LAUNCH, params=p, headers={"Sec-Fetch-Site": "cross-site", "Origin": EVIL_ORIGIN}).status_code == 403
     assert no_real_processes == []
+
+
+def test_allowed_origin_cross_site_dev_ui_works(no_real_processes):
+    """localhost:5173 -> 127.0.0.1:8000 is 'cross-site' to browsers but its Origin is allow-listed."""
+    r = LOCAL.post(LAUNCH, params={"controller": "fixed_time"},
+                   headers={"Origin": GOOD_ORIGIN, "Sec-Fetch-Site": "cross-site"})
+    assert r.status_code == 200
 
 
 def test_allowed_origin_post_works(no_real_processes):

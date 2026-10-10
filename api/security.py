@@ -9,8 +9,8 @@ Policy (fails closed):
     so ``--host 0.0.0.0`` does not expose ``subprocess.Popen`` to the network.
     ``CITYMIND_ALLOW_INSECURE=1`` is the explicit opt-out.
   * CSRF: a request carrying an ``Origin`` outside the CORS allow-list, or
-    ``Sec-Fetch-Site: cross-site``, or a "simple" form/text content type, is
-    rejected (browsers always attach Origin to cross-origin POSTs).
+    ``Sec-Fetch-Site: cross-site`` with no Origin, or a "simple" form/text
+    content type, is rejected (browsers always attach Origin to cross-origin POSTs).
   * Behind a reverse proxy every client looks local; set a key in that case.
 """
 from __future__ import annotations
@@ -78,9 +78,13 @@ def origin_ok(origin: str | None) -> bool:
 
 
 def require_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:
-    if not origin_ok(request.headers.get("origin")):
+    origin = request.headers.get("origin")
+    if not origin_ok(origin):
         raise HTTPException(status_code=403, detail="Origin not allowed.")
-    if request.headers.get("sec-fetch-site") == "cross-site":
+    # The dev UI (http://localhost:5173) calls the API at http://127.0.0.1:8000: browsers label that
+    # "cross-site" even though the Origin is allow-listed, so only reject cross-site requests that
+    # carry no allow-listed Origin to vouch for them.
+    if origin is None and request.headers.get("sec-fetch-site") == "cross-site":
         raise HTTPException(status_code=403, detail="Cross-site requests are not allowed.")
     content_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
     if content_type in _SIMPLE_CONTENT_TYPES:
