@@ -1,14 +1,18 @@
 """experiments.py — List and retrieve experiment runs."""
 from __future__ import annotations
 import json
+import logging
 import re
 from pathlib import Path
+import yaml
 from fastapi import APIRouter, HTTPException
 from api.models import ExperimentRun
+from api.util import read_json_file, sanitize_nan
 
+logger = logging.getLogger("citymind.api.experiments")
 router = APIRouter()
 
-_PROJECT_ROOT = Path(__file__).parent.parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
 EXPERIMENTS_ROOTS = {
     "ppo": _PROJECT_ROOT / "artifacts" / "experiments" / "ppo",
@@ -26,23 +30,47 @@ def _resolve_run_dir(run_id: str) -> Path:
         # The regex above already blocks "/", but a bare ".." is still a
         # valid token that resolves to the parent directory - confirm the
         # resolved path is still actually inside root before trusting it.
-        if root.resolve() not in candidate.parents and candidate != root.resolve():
+        if root.resolve() not in candidate.parents:
             continue
         if candidate.exists():
             return candidate
     # Fall back to the ppo root so the 404 message is stable when neither has it.
-    return EXPERIMENTS_ROOTS["ppo"] / run_id
+    return EXPERIMENTS_ROOTS["ppo"] / f"_missing_{run_id}"
+
+
+class _TolerantSafeLoader(yaml.SafeLoader):
+    """SafeLoader that tolerates python/* tags (older configs) without executing them."""
+
+
+_TolerantSafeLoader.add_multi_constructor(
+    "tag:yaml.org,2002:python/", lambda _loader, suffix, _node: f"<python:{suffix}>"
+)
 
 
 def _load_yaml(text: str) -> dict:
-    import yaml
+    """Parse config text safely. Never uses yaml.Loader/unsafe_load; returns {} on any problem."""
     try:
-        return yaml.safe_load(text) or {}
-    except Exception:
-        try:
-            return yaml.load(text, Loader=yaml.Loader) or {}
-        except Exception:
-            return {}
+        cfg = yaml.load(text, Loader=_TolerantSafeLoader)  # noqa: S506 - SafeLoader subclass
+    except Exception as exc:
+        logger.warning("malformed config.yaml ignored: %s", exc)
+        return {}
+    return cfg if isinstance(cfg, dict) else {}
+
+
+def _to_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def _rel(path: Path) -> str:
+    """Path relative to the repo root (never leak absolute server paths)."""
+    try:
+        return path.resolve().relative_to(_PROJECT_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
 
 def _sanitize_json(obj):
     if isinstance(obj, dict):
@@ -64,17 +92,20 @@ def list_experiments():
             cfg_path = run_dir / "config.yaml"
             if not cfg_path.exists():
                 continue
-            cfg = _load_yaml(cfg_path.read_text())
-            sanitized_cfg = _sanitize_json(cfg)
-            model_path = run_dir / "model_final.zip"
-            runs.append(ExperimentRun(
-                run_id=run_dir.name,
-                algorithm=str(cfg.get("algorithm", "PPO")),
-                seed=int(cfg.get("seed", 0)),
-                total_timesteps=int(cfg.get("total_timesteps", 0)),
-                model_path=str(model_path) if model_path.exists() else None,
-                config=sanitized_cfg,
-            ))
+            try:
+                cfg = _load_yaml(cfg_path.read_text())
+                sanitized_cfg = _sanitize_json(cfg)
+                model_path = run_dir / "model_final.zip"
+                runs.append(ExperimentRun(
+                    run_id=run_dir.name,
+                    algorithm=str(cfg.get("algorithm", "PPO")),
+                    seed=_to_int(cfg.get("seed", 0)),
+                    total_timesteps=_to_int(cfg.get("total_timesteps", 0)),
+                    model_path=_rel(model_path) if model_path.exists() else None,
+                    config=sanitized_cfg,
+                ))
+            except Exception as exc:  # one bad run must not 500 the whole list
+                logger.warning("skipping run %s: %s", run_dir.name, exc)
     runs.sort(key=lambda r: r.run_id, reverse=True)
     return runs
 
@@ -96,7 +127,7 @@ def get_experiment(run_id: str):
         **cfg,
         "run_id": run_id,
         "has_model": model_path.exists(),
-        "model_path": str(model_path) if model_path.exists() else None,
+        "model_path": _rel(model_path) if model_path.exists() else None,
     }
 
 @router.get("/{run_id}/summary")
@@ -119,13 +150,12 @@ def get_experiment_summary(run_id: str):
     prefix = run_dir.parent.name if run_dir.parent.name in EXPERIMENTS_ROOTS else "ppo"
 
     for json_file in METRICS_DIR.glob(f"{prefix}*.json"):
-        try:
-            data = json.loads(json_file.read_text())
-        except Exception:
+        data = read_json_file(json_file)
+        if not isinstance(data, dict):
             continue
         if data.get("source_run_id") != run_id:
             continue
-        return {
+        return sanitize_nan({
             "controller": data.get("controller", "ppo"),
             "seed": data.get("seed"),
             "demand_id": data.get("demand_id"),
@@ -139,6 +169,6 @@ def get_experiment_summary(run_id: str):
             "throughput": data.get("throughput", 0),
             "total_switches": data.get("total_switches", 0),
             "cumulative_reward": data.get("cumulative_reward", 0),
-        }
+        })
     raise HTTPException(404, f"No evaluation has been run against {run_id}'s own checkpoint yet.")
 

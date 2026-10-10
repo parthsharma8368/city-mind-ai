@@ -4,6 +4,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 import pandas as pd
 
+from api.util import sanitize_nan
+
 router = APIRouter()
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 METRICS_DIR = _PROJECT_ROOT / "artifacts" / "metrics"
@@ -21,7 +23,20 @@ def _read_parquet_or_404(path: Path) -> pd.DataFrame:
     try:
         return pd.read_parquet(path)
     except Exception as exc:
-        raise HTTPException(500, f"Could not read {path.name}: {exc}") from exc
+        # Most likely the evaluator is rewriting the file right now: ask the client to retry.
+        raise HTTPException(
+            503, f"Could not read {path.name}; try again shortly.", headers={"Retry-After": "2"}
+        ) from exc
+
+
+def _filter_demand(df: pd.DataFrame, demand_id: str) -> pd.DataFrame:
+    """Filter to one demand level; unknown ids are a 422, not a silent empty result."""
+    if demand_id == "all":
+        return df
+    known = sorted(str(v) for v in df["demand_id"].dropna().unique())
+    if demand_id not in known:
+        raise HTTPException(422, f"Unknown demand_id {demand_id!r}; known: {known + ['all']}")
+    return df[df["demand_id"] == demand_id]
 
 
 @router.get("/summary")
@@ -31,8 +46,7 @@ def get_comparison_summary(
     """Return mean metrics per controller for a given demand level."""
     path = METRICS_DIR / "evaluation_results.parquet"
     df = _read_parquet_or_404(path)
-    if demand_id != "all":
-        df = df[df["demand_id"] == demand_id]
+    df = _filter_demand(df, demand_id)
 
     records = []
     for ctrl, group in df.groupby("controller"):
@@ -47,7 +61,7 @@ def get_comparison_summary(
             "total_arrived": int(group["total_arrived"].sum()) if "total_arrived" in group else 0,
             "runs": len(group),
         })
-    return {"results": records}
+    return sanitize_nan({"results": records})
 
 @router.get("/improvement")
 def get_improvement(
@@ -64,8 +78,7 @@ def get_improvement(
 
     path = METRICS_DIR / "evaluation_results.parquet"
     df = _read_parquet_or_404(path)
-    if demand_id != "all":
-        df = df[df["demand_id"] == demand_id]
+    df = _filter_demand(df, demand_id)
 
     baseline_rows = df[df["controller"] == baseline][metric]
     target_rows = df[df["controller"] == target][metric]
@@ -76,7 +89,7 @@ def get_improvement(
     target_mean = target_rows.mean()
     improvement = (baseline_mean - target_mean) / baseline_mean * 100 if baseline_mean else 0
 
-    return {
+    return sanitize_nan({
         "baseline": baseline,
         "target": target,
         "metric": metric,
@@ -84,4 +97,4 @@ def get_improvement(
         "baseline_mean": float(baseline_mean),
         "target_mean": float(target_mean),
         "improvement_pct": float(improvement),
-    }
+    })

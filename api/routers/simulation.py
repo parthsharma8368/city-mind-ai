@@ -10,7 +10,7 @@ Provides:
 from __future__ import annotations
 
 import asyncio
-import json
+import logging
 import os
 import signal
 import subprocess
@@ -20,10 +20,14 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from api.security import require_api_key
+from api.routers.experiments import _load_yaml, _sanitize_json
+from api.security import require_api_key, websocket_allowed
+from api.util import read_json_file, sanitize_nan
+
+logger = logging.getLogger("citymind.api.simulation")
 
 router = APIRouter()
 
@@ -31,9 +35,14 @@ router = APIRouter()
 # multiple controllers can run as separate SUMO-GUI windows at once — the
 # whole point is comparing a specific intersection live between two windows.
 _gui_processes: dict[str, subprocess.Popen] = {}
-_gui_lock = threading.Lock()
-_PROJECT_ROOT = Path(__file__).parent.parent.parent
+# Reentrant: _is_running is called both standalone and from inside locked sections.
+# The registry is per-process, so run a single uvicorn worker.
+_gui_lock = threading.RLock()
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _ARTIFACTS_DIR = (_PROJECT_ROOT / "artifacts").resolve()
+_EXPERIMENTS_DIR = (_PROJECT_ROOT / "artifacts" / "experiments").resolve()
+_MAX_WS_CONNECTIONS = 20
+_ws_connections = 0
 _CONTROLLERS = ("fixed_time", "sumo_actuated", "max_pressure", "ppo", "ippo")
 _MODEL_BASED_CONTROLLERS = ("ppo", "ippo")
 
@@ -68,18 +77,38 @@ def _get_display() -> str:
     return os.environ.get("DISPLAY", ":0")
 
 
+def _rel(path: Path) -> str:
+    """Repo-root-relative path; never expose absolute server paths to clients."""
+    try:
+        return path.resolve().relative_to(_PROJECT_ROOT).as_posix()
+    except ValueError:
+        return path.name
+
+
 def _is_running(controller: str) -> bool:
-    proc = _gui_processes.get(controller)
-    if proc is None:
-        return False
-    if proc.poll() is not None:
-        del _gui_processes[controller]
-        return False
-    return True
+    with _gui_lock:
+        proc = _gui_processes.get(controller)
+        if proc is None:
+            return False
+        if proc.poll() is not None:
+            _gui_processes.pop(controller, None)
+            return False
+        return True
+
+
+def _running_snapshot() -> tuple[list[str], Optional[int]]:
+    """Running controllers and the first PID, read atomically under the lock."""
+    with _gui_lock:
+        running = [c for c in _CONTROLLERS if _is_running(c)]
+        pid = _gui_processes[running[0]].pid if running else None
+    return running, pid
 
 
 def _resolve_model_path(model: Optional[str], controller: str) -> Path:
-    """Resolve a requested model path and require it to live under artifacts/."""
+    """Resolve a requested model path and require it to be a .zip under artifacts/experiments/.
+
+    SECURITY: SB3 model zips contain pickled data executed on PPO.load - treat them as code.
+    """
     if not model:
         found = _find_latest_model(controller)
         if found is None:
@@ -87,9 +116,9 @@ def _resolve_model_path(model: Optional[str], controller: str) -> Path:
         return found
 
     candidate = (_PROJECT_ROOT / model).resolve() if not Path(model).is_absolute() else Path(model).resolve()
-    if _ARTIFACTS_DIR not in candidate.parents and candidate != _ARTIFACTS_DIR:
-        raise HTTPException(400, "Model path must be inside artifacts/.")
-    if candidate.suffix != ".zip" or not candidate.exists():
+    if _EXPERIMENTS_DIR not in candidate.parents:
+        raise HTTPException(400, "Model path must be inside artifacts/experiments/.")
+    if candidate.suffix != ".zip" or not candidate.is_file():
         raise HTTPException(404, f"Model not found: {model}")
     return candidate
 
@@ -98,8 +127,8 @@ def _resolve_model_path(model: Optional[str], controller: str) -> Path:
 def launch_gui(
     controller: str = "ppo",
     model: Optional[str] = None,
-    delay: int = 80,
-    duration: int = 3600,
+    delay: int = Query(80, ge=0, le=1000),
+    duration: int = Query(3600, ge=60, le=86400),
 ):
     """Launch a SUMO-GUI window for one controller. Call again with a different
     controller to open a second window and compare them live side by side."""
@@ -143,7 +172,7 @@ def launch_gui(
         return LaunchResponse(
             status="launched",
             pid=proc.pid,
-            model=str(model_path) if model_path else None,
+            model=_rel(model_path) if model_path else None,
             message=f"SUMO-GUI for '{controller}' launched (PID={proc.pid}). XQuartz window opening.",
         )
 
@@ -175,7 +204,7 @@ def stop_gui(controller: Optional[str] = None):
                     os.killpg(os.getpgid(pid), signal.SIGKILL)
                 except Exception:
                     pass
-            del _gui_processes[name]
+            _gui_processes.pop(name, None)
             stopped.append({"controller": name, "pid": pid})
         if not stopped:
             return {"status": "not_running", "message": "No matching SUMO-GUI process is running."}
@@ -185,13 +214,12 @@ def stop_gui(controller: Optional[str] = None):
 @router.get("/status", response_model=StatusResponse)
 def get_status():
     """Return current simulation status."""
-    running = [c for c in _CONTROLLERS if _is_running(c)]
+    running, first_pid = _running_snapshot()
     model = _find_latest_model()
-    first_pid = _gui_processes[running[0]].pid if running else None
     return StatusResponse(
         gui_running=bool(running),
         gui_pid=first_pid,
-        latest_model=str(model) if model else None,
+        latest_model=_rel(model) if model else None,
         xquartz_display=_get_display(),
         running_controllers=running,
     )
@@ -208,46 +236,61 @@ def get_latest_model():
     cfg_path = run_dir / "config.yaml"
     if cfg_path.exists():
         try:
-            import yaml
-            config = yaml.safe_load(cfg_path.read_text()) or {}
-        except Exception:
-            pass
+            config = _sanitize_json(_load_yaml(cfg_path.read_text()))
+        except OSError as exc:
+            logger.warning("could not read %s: %s", cfg_path.name, exc)
     return {
-        "model_path": str(model),
+        "model_path": _rel(model),
         "run_id": run_dir.name,
         "modified": model.stat().st_mtime,
         "config": config,
     }
 
 
+def _collect_metrics() -> dict[str, Any]:
+    """Blocking file I/O; run via asyncio.to_thread so the event loop is never stalled."""
+    metrics_dir = _PROJECT_ROOT / "artifacts" / "metrics"
+    metrics: dict[str, Any] = {}
+    for json_file in metrics_dir.glob("*.json"):
+        data = read_json_file(json_file, retries=1)
+        if not isinstance(data, dict):
+            continue
+        ctrl = data.get("controller", json_file.stem)
+        metrics[ctrl] = {
+            k: data.get(k, 0)
+            for k in ("mean_waiting_time", "mean_queue", "throughput", "mean_speed",
+                      "total_arrived", "cumulative_reward")
+        }
+    return sanitize_nan(metrics)
+
+
 @router.websocket("/ws")
 async def simulation_ws(websocket: WebSocket):
-    """WebSocket: broadcast live status + metrics every 2s."""
-    await websocket.accept()
+    """WebSocket: broadcast live status + metrics every 2s.
+
+    The handshake is rejected (before accept) unless the Origin is allow-listed and
+    the client is authorised (API key when configured, loopback otherwise).
+    """
+    global _ws_connections
+    if not websocket_allowed(websocket) or _ws_connections >= _MAX_WS_CONNECTIONS:
+        await websocket.close(code=1008)
+        return
+    subprotocol = next(
+        (p.strip() for p in (websocket.headers.get("sec-websocket-protocol") or "").split(",")
+         if p.strip().startswith("citymind-key.")),
+        None,
+    )
+    _ws_connections += 1
     try:
+        await websocket.accept(subprotocol=subprotocol)
         while True:
-            metrics_dir = _PROJECT_ROOT / "artifacts" / "metrics"
-            metrics: dict[str, Any] = {}
-            for json_file in metrics_dir.glob("*.json"):
-                try:
-                    data = json.loads(json_file.read_text())
-                    ctrl = data.get("controller", json_file.stem)
-                    metrics[ctrl] = {
-                        "mean_waiting_time": data.get("mean_waiting_time", 0),
-                        "mean_queue": data.get("mean_queue", 0),
-                        "throughput": data.get("throughput", 0),
-                        "mean_speed": data.get("mean_speed", 0),
-                        "total_arrived": data.get("total_arrived", 0),
-                        "cumulative_reward": data.get("cumulative_reward", 0),
-                    }
-                except Exception:
-                    pass
-            running = [c for c in _CONTROLLERS if _is_running(c)]
+            metrics = await asyncio.to_thread(_collect_metrics)
+            running, pid = _running_snapshot()
             payload = {
                 "type": "status",
                 "timestamp": time.time(),
                 "gui_running": bool(running),
-                "gui_pid": _gui_processes[running[0]].pid if running else None,
+                "gui_pid": pid,
                 "running_controllers": running,
                 "metrics": metrics,
             }
@@ -255,5 +298,7 @@ async def simulation_ws(websocket: WebSocket):
             await asyncio.sleep(2)
     except WebSocketDisconnect:
         pass
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.info("simulation websocket closed: %s", exc)
+    finally:
+        _ws_connections -= 1

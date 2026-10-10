@@ -3,12 +3,17 @@ metrics.py — Real metrics endpoints for CityMind AI dashboard and comparison.
 """
 from __future__ import annotations
 
-import json
+import logging
+import math
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 import pandas as pd
+
+from api.util import read_json_file, sanitize_nan
+
+logger = logging.getLogger("citymind.api.metrics")
 
 router = APIRouter()
 
@@ -23,16 +28,41 @@ def _load_metric_json(controller: str, seed: int = 42) -> dict[str, Any]:
     — pick seed 42 deterministically (the project's convention default)
     rather than whatever a directory glob happens to return first."""
     matches = []
+    skipped = False
     for json_file in METRICS_DIR.glob("*.json"):
-        try:
-            data = json.loads(json_file.read_text())
-            if data.get("controller") == controller:
-                matches.append(data)
-        except Exception:
-            pass
+        data = read_json_file(json_file)
+        if data is None:
+            skipped = True
+            continue
+        if isinstance(data, dict) and data.get("controller") == controller:
+            matches.append(data)
     if not matches:
         return {}
-    return next((m for m in matches if m.get("seed") == seed), matches[0])
+    exact = next((m for m in matches if m.get("seed") == seed), None)
+    if exact is not None:
+        return exact
+    if skipped:
+        # The seed's file is probably mid-write: do not silently substitute another seed.
+        logger.warning("seed %s for %s unavailable (a metrics file was unreadable)", seed, controller)
+        return {}
+    return matches[0]
+
+
+def _f(value: Any) -> float:
+    """float() that tolerates None/garbage (returns 0.0); NaN is kept and sanitised at output."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _i(value: Any) -> int:
+    """int() that tolerates None/NaN/inf (returns 0)."""
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return 0
+    return int(f) if math.isfinite(f) else 0
 
 
 @router.get("/comparison")
@@ -58,17 +88,18 @@ def get_comparison():
         results.append({
             "controller": ctrl,
             "label": labels.get(ctrl, ctrl),
-            "mean_waiting_time": round(float(data.get("mean_waiting_time", 0)), 2),
-            "mean_queue": round(float(data.get("mean_queue", 0)), 3),
-            "throughput": round(float(data.get("throughput", 0)), 4),
-            "mean_speed": round(float(data.get("mean_speed", 0)), 3),
-            "total_arrived": int(data.get("total_arrived", 0)),
-            "total_steps": int(data.get("total_steps", 0)),
-            "cumulative_reward": round(float(data.get("cumulative_reward", 0)), 1),
-            "backlog": int(data.get("backlog", 0)),
-            "total_teleports": int(data.get("total_teleports", 0)),
-            "trips_completed": int(data.get("trips_completed", 0)),
-            "mean_trip_timeloss": round(float(data.get("mean_trip_timeloss", 0)), 2),
+            "seed": data.get("seed"),
+            "mean_waiting_time": round(_f(data.get("mean_waiting_time", 0)), 2),
+            "mean_queue": round(_f(data.get("mean_queue", 0)), 3),
+            "throughput": round(_f(data.get("throughput", 0)), 4),
+            "mean_speed": round(_f(data.get("mean_speed", 0)), 3),
+            "total_arrived": _i(data.get("total_arrived", 0)),
+            "total_steps": _i(data.get("total_steps", 0)),
+            "cumulative_reward": round(_f(data.get("cumulative_reward", 0)), 1),
+            "backlog": _i(data.get("backlog", 0)),
+            "total_teleports": _i(data.get("total_teleports", 0)),
+            "trips_completed": _i(data.get("trips_completed", 0)),
+            "mean_trip_timeloss": round(_f(data.get("mean_trip_timeloss", 0)), 2),
         })
 
     if not results:
@@ -117,7 +148,9 @@ def get_comparison():
     improvement = _improvement_vs("fixed_time")
     improvement_vs_actuated = _improvement_vs("sumo_actuated")
 
-    return {"results": results, "improvement": improvement, "improvement_vs_actuated": improvement_vs_actuated}
+    return sanitize_nan(
+        {"results": results, "improvement": improvement, "improvement_vs_actuated": improvement_vs_actuated}
+    )
 
 
 @router.get("/summary")
@@ -159,34 +192,34 @@ def get_summary():
         raise HTTPException(404, "No metrics found. Run evaluation first.")
 
     best_name, best_data = max(
-        candidates, key=lambda item: float(item[1].get("trips_completed", 0))
+        candidates, key=lambda item: _f(item[1].get("trips_completed", 0))
     )
 
     baseline = _load_metric_json("sumo_actuated") or _load_metric_json("fixed_time")
     trips_gap_pct = None
     if baseline and baseline.get("trips_completed"):
         trips_gap_pct = round(
-            (float(best_data.get("trips_completed", 0)) - float(baseline["trips_completed"]))
-            / float(baseline["trips_completed"]) * 100, 1
+            (_f(best_data.get("trips_completed", 0)) - _f(baseline["trips_completed"]))
+            / _f(baseline["trips_completed"]) * 100, 1
         )
 
-    return {
+    return sanitize_nan({
         "controller": best_name,
-        "mean_waiting_time": round(float(best_data.get("mean_waiting_time", 0)), 2),
-        "mean_queue": round(float(best_data.get("mean_queue", 0)), 3),
-        "throughput": round(float(best_data.get("throughput", 0)), 4),
-        "mean_speed": round(float(best_data.get("mean_speed", 0)), 3),
-        "total_arrived": int(best_data.get("total_arrived", 0)),
-        "total_steps": int(best_data.get("total_steps", 0)),
-        "cumulative_reward": round(float(best_data.get("cumulative_reward", 0)), 1),
-        "total_switches": int(best_data.get("total_switches", 0)),
-        "backlog": int(best_data.get("backlog", 0)),
-        "total_teleports": int(best_data.get("total_teleports", 0)),
-        "trips_completed": int(best_data.get("trips_completed", 0)),
-        "mean_trip_timeloss": round(float(best_data.get("mean_trip_timeloss", 0)), 2),
+        "mean_waiting_time": round(_f(best_data.get("mean_waiting_time", 0)), 2),
+        "mean_queue": round(_f(best_data.get("mean_queue", 0)), 3),
+        "throughput": round(_f(best_data.get("throughput", 0)), 4),
+        "mean_speed": round(_f(best_data.get("mean_speed", 0)), 3),
+        "total_arrived": _i(best_data.get("total_arrived", 0)),
+        "total_steps": _i(best_data.get("total_steps", 0)),
+        "cumulative_reward": round(_f(best_data.get("cumulative_reward", 0)), 1),
+        "total_switches": _i(best_data.get("total_switches", 0)),
+        "backlog": _i(best_data.get("backlog", 0)),
+        "total_teleports": _i(best_data.get("total_teleports", 0)),
+        "trips_completed": _i(best_data.get("trips_completed", 0)),
+        "mean_trip_timeloss": round(_f(best_data.get("mean_trip_timeloss", 0)), 2),
         "trips_completed_gap_pct": trips_gap_pct,
         "starvation_flag": (trips_gap_pct is not None and trips_gap_pct < -2.0),
-    }
+    })
 
 
 @router.get("/experiments-list")
@@ -194,8 +227,10 @@ def list_experiment_metrics():
     """List all available experiment metric JSON files."""
     result = []
     for f in METRICS_DIR.glob("*.json"):
+        data = read_json_file(f)
+        if not isinstance(data, dict):
+            continue
         try:
-            data = json.loads(f.read_text())
             result.append({
                 "filename": f.name,
                 "controller": data.get("controller", "unknown"),
@@ -206,4 +241,4 @@ def list_experiment_metrics():
             })
         except Exception:
             pass
-    return result
+    return sanitize_nan(result)

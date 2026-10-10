@@ -48,16 +48,51 @@ def test_replay_frames_rejects_path_traversal():
 
 
 def test_experiments_get_rejects_path_traversal():
-    response = client.get("/api/experiments/../../../etc")
-    assert response.status_code in (400, 404)
+    # Percent-encoded so the HTTP client cannot normalise it away before the validator sees it.
+    assert client.get("/api/experiments/bad%20id").status_code == 400
+    assert client.get("/api/experiments/bad%20id/summary").status_code == 400
 
 
-def test_simulation_launch_requires_api_key_when_configured(monkeypatch):
+class _FakeProc:
+    pid = 424242
+    returncode = None
+
+    def poll(self):
+        return None
+
+
+@pytest.fixture
+def fake_spawn(monkeypatch):
+    """Never start a real process: patch Popen and the 0.5 s sleep, isolate the registry."""
+    from api.routers import simulation
+
+    calls = []
+
+    def fake_popen(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return _FakeProc()
+
+    monkeypatch.setattr(simulation.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(simulation.time, "sleep", lambda _s: None)
+    with simulation._gui_lock:
+        simulation._gui_processes.clear()
+    yield calls
+    with simulation._gui_lock:
+        simulation._gui_processes.clear()
+
+
+def test_simulation_launch_requires_api_key_when_configured(monkeypatch, fake_spawn):
     """When CITYMIND_API_KEY is set, launch-gui must reject requests without it."""
     monkeypatch.setenv("CITYMIND_API_KEY", "test-secret")
-    response = client.post("/api/simulation/launch-gui")
+    response = client.post("/api/simulation/launch-gui", params={"controller": "fixed_time"})
     assert response.status_code == 401
+    assert fake_spawn == []
     response = client.post(
-        "/api/simulation/launch-gui", headers={"X-API-Key": "test-secret"}
+        "/api/simulation/launch-gui",
+        params={"controller": "fixed_time"},
+        headers={"X-API-Key": "test-secret"},
     )
-    assert response.status_code != 401
+    assert response.status_code == 200
+    assert response.json()["status"] == "launched"
+    assert len(fake_spawn) == 1
+    assert fake_spawn[0][1]["start_new_session"] is True
