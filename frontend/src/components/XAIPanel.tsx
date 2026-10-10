@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Brain, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { api } from "../api/client";
+import { api, isAbortError } from "../api/client";
+import { fmt } from "../utils/format";
 import type { XAIJunctionExplanation } from "../api/client";
 
 const GROUP_COLORS: Record<string, string> = {
@@ -28,7 +29,7 @@ function FeatureBar({ label, value, max }: { label: string; value: number; max: 
           }}
         />
       </div>
-      <div className="feature-bar-value">{value.toFixed(4)}</div>
+      <div className="feature-bar-value">{fmt(value, 4)}</div>
     </div>
   );
 }
@@ -61,7 +62,7 @@ function JunctionCard({ expl }: { expl: XAIJunctionExplanation }) {
             {action}
           </span>
           <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-            Local: {expl.local_influence_pct.toFixed(1)}% · Neighbor: {expl.neighbor_influence_pct.toFixed(1)}%
+            Local: {fmt(expl.local_influence_pct, 1)}% · Neighbor: {fmt(expl.neighbor_influence_pct, 1)}%
           </span>
         </div>
         {expanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
@@ -77,7 +78,7 @@ function JunctionCard({ expl }: { expl: XAIJunctionExplanation }) {
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
             {Object.entries(expl.group_breakdown).map(([grp, val]) => (
               <span key={grp} style={{ fontSize: "0.72rem", padding: "0.2rem 0.5rem", borderRadius: 4, background: `${GROUP_COLORS[grp] ?? "#64748b"}20`, color: GROUP_COLORS[grp] ?? "#64748b", border: `1px solid ${GROUP_COLORS[grp] ?? "#64748b"}40`, fontFamily: "var(--font-mono)" }}>
-                {grp}: {(val * 100).toFixed(1)}%
+                {grp}: {fmt(val * 100, 1)}%
               </span>
             ))}
           </div>
@@ -107,16 +108,24 @@ function JunctionCard({ expl }: { expl: XAIJunctionExplanation }) {
 }
 
 export const XAIPanel: React.FC<{ maxItems?: number; controller?: string }> = ({ maxItems = 10, controller = "ppo" }) => {
-  const [data, setData] = useState<XAIJunctionExplanation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // The result is tagged with the controller (and maxItems) it was fetched for;
+  // anything not matching the current props counts as "still loading", so a
+  // previous controller's explanations are never shown under a new toggle.
+  const [result, setResult] = useState<{ key: string; data: XAIJunctionExplanation[]; error: string | null } | null>(null);
+  const key = `${controller}:${maxItems}`;
+  const current = result?.key === key ? result : null;
+  const loading = current === null;
+  const data = current?.data ?? [];
+  const error = current?.error ?? null;
 
   useEffect(() => {
-    api.getXAISummary(controller)
-      .then((d) => { setData(d.slice(0, maxItems)); setError(null); })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [maxItems, controller]);
+    // Ignore any response that resolves after the controller changed (or on unmount).
+    const ctrl = new AbortController();
+    api.getXAISummary(controller, ctrl.signal)
+      .then((d) => { if (!ctrl.signal.aborted) setResult({ key, data: d.slice(0, maxItems), error: null }); })
+      .catch((e: Error) => { if (!ctrl.signal.aborted && !isAbortError(e)) setResult({ key, data: [], error: e.message }); });
+    return () => ctrl.abort();
+  }, [maxItems, controller, key]);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-muted)", padding: "2rem" }}>

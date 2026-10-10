@@ -2,9 +2,21 @@
  * CityMind AI — API client for FastAPI backend.
  */
 
-export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
-export const WS_SIMULATION = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/ws/simulation";
-const API_KEY = import.meta.env.VITE_API_KEY;
+// Defaults target the loopback-only dev backend. Override with VITE_API_URL /
+// VITE_WS_URL (see frontend/.env.example). NOTE: never put secrets in VITE_*
+// variables -- Vite inlines them into the public bundle, so no API key is
+// read here; the backend control endpoints are loopback-only by default.
+const DEFAULT_API_BASE = "http://127.0.0.1:8000/api";
+
+export const API_BASE: string = (import.meta.env.VITE_API_URL || DEFAULT_API_BASE).replace(/\/+$/, "");
+/** Backend origin without the /api suffix (used for the docs link). */
+export const API_ORIGIN: string = API_BASE.replace(/\/api$/, "");
+export const API_DOCS_URL = `${API_ORIGIN}/docs`;
+
+function deriveWsUrl(apiBase: string): string {
+  return `${apiBase.replace(/\/api$/, "").replace(/^http/, "ws")}/ws/simulation`;
+}
+export const WS_SIMULATION: string = import.meta.env.VITE_WS_URL || deriveWsUrl(API_BASE);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -187,37 +199,66 @@ export interface VehiclePointDTO {
 
 // ── API Client ────────────────────────────────────────────────────────────────
 
-async function _fetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const headers = new Headers(options?.headers);
-  if (API_KEY) headers.set("X-API-Key", API_KEY);
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+export async function _fetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, options);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`API ${path} → ${res.status}: ${text.slice(0, 200)}`);
   }
-  return res.json() as Promise<T>;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new Error(`API ${path} → ${res.status}: response was not valid JSON`);
+  }
 }
+
+/** True for the error thrown when a fetch is cancelled via AbortController. */
+export function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
+}
+
+// Module-level promise caches: the 4.9 MB network GeoJSON and TLS metadata are
+// static for a session, so every NetworkCanvas shares one download. A failed
+// fetch clears the cache so the next caller can retry.
+function cachedOnce<T>(load: () => Promise<T>): () => Promise<T> {
+  let promise: Promise<T> | null = null;
+  return () => {
+    if (!promise) {
+      promise = load().catch((err) => {
+        promise = null;
+        throw err;
+      });
+    }
+    return promise;
+  };
+}
+
+type TLSMetadata = Array<{
+  tls_id: string;
+  program_id: string;
+  phases: Array<{ state: string; duration: number }>;
+}>;
+
+const loadNetworkGeoJSON = cachedOnce(() => _fetch<NetworkGeoJSON>("/network/geojson"));
+const loadTLSMetadata = cachedOnce(() => _fetch<TLSMetadata>("/network/tls_metadata"));
 
 export const api = {
   // ── Network ────────────────────────────────────────────────────────────
-  getNetworkGeoJSON: () => _fetch<NetworkGeoJSON>("/network/geojson"),
-  getTLSMetadata: () => _fetch<Array<{
-    tls_id: string;
-    program_id: string;
-    phases: Array<{ state: string; duration: number }>;
-  }>>("/network/tls_metadata"),
+  getNetworkGeoJSON: loadNetworkGeoJSON,
+  getTLSMetadata: loadTLSMetadata,
 
   // ── Experiments ────────────────────────────────────────────────────────
-  getExperiments: () => _fetch<ExperimentRun[]>("/experiments/"),
-  getExperiment: (runId: string) => _fetch<ExperimentRun>(`/experiments/${runId}`),
-  getExperimentSummary: (runId: string) => _fetch<ExperimentSummary>(`/experiments/${runId}/summary`),
+  getExperiments: (signal?: AbortSignal) => _fetch<ExperimentRun[]>("/experiments/", { signal }),
+  getExperiment: (runId: string, signal?: AbortSignal) => _fetch<ExperimentRun>(`/experiments/${encodeURIComponent(runId)}`, { signal }),
+  getExperimentSummary: (runId: string, signal?: AbortSignal) =>
+    _fetch<ExperimentSummary>(`/experiments/${encodeURIComponent(runId)}/summary`, { signal }),
 
   // ── Metrics ────────────────────────────────────────────────────────────
-  getComparisonMetrics: () => _fetch<ComparisonResult>("/metrics/comparison"),
-  getMetricsSummary: () => _fetch<MetricsSummary>("/metrics/summary"),
+  getComparisonMetrics: (signal?: AbortSignal) => _fetch<ComparisonResult>("/metrics/comparison", { signal }),
+  getMetricsSummary: (signal?: AbortSignal) => _fetch<MetricsSummary>("/metrics/summary", { signal }),
 
   // ── Simulation Control (XQuartz) ───────────────────────────────────────
-  getSimulationStatus: () => _fetch<SimulationStatus>("/simulation/status"),
+  getSimulationStatus: (signal?: AbortSignal) => _fetch<SimulationStatus>("/simulation/status", { signal }),
   // FastAPI binds these as query params (no Pydantic body on the endpoint),
   // so they're sent on the URL, not as a JSON body — the previous version of
   // this call sent a JSON body FastAPI was never reading.
@@ -232,12 +273,15 @@ export const api = {
   },
 
   // ── XAI ───────────────────────────────────────────────────────────────
-  getXAISummary: (controller: string = "ppo") => _fetch<XAIJunctionExplanation[]>(`/xai/summary?controller=${controller}`),
-  getXAIJunction: (tlsId: string, controller: string = "ppo") => _fetch<XAIJunctionExplanation>(`/xai/explain/${tlsId}?controller=${controller}`),
-  getXAIMeta: (controller: string = "ppo") => _fetch<XAIMeta>(`/xai/meta?controller=${controller}`),
+  getXAISummary: (controller: string = "ppo", signal?: AbortSignal) =>
+    _fetch<XAIJunctionExplanation[]>(`/xai/summary?controller=${encodeURIComponent(controller)}`, { signal }),
+  getXAIJunction: (tlsId: string, controller: string = "ppo", signal?: AbortSignal) =>
+    _fetch<XAIJunctionExplanation>(`/xai/explain/${encodeURIComponent(tlsId)}?controller=${encodeURIComponent(controller)}`, { signal }),
+  getXAIMeta: (controller: string = "ppo", signal?: AbortSignal) =>
+    _fetch<XAIMeta>(`/xai/meta?controller=${encodeURIComponent(controller)}`, { signal }),
 
   // ── Replay ────────────────────────────────────────────────────────────
-  getReplayFrames: (controller: string, seed = 42, demandId = "1.0x", startTime = 0, endTime = 60) => {
+  getReplayFrames: (controller: string, seed = 42, demandId = "1.0x", startTime = 0, endTime = 60, signal?: AbortSignal) => {
     const params = new URLSearchParams({
       controller,
       seed: String(seed),
@@ -249,6 +293,6 @@ export const api = {
       frames: Record<string, VehiclePointDTO[]>;
       tls_frames: Record<string, TLSFrame[]>;
       frame_count: number;
-    }>(`/replay/frames?${params.toString()}`);
+    }>(`/replay/frames?${params.toString()}`, { signal });
   },
 };

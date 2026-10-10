@@ -167,7 +167,9 @@ export const StoryPage: React.FC = () => {
       <SectionCard>
         <SectionHeading icon={<GitBranch size={18} color="var(--accent-indigo)" aria-hidden="true" />} title="Root cause: the action space" />
         <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7, marginBottom: "0.85rem" }}>
-          Every controller above — including both RL policies — was choosing actions from the same limited menu:
+          The three binary-action RL runs (centralized PPO, IPPO, and IPPO with neighbor observations) and the
+          Max-Pressure baseline all chose actions from the same limited menu (Fixed-Time and SUMO-Actuated are
+          non-learned signal programs and do not pick from it; phase selection, below, was the follow-up test):
           at each decision point, either keep the current green phase, or advance to the next phase in a fixed
           cycle. That action can never skip past an already-empty movement to go serve a congested one elsewhere
           at the same intersection; it can only step forward one phase at a time, in order.
@@ -283,7 +285,8 @@ export const StoryPage: React.FC = () => {
           diagnosis was correct and the numbers moved exactly where it predicted.
         </p>
         <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
-          It still doesn't beat the baselines. Teleports remain roughly 90&times; every baseline's, trips
+          It still doesn't beat the baselines. Teleports remain roughly 93&times; the Fixed-Time and
+          Actuated baselines' (about 14&times; Max-Pressure's), trips
           completed still trails all four, and backlog is worse than everything. "Much better than a broken
           reward" is not "better than fixed-time." That is the honest final state of this project: two real bugs
           found and fixed, a harder action-space redesign built and proven to work mechanically, a reward flaw

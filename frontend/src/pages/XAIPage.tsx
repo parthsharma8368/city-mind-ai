@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AlertTriangle, Brain, Info, Grid, Maximize2, Sparkles, Layers, Image as ImageIcon } from "lucide-react";
 import { XAIPanel } from "../components/XAIPanel";
-import { api, API_BASE } from "../api/client";
+import { api, API_BASE, isAbortError } from "../api/client";
 import type { XAIMeta } from "../api/client";
 import { CONTROLLER_LABELS } from "../constants/controllers";
 
@@ -20,7 +20,9 @@ function ImageLoadError({ label }: { label: string }) {
 
 export const XAIPage: React.FC = () => {
   const [controller, setController] = useState<typeof XAI_CONTROLLERS[number]>("ppo");
-  const [meta, setMeta] = useState<XAIMeta | null>(null);
+  const [rawMeta, setMeta] = useState<XAIMeta | null>(null);
+  // Only trust meta that describes the controller currently selected.
+  const meta = rawMeta?.controller === controller ? rawMeta : null;
   const [activeView, setActiveView] = useState<"attributions" | "heatmap" | "drivers">("attributions");
   const [selectedDriverJunction, setSelectedDriverJunction] = useState("1863241632");
   const [heatmapExpanded, setHeatmapExpanded] = useState(false);
@@ -28,11 +30,15 @@ export const XAIPage: React.FC = () => {
   const [driverPlotFailed, setDriverPlotFailed] = useState(false);
 
   useEffect(() => {
-    api.getXAIMeta(controller).then(setMeta).catch(() => setMeta(null));
+    const ctrl = new AbortController();
+    api.getXAIMeta(controller, ctrl.signal)
+      .then((m) => { if (!ctrl.signal.aborted) setMeta(m); })
+      .catch((e) => { if (!ctrl.signal.aborted && !isAbortError(e)) setMeta(null); });
+    return () => ctrl.abort();
   }, [controller]);
 
-  const heatmapUrl = `${API_BASE}/xai/coordination-heatmap?controller=${controller}`;
-  const driverPlotUrl = `${API_BASE}/xai/driver-plot/${selectedDriverJunction}?controller=${controller}`;
+  const heatmapUrl = `${API_BASE}/xai/coordination-heatmap?controller=${encodeURIComponent(controller)}`;
+  const driverPlotUrl = `${API_BASE}/xai/driver-plot/${encodeURIComponent(selectedDriverJunction)}?controller=${encodeURIComponent(controller)}`;
   const isEmpirical = meta?.coordination_evidence_type === "empirical_correlation";
 
   return (
@@ -90,6 +96,7 @@ export const XAIPage: React.FC = () => {
               color: activeView === "attributions" ? "var(--accent-cyan)" : "var(--text-secondary)",
             }}
             onClick={() => setActiveView("attributions")}
+            aria-pressed={activeView === "attributions"}
           >
             <Layers size={13} /> Junction Attributions
           </button>
@@ -104,6 +111,7 @@ export const XAIPage: React.FC = () => {
               color: activeView === "heatmap" ? "var(--accent-cyan)" : "var(--text-secondary)",
             }}
             onClick={() => setActiveView("heatmap")}
+            aria-pressed={activeView === "heatmap"}
           >
             <Grid size={13} /> Coordination Heatmap
           </button>
@@ -118,6 +126,7 @@ export const XAIPage: React.FC = () => {
               color: activeView === "drivers" ? "var(--accent-cyan)" : "var(--text-secondary)",
             }}
             onClick={() => setActiveView("drivers")}
+            aria-pressed={activeView === "drivers"}
           >
             <ImageIcon size={13} /> Driver Plots
           </button>
@@ -158,7 +167,7 @@ export const XAIPage: React.FC = () => {
       {/* ── View 1: Feature Attributions per Junction ──────────────────────── */}
       {activeView === "attributions" && (
         <div>
-          <XAIPanel maxItems={20} controller={controller} />
+          <XAIPanel key={controller} maxItems={20} controller={controller} />
         </div>
       )}
 
@@ -189,6 +198,7 @@ export const XAIPage: React.FC = () => {
             <button
               className="btn btn-sm"
               onClick={() => setHeatmapExpanded(!heatmapExpanded)}
+              aria-pressed={heatmapExpanded}
               style={{ display: "flex", alignItems: "center", gap: 5 }}
             >
               <Maximize2 size={13} /> {heatmapExpanded ? "Standard Size" : "Full Resolution"}
@@ -264,6 +274,7 @@ export const XAIPage: React.FC = () => {
                     background: selectedDriverJunction === jId ? "var(--accent-cyan)" : "rgba(255,255,255,0.04)",
                     color: selectedDriverJunction === jId ? "#060910" : "var(--text-secondary)",
                   }}
+                  aria-pressed={selectedDriverJunction === jId}
                   onClick={() => { setSelectedDriverJunction(jId); setDriverPlotFailed(false); }}
                 >
                   TLS {jId}

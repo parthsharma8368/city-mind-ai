@@ -1,19 +1,13 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { api } from "../api/client";
 import type { NetworkGeoJSON } from "../api/client";
-import { isQueuedSpeed } from "../utils/trajectory";
+import { isQueuedSpeed, signalKind, summarizeSignals } from "../utils/trajectory";
 
 export interface VehiclePoint {
   vehicle_id: string;
   x: number;
   y: number;
   speed: number;
-}
-
-interface TLSMetaItem {
-  tls_id: string;
-  phases: Array<{ state: string; duration: number; index?: number }>;
-  totalCycle: number;
 }
 
 interface NetworkCanvasProps {
@@ -23,78 +17,46 @@ interface NetworkCanvasProps {
   currentTime?: number;
 }
 
-/**
- * Determine high-visibility signal color (Green / Yellow / Red).
- *
- * `state` is the actual SUMO signal-state string (e.g. "rrGGGGg") whenever
- * one is available — from a real recorded controller decision, or from a
- * real phase definition in tls_metadata — and it is always authoritative
- * when present: it reflects what genuinely happened, not a guess. The
- * phaseIndex-parity heuristic below is only a last resort for the case
- * where no state string exists at all (an unrecognized junction).
- */
-function getSignalColor(state: string, phaseIndex?: number): string {
-  const s = (state || "").toLowerCase();
-  if (s) {
-    if (s.includes("y")) return "#f59e0b";
-    const hasGreen = s.includes("g");
-    const hasRed = s.includes("r");
-    if (hasGreen && !hasRed) return "#10b981";
-    if (hasRed && !hasGreen) return "#ef4444";
-    return hasGreen ? "#10b981" : "#ef4444";
-  }
-
-  // No real state string: fall back to a phase-index guess.
-  if (phaseIndex !== undefined) {
-    if (phaseIndex === 0) return "#10b981";
-    return phaseIndex % 2 === 1 ? "#f59e0b" : "#ef4444";
-  }
-  return "#10b981";
-}
+const SIGNAL_COLORS = { green: "#10b981", yellow: "#f59e0b", red: "#ef4444" } as const;
+// Junctions with no recorded state are drawn as a neutral grey ring, never as a
+// guessed phase (the old schedule/hash fallbacks fabricated signal colours).
+const NO_SIGNAL_COLOR = "#94a3b8";
 
 export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   height = 380,
   tlsStates = {},
   vehicles = [],
-  currentTime = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [geoJSON, setGeoJSON] = useState<NetworkGeoJSON | null>(null);
-  const [tlsMetaMap, setTlsMetaMap] = useState<Map<string, TLSMetaItem>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const animFrameRef = useRef<number>(0);
   const tickRef = useRef(0);
+  const dprRef = useRef(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
   const reducedMotionRef = useRef(
     typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
   );
 
   useEffect(() => {
-    Promise.all([
-      api.getNetworkGeoJSON(),
-      api.getTLSMetadata().catch(() => []),
-    ])
-      .then(([geo, metaList]) => {
-        setGeoJSON(geo);
-        const map = new Map<string, TLSMetaItem>();
-        for (const item of metaList) {
-          const phases = (item.phases || []).map((p, idx) => ({
-            state: p.state,
-            duration: p.duration > 0 ? p.duration : 5,
-            index: idx,
-          }));
-          const totalCycle = phases.reduce((sum, p) => sum + p.duration, 0) || 60;
-          map.set(item.tls_id, {
-            tls_id: item.tls_id,
-            phases,
-            totalCycle,
-          });
-        }
-        setTlsMetaMap(map);
-      })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+    // api.getNetworkGeoJSON is a module-level cached promise: every canvas
+    // shares ONE download of the 4.9 MB GeoJSON per session.
+    let cancelled = false;
+    api.getNetworkGeoJSON()
+      .then((geo) => { if (!cancelled) setGeoJSON(geo); })
+      .catch((e: Error) => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
+
+  const tlsIds = useMemo(
+    () => (geoJSON?.features ?? [])
+      .filter((f) => f.geometry.type === "Point" && f.properties.is_tls)
+      .map((f) => f.properties.tls_id ?? ""),
+    [geoJSON],
+  );
+  const signalSummary = useMemo(() => summarizeSignals(tlsIds, tlsStates), [tlsIds, tlsStates]);
+  const stoppedCount = useMemo(() => vehicles.filter((v) => isQueuedSpeed(v.speed)).length, [vehicles]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -102,8 +64,11 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const W = canvas.width;
-    const H = canvas.height;
+    // Backing store is scaled by devicePixelRatio (sharp on retina); draw in CSS px.
+    const dpr = dprRef.current;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = canvas.width / dpr;
+    const H = canvas.height / dpr;
     tickRef.current += 0.05;
     const t = tickRef.current;
 
@@ -216,54 +181,23 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
 
       const tlsId = feat.properties.tls_id ?? "";
-      let signalColor = "#10b981";
-
-      // A) Live / recorded controller state has priority
-      const liveState = tlsStates[tlsId];
-      if (liveState) {
-        signalColor = getSignalColor(liveState.state, liveState.phase);
-      } else if (tlsMetaMap.has(tlsId)) {
-        // B) InTAS Scenario schedule state for simulation time
-        const meta = tlsMetaMap.get(tlsId)!;
-        const timeOffset = currentTime > 0 ? currentTime : t * 2;
-        const tCycle = (timeOffset) % meta.totalCycle;
-        let acc = 0;
-        let activePhase = 0;
-        let activeState = "";
-        for (const p of meta.phases) {
-          if (tCycle < acc + p.duration) {
-            activePhase = p.index ?? 0;
-            activeState = p.state;
-            break;
-          }
-          acc += p.duration;
-        }
-        signalColor = getSignalColor(activeState, activePhase);
-      } else {
-        // C) Deterministic hash cycle for any junction ID
-        const hash = tlsId.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-        const timeOffset = currentTime > 0 ? currentTime : t * 2;
-        const mod = (timeOffset + hash * 3.7) % 60;
-        if (mod < 28) {
-          signalColor = "#10b981"; // Green
-        } else if (mod < 32) {
-          signalColor = "#f59e0b"; // Yellow
-        } else {
-          signalColor = "#ef4444"; // Red
-        }
-      }
+      // Only a real recorded state is coloured; otherwise neutral "no signal data".
+      const kind = signalKind(tlsStates[tlsId]?.state);
+      const signalColor = kind ? SIGNAL_COLORS[kind] : NO_SIGNAL_COLOR;
 
       // ── Traffic Light Visual Badge Rendering ───────────────────────────
       // 1. Ambient pulsing halo in signal color
       const pulse = reducedMotionRef.current ? 0.85 : 0.7 + 0.3 * Math.abs(Math.sin(t * 1.5 + sx * 0.03));
       const haloR = 10 * pulse;
-      const glow = ctx.createRadialGradient(sx, sy, 2, sx, sy, haloR);
-      glow.addColorStop(0, signalColor + "99");
-      glow.addColorStop(1, signalColor + "00");
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(sx, sy, haloR, 0, Math.PI * 2);
-      ctx.fill();
+      if (kind) {
+        const glow = ctx.createRadialGradient(sx, sy, 2, sx, sy, haloR);
+        glow.addColorStop(0, signalColor + "99");
+        glow.addColorStop(1, signalColor + "00");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(sx, sy, haloR, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // 2. High-contrast protective collar (dark bezel + crisp white outline)
       ctx.beginPath();
@@ -277,8 +211,13 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       // 3. Bright saturated LED signal lens
       ctx.beginPath();
       ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
-      ctx.fillStyle = signalColor;
+      ctx.fillStyle = kind ? signalColor : "#1e293b"; // dark, ringed lens = no recorded state
       ctx.fill();
+      if (!kind) {
+        ctx.strokeStyle = NO_SIGNAL_COLOR;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
 
       // 4. Specular highlight (glass reflection)
       ctx.beginPath();
@@ -286,7 +225,7 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
       ctx.fill();
     }
-  }, [geoJSON, tlsStates, vehicles, currentTime, tlsMetaMap]);
+  }, [geoJSON, tlsStates, vehicles]);
 
   useEffect(() => {
     if (!geoJSON) return;
@@ -307,16 +246,18 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const resize = (cssWidth: number) => {
+      const dpr = window.devicePixelRatio || 1;
+      dprRef.current = dpr;
+      canvas.width = Math.round(cssWidth * dpr);
+      canvas.height = Math.round(height * dpr);
+    };
     const ro = new ResizeObserver(() => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = height;
+      resize(canvas.offsetWidth);
       draw();
     });
-    if (canvas.parentElement) {
-      ro.observe(canvas.parentElement);
-      canvas.width = canvas.parentElement.offsetWidth || 800;
-    }
-    canvas.height = height;
+    resize(canvas.parentElement?.offsetWidth || 800);
+    if (canvas.parentElement) ro.observe(canvas.parentElement);
     return () => ro.disconnect();
   }, [height, draw]);
 
@@ -347,7 +288,11 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={`Ingolstadt road network map with traffic lights${vehicles.length ? ` and ${vehicles.length} vehicles visible` : ""}`}
+        aria-label={
+          `Ingolstadt road network map. Signals: ${signalSummary.green} green, ${signalSummary.yellow} yellow, ` +
+          `${signalSummary.red} red, ${signalSummary.unknown} with no signal data.` +
+          (vehicles.length ? ` ${vehicles.length} vehicles, ${stoppedCount} stopped.` : "")
+        }
         style={{ width: "100%", height: "100%", display: "block" }}
       />
       <div style={{
@@ -367,6 +312,11 @@ export const NetworkCanvas: React.FC<NetworkCanvasProps> = ({
         <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#ef4444", fontWeight: 600 }}>
           <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: "#ef4444", border: "1.5px solid #fff", boxShadow: "0 0 6px #ef4444" }} /> Red
         </span>
+        {signalSummary.unknown > 0 && (
+          <span style={{ display: "flex", alignItems: "center", gap: 5, color: NO_SIGNAL_COLOR, fontWeight: 600 }}>
+            <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: "transparent", border: `1.5px solid ${NO_SIGNAL_COLOR}` }} /> No signal data
+          </span>
+        )}
         {vehicles.length > 0 && (
           <>
             <span style={{ color: "var(--border-subtle)" }}>│</span>

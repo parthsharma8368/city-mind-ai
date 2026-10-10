@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type { SimulationStatus, SimControllerId } from "../api/client";
 import { useSimulationSocket } from "../context/simulationSocketStore";
 import { CONTROLLER_LABELS } from "../constants/controllers";
+import { fmt, fmtInt } from "../utils/format";
 
 const CONTROLLER_IDS: SimControllerId[] = ["fixed_time", "sumo_actuated", "max_pressure", "ppo", "ippo"];
 
@@ -18,7 +19,11 @@ export const SimulationControl: React.FC = () => {
   const refreshStatus = () => api.getSimulationStatus().then(setSimStatus).catch(() => null);
 
   useEffect(() => {
-    refreshStatus();
+    const ctrl = new AbortController();
+    api.getSimulationStatus(ctrl.signal)
+      .then((st) => { if (!ctrl.signal.aborted) setSimStatus(st); })
+      .catch(() => null);
+    return () => ctrl.abort();
   }, []);
 
   // running_controllers/gui_running/gui_pid come live from the websocket
@@ -150,8 +155,8 @@ export const SimulationControl: React.FC = () => {
             {Object.entries(wsPayload.metrics).map(([ctrl, m]) => (
               <div key={ctrl} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-subtle)", borderRadius: 6, padding: "0.6rem 0.75rem" }}>
                 <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: 2, fontWeight: 600, textTransform: "uppercase" }}>{ctrl}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem", color: "var(--accent-cyan)" }}>{m.mean_waiting_time.toFixed(1)}s wait</div>
-                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{m.total_arrived} arrived</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem", color: "var(--accent-cyan)" }}>{fmt(m?.mean_waiting_time, 1)}s wait</div>
+                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{fmtInt(m?.total_arrived)} arrived</div>
               </div>
             ))}
           </div>

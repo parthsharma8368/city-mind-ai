@@ -5,15 +5,18 @@ import {
   Activity, AlertTriangle, Film, Columns, Eye
 } from "lucide-react";
 
-import { api } from "../api/client";
+import { api, isAbortError } from "../api/client";
 import type { TLSFrame, ComparisonEntry } from "../api/client";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { QueueTrendSparkline } from "../components/QueueTrendSparkline";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued, buildQueueTrend } from "../utils/trajectory";
-import { CONTROLLER_LABELS, CONTROLLER_COLORS, CONTROLLER_HEX, replayWindowStart, REPLAY_WINDOW_SECONDS } from "../constants/controllers";
+import { CONTROLLER_LABELS, CONTROLLER_COLORS, CONTROLLER_HEX, replayWindowStart, REPLAY_WINDOW_SECONDS, isPeakAligned, LEGACY_REPLAY_NOTICE } from "../constants/controllers";
+import { fmt, fmtInt } from "../utils/format";
 
 const CONTROLLER_IDS = ["ppo", "ippo", "ippo_phase_select", "fixed_time", "max_pressure", "sumo_actuated"] as const;
-const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ppo" || id === "ippo" || id === "ippo_phase_select");
+// "ippo" is deliberately NOT selectable in split view: its only recording is the
+// legacy midnight window, which can't be aligned with the peak-hour baselines.
+const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => (id === "ppo" || id === "ippo_phase_select") && isPeakAligned(id));
 // Short button labels for the RL-selector group — id.toUpperCase() alone
 // would render "IPPO_PHASE_SELECT" with the underscore intact.
 const RL_SHORT_LABELS: Record<string, string> = { ppo: "PPO", ippo: "IPPO", ippo_phase_select: "PHASE-SELECT" };
@@ -56,14 +59,17 @@ export const ReplayPage: React.FC = () => {
   // window), so a number here never contradicts the one shown there.
   const [comparisonRows, setComparisonRows] = useState<ComparisonEntry[]>([]);
   useEffect(() => {
-    api.getComparisonMetrics()
-      .then((res) => setComparisonRows(res.results))
-      .catch(() => setComparisonRows([]));
+    const ctrl = new AbortController();
+    api.getComparisonMetrics(ctrl.signal)
+      .then((res) => { if (!ctrl.signal.aborted) setComparisonRows(Array.isArray(res.results) ? res.results : []); })
+      .catch(() => { if (!ctrl.signal.aborted) setComparisonRows([]); });
+    return () => ctrl.abort();
   }, []);
 
   // Load trajectory data
   useEffect(() => {
     let cancelled = false;
+    const ctrl = new AbortController();
     async function loadTrajectory() {
       setLoading(true);
       setError(null);
@@ -78,9 +84,13 @@ export const ReplayPage: React.FC = () => {
           // side doesn't match it.
           const baselineStart = replayWindowStart(splitBaselineController);
           const rlStart = replayWindowStart(splitRlController);
+          if (baselineStart !== rlStart) {
+            // Never merge two disjoint recordings into one timeline.
+            throw new Error("These two recordings cover different time windows and cannot be compared side by side.");
+          }
           const [ftData, ppoData] = await Promise.all([
-            api.getReplayFrames(splitBaselineController, seed, demandId, baselineStart, baselineStart + REPLAY_WINDOW_SECONDS),
-            api.getReplayFrames(splitRlController, seed, demandId, rlStart, rlStart + REPLAY_WINDOW_SECONDS),
+            api.getReplayFrames(splitBaselineController, seed, demandId, baselineStart, baselineStart + REPLAY_WINDOW_SECONDS, ctrl.signal),
+            api.getReplayFrames(splitRlController, seed, demandId, rlStart, rlStart + REPLAY_WINDOW_SECONDS, ctrl.signal),
           ]);
           if (cancelled) return;
 
@@ -102,7 +112,7 @@ export const ReplayPage: React.FC = () => {
         } else {
           // Fetch single controller, at its own recorded window (see above).
           const windowStart = replayWindowStart(controller);
-          const data = await api.getReplayFrames(controller, seed, demandId, windowStart, windowStart + REPLAY_WINDOW_SECONDS);
+          const data = await api.getReplayFrames(controller, seed, demandId, windowStart, windowStart + REPLAY_WINDOW_SECONDS, ctrl.signal);
           if (cancelled) return;
 
           const typedFrames = data.frames as Record<string, VehiclePoint[]>;
@@ -116,7 +126,7 @@ export const ReplayPage: React.FC = () => {
           setCurrentTimeIndex(0);
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && !isAbortError(err)) {
           setError(err instanceof Error ? err.message : "Failed to load trajectory frames");
           setFrames({});
           setFixedFrames({});
@@ -133,6 +143,7 @@ export const ReplayPage: React.FC = () => {
     loadTrajectory();
     return () => {
       cancelled = true;
+      ctrl.abort();
     };
   }, [isSplitMode, controller, splitRlController, splitBaselineController, seed, demandId]);
 
@@ -258,6 +269,7 @@ export const ReplayPage: React.FC = () => {
                 gap: 5,
               }}
               onClick={() => setIsSplitMode(true)}
+              aria-pressed={isSplitMode}
             >
               <Columns size={13} /> Side-by-Side Dual View
             </button>
@@ -275,6 +287,7 @@ export const ReplayPage: React.FC = () => {
                 gap: 5,
               }}
               onClick={() => setIsSplitMode(false)}
+              aria-pressed={!isSplitMode}
             >
               <Eye size={13} /> Single View
             </button>
@@ -295,6 +308,7 @@ export const ReplayPage: React.FC = () => {
                     color: controller === id ? "var(--accent-cyan)" : "var(--text-secondary)",
                   }}
                   onClick={() => setController(id)}
+                  aria-pressed={controller === id}
                 >
                   {CONTROLLER_LABELS[id] ?? id}
                 </button>
@@ -351,6 +365,16 @@ export const ReplayPage: React.FC = () => {
           busy each side looks right now — watch the queue trend line under each map over the full {REPLAY_WINDOW_SECONDS / 60} minutes.
           A side whose queue keeps falling is clearing traffic; a side whose queue stays flat near its peak is
           backing up even if its average wait number looks good (see the <Link to="/story" style={{ color: "var(--accent-cyan)" }}>Story page</Link> for why that distinction matters here).
+        </div>
+      )}
+
+      {!isSplitMode && !isPeakAligned(controller) && (
+        <div role="note" style={{
+          fontSize: "0.8rem", color: "var(--signal-yellow)", marginBottom: "1rem",
+          padding: "0.65rem 0.9rem", background: "rgba(245,158,11,0.08)",
+          border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8,
+        }}>
+          <strong>{CONTROLLER_LABELS[controller] ?? controller}:</strong> {LEGACY_REPLAY_NOTICE}
         </div>
       )}
 
@@ -512,7 +536,7 @@ export const ReplayPage: React.FC = () => {
                 <Car size={12} color="var(--signal-green)" /> Vehicles in Network
               </div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)", marginTop: "0.2rem" }}>
-                {currentVehicles.length.toLocaleString()}
+                {fmtInt(currentVehicles.length)}
               </div>
             </div>
 
@@ -597,11 +621,11 @@ export const ReplayPage: React.FC = () => {
                           {isActive && <span className="badge-blue" style={{ fontSize: "0.65rem" }}>shown above</span>}
                         </div>
                       </td>
-                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_waiting_time.toFixed(2)}</td>
-                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_queue.toFixed(3)}</td>
-                      <td style={{ fontFamily: "var(--font-mono)" }}>{(r.throughput * 100).toFixed(1)}%</td>
-                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_speed.toFixed(2)} m/s</td>
-                      <td style={{ fontFamily: "var(--font-mono)" }}>{r.total_arrived.toLocaleString()}</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_waiting_time, 2)}</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_queue, 3)}</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.throughput * 100, 1)}%</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_speed, 2)} m/s</td>
+                      <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.total_arrived)}</td>
                     </tr>
                   );
                 })}
@@ -628,6 +652,8 @@ export const ReplayPage: React.FC = () => {
             min={0}
             max={Math.max(0, availableTimes.length - 1)}
             value={currentTimeIndex}
+            aria-label="Replay position"
+            aria-valuetext={`${(currentTime - displayWindowStart).toFixed(0)} seconds`}
             onChange={(e) => {
               setCurrentTimeIndex(parseInt(e.target.value, 10));
             }}
@@ -690,6 +716,8 @@ export const ReplayPage: React.FC = () => {
                   fontWeight: playbackSpeed === s ? 700 : 400,
                 }}
                 onClick={() => setPlaybackSpeed(s)}
+                aria-pressed={playbackSpeed === s}
+                aria-label={`Playback speed ${s}x`}
               >
                 {s}x
               </button>

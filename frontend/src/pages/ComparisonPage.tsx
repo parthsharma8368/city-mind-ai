@@ -1,20 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { BarChart3, TrendingDown, TrendingUp, Award, AlertTriangle } from "lucide-react";
 import { ComparisonBarChart } from "../components/MetricsChart";
-import { api } from "../api/client";
+import { api, isAbortError } from "../api/client";
+import { fmt, fmtInt, isNum, isStarving } from "../utils/format";
+import { metricDelta, type MetricKey } from "../utils/compare";
 import type { ComparisonResult, ComparisonEntry, ComparisonImprovement } from "../api/client";
 import { CONTROLLER_LABELS as CTRL_LABELS, CONTROLLER_COLORS as CTRL_COLORS } from "../constants/controllers";
 
-type MetricKey = "mean_waiting_time" | "mean_queue" | "throughput" | "mean_speed" | "trips_completed" | "backlog";
 
-function MetricRow({ label, entry, baseline }: { label: MetricKey; entry: ComparisonEntry; baseline?: ComparisonEntry }) {
-  const baseVal = baseline ? baseline[label] as number : 0;
+function MetricRow({ label, entry, baseline, starving = false }: { label: MetricKey; entry: ComparisonEntry; baseline?: ComparisonEntry; starving?: boolean }) {
   const myVal = entry[label] as number;
-  const diff = baseVal > 0 ? (myVal - baseVal) / baseVal * 100 : 0;
-  // Higher-is-better metrics: throughput, mean_speed, trips_completed.
-  // Everything else (including backlog) is lower-is-better.
-  const lowerIsBetter = label !== "throughput" && label !== "mean_speed" && label !== "trips_completed";
-  const improved = lowerIsBetter ? diff < 0 : diff > 0;
+  const delta = baseline ? metricDelta(label, myVal, baseline[label] as number, starving) : null;
   const isCount = label === "trips_completed" || label === "backlog";
 
   return (
@@ -22,12 +18,17 @@ function MetricRow({ label, entry, baseline }: { label: MetricKey; entry: Compar
       <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>{label.replace(/_/g, " ")}</span>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", color: "var(--text-primary)", fontWeight: 600 }}>
-          {typeof myVal !== "number" ? "—" : isCount ? myVal.toLocaleString() : myVal.toFixed(3)}
+          {isCount ? fmtInt(myVal) : fmt(myVal, 3)}
         </span>
-        {baseline && diff !== 0 && (
-          <span className={`improvement-tag ${improved ? "positive" : "negative"}`}>
-            {improved ? <TrendingDown size={10} /> : <TrendingUp size={10} />}
-            {Math.abs(diff).toFixed(1)}%
+        {delta && delta.diff !== 0 && (
+          <span
+            className={`improvement-tag ${delta.tone}`}
+            title={delta.suspect ? "Looks better only because this controller completes fewer trips (starvation), not because it is faster." : undefined}
+          >
+            {/* arrow follows the sign of the change, not whether it is good */}
+            {delta.diff < 0 ? <TrendingDown size={10} aria-hidden="true" /> : <TrendingUp size={10} aria-hidden="true" />}
+            {delta.diff < 0 ? "-" : "+"}{Math.abs(delta.diff).toFixed(1)}%
+            <span className="sr-only">{delta.suspect ? " (starvation artifact)" : delta.improved ? " (better)" : " (worse)"}</span>
           </span>
         )}
       </div>
@@ -41,10 +42,12 @@ export const ComparisonPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getComparisonMetrics()
-      .then(setData)
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+    const ctrl = new AbortController();
+    api.getComparisonMetrics(ctrl.signal)
+      .then((d) => { if (!ctrl.signal.aborted) setData(d); })
+      .catch((e: Error) => { if (!ctrl.signal.aborted && !isAbortError(e)) setError(e.message); })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => ctrl.abort();
   }, []);
 
   if (loading) return (
@@ -53,7 +56,7 @@ export const ComparisonPage: React.FC = () => {
     </div>
   );
 
-  if (error || !data || data.results.length === 0) {
+  if (error || !data || !Array.isArray(data.results) || data.results.length === 0) {
     return (
       <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
         <BarChart3 size={36} style={{ color: "var(--text-muted)", margin: "0 auto 1rem" }} />
@@ -105,8 +108,8 @@ export const ComparisonPage: React.FC = () => {
               return (
                 <span className={`improvement-tag ${isImprovement ? "positive" : "negative"}`}>
                   {isImprovement ? <Award size={12} /> : <TrendingUp size={12} />}
-                  {label}: {Math.abs(pct).toFixed(1)}% wait time {isImprovement ? "reduction" : "increase"} vs Fixed-Time
-                  {tripsGap !== undefined && ` · ${tripsGap >= 0 ? "+" : ""}${tripsGap.toFixed(1)}% trips completed`}
+                  {label}: {fmt(Math.abs(pct), 1)}% wait time {isImprovement ? "reduction" : "increase"} vs Fixed-Time
+                  {isNum(tripsGap) && ` · ${tripsGap >= 0 ? "+" : ""}${fmt(tripsGap, 1)}% trips completed`}
                 </span>
               );
             })()}
@@ -129,16 +132,20 @@ export const ComparisonPage: React.FC = () => {
         >
           <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
           <span>
-            <strong>Starvation, not improvement.</strong> A lower average wait time below does not mean the RL
-            controller is faster — it means fewer vehicles are finishing their trips while more sit stuck in the
-            network (backlog).
+            <strong>Starvation, not improvement.</strong> Average wait time only counts vehicles that are moving
+            through the network: a controller that lets fewer vehicles finish their trips while more sit stuck
+            (backlog) can post a good wait time without being faster. Read wait time together with trips completed.
             <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem" }}>
               {starvationSources.map((s) => (
                 <li key={`${s.controller}-${s.baseline}`}>
                   <strong>{s.controller ? CTRL_LABELS[s.controller] ?? s.controller : "The RL controller"}</strong>{" "}
-                  completes <strong>{Math.abs(s.trips_completed_gap_pct ?? 0).toFixed(1)}%</strong> fewer trips than{" "}
-                  {s.baseline ? CTRL_LABELS[s.baseline] ?? s.baseline : "the baseline"}, despite a lower reported
-                  wait time.
+                  completes <strong>{fmt(Math.abs(s.trips_completed_gap_pct ?? 0), 1)}%</strong> fewer trips than{" "}
+                  {s.baseline ? CTRL_LABELS[s.baseline] ?? s.baseline : "the baseline"}
+                  {isNum(s.waiting_time_improvement_pct)
+                    ? s.waiting_time_improvement_pct > 0
+                      ? `, and reports a ${fmt(s.waiting_time_improvement_pct, 1)}% lower wait time only as a result of that.`
+                      : `, and its wait time is also ${fmt(Math.abs(s.waiting_time_improvement_pct), 1)}% higher.`
+                    : "."}
                 </li>
               ))}
             </ul>
@@ -152,7 +159,7 @@ export const ComparisonPage: React.FC = () => {
           not the headline row. */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <ComparisonBarChart data={results} metric="trips_completed" title="Trips Completed" />
+          <ComparisonBarChart data={results} metric="trips_completed" title="Trips Completed" isCount />
         </div>
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <ComparisonBarChart data={results} metric="mean_trip_timeloss" title="Mean Trip Timeloss" unit="s" />
@@ -184,7 +191,12 @@ export const ComparisonPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {results.map((r) => (
+              {results.map((r) => {
+                const starving = baseline ? isStarving(r.trips_completed, baseline.trips_completed) : false;
+                const waitDelta = baseline && r.controller !== "fixed_time"
+                  ? metricDelta("mean_waiting_time", r.mean_waiting_time, baseline.mean_waiting_time, starving)
+                  : null;
+                return (
                 <tr key={r.controller}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -192,25 +204,31 @@ export const ComparisonPage: React.FC = () => {
                       <span style={{ fontWeight: 600 }}>{CTRL_LABELS[r.controller] ?? r.controller}</span>
                     </div>
                   </td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{r.trips_completed?.toLocaleString() ?? "—"}</td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{r.backlog?.toLocaleString() ?? "—"}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.trips_completed)}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.backlog)}</td>
                   <td style={{ fontFamily: "var(--font-mono)", color: "var(--accent-cyan)" }}>
-                    {r.mean_waiting_time.toFixed(2)}
-                    {baseline && r.controller !== "fixed_time" && (
-                      <span className={`improvement-tag ${r.mean_waiting_time < baseline.mean_waiting_time ? "positive" : "negative"}`} style={{ marginLeft: 6, fontSize: "0.68rem" }}>
-                        {((baseline.mean_waiting_time - r.mean_waiting_time) / baseline.mean_waiting_time * 100).toFixed(1)}%
+                    {fmt(r.mean_waiting_time, 2)}
+                    {waitDelta && waitDelta.diff !== 0 && (
+                      <span
+                        className={`improvement-tag ${waitDelta.tone}`}
+                        title={waitDelta.suspect ? "Lower wait only because this controller completes fewer trips (starvation)." : undefined}
+                        style={{ marginLeft: 6, fontSize: "0.68rem" }}
+                      >
+                        {waitDelta.improved ? "-" : "+"}{Math.abs(waitDelta.diff).toFixed(1)}%
+                        <span className="sr-only">{waitDelta.suspect ? " (starvation artifact)" : waitDelta.improved ? " (better)" : " (worse)"}</span>
                       </span>
                     )}
                   </td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_queue.toFixed(4)}</td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{(r.throughput * 100).toFixed(2)}%</td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{r.mean_speed.toFixed(3)}</td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{r.total_arrived.toLocaleString()}</td>
-                  <td style={{ fontFamily: "var(--font-mono)", color: r.cumulative_reward >= 0 ? "var(--signal-green)" : "var(--signal-red)" }}>
-                    {r.cumulative_reward.toFixed(1)}
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_queue, 4)}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{isNum(r.throughput) ? `${fmt(r.throughput * 100, 2)}%` : "—"}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_speed, 3)}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.total_arrived)}</td>
+                  <td style={{ fontFamily: "var(--font-mono)", color: (r.cumulative_reward ?? 0) >= 0 ? "var(--signal-green)" : "var(--signal-red)" }}>
+                    {fmt(r.cumulative_reward, 1)}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -225,7 +243,7 @@ export const ComparisonPage: React.FC = () => {
               <span style={{ fontWeight: 700 }}>{CTRL_LABELS[r.controller] ?? r.controller}</span>
             </div>
             {(["mean_waiting_time", "mean_queue", "throughput", "mean_speed", "trips_completed", "backlog"] as MetricKey[]).map((key) => (
-              <MetricRow key={key} label={key} entry={r} baseline={baseline?.controller !== r.controller ? baseline : undefined} />
+              <MetricRow key={key} label={key} entry={r} baseline={baseline?.controller !== r.controller ? baseline : undefined} starving={baseline ? isStarving(r.trips_completed, baseline.trips_completed) : false} />
             ))}
           </div>
         ))}

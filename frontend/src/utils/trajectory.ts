@@ -84,3 +84,41 @@ export function buildQueueTrend(frames: Record<string, { speed?: number }[]>): Q
       return { time, queued: countQueued(vehicles as Array<{ speed: number }>), total: vehicles.length };
     });
 }
+
+export type SignalKind = "green" | "yellow" | "red";
+
+/**
+ * Classify a recorded SUMO signal-state string (e.g. "rrGGGGg"). Returns null
+ * when there is no state string: callers must then show "no signal data", never
+ * a guessed colour.
+ */
+export function signalKind(state: string | undefined | null): SignalKind | null {
+  const s = (state ?? "").toLowerCase();
+  if (!s) return null;
+  if (s.includes("y")) return "yellow";
+  if (s.includes("g")) return "green";
+  if (s.includes("r")) return "red";
+  return null;
+}
+
+export interface SignalSummary {
+  green: number;
+  yellow: number;
+  red: number;
+  /** Junctions among `junctionIds` with no recorded state at this instant. */
+  unknown: number;
+}
+
+/** Count recorded signal kinds across the given junction ids (text alternative for the canvas). */
+export function summarizeSignals(
+  junctionIds: string[],
+  states: Record<string, { phase: number; state: string }>,
+): SignalSummary {
+  const out: SignalSummary = { green: 0, yellow: 0, red: 0, unknown: 0 };
+  for (const id of junctionIds) {
+    const kind = signalKind(states[id]?.state);
+    if (kind) out[kind] += 1;
+    else out.unknown += 1;
+  }
+  return out;
+}

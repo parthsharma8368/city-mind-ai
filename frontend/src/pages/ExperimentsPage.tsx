@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { api, type ExperimentRun, type ExperimentSummary } from "../api/client";
+import { api, isAbortError, type ExperimentRun, type ExperimentSummary } from "../api/client";
 import { AlertCircle, CheckCircle2, Clock, FlaskConical } from "lucide-react";
+import { fmt, fmtInt } from "../utils/format";
 
 interface RunWithSummary extends ExperimentRun {
   summary?: ExperimentSummary;
@@ -12,28 +13,32 @@ export const ExperimentsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const ctrl = new AbortController();
     async function loadData() {
       try {
-        const list = await api.getExperiments();
+        const list = await api.getExperiments(ctrl.signal);
         const runsWithSummary = await Promise.all(
           list.map(async (item) => {
             try {
-              const summary = await api.getExperimentSummary(item.run_id);
+              const summary = await api.getExperimentSummary(item.run_id, ctrl.signal);
               return { ...item, summary };
             } catch {
               return { ...item };
             }
           })
         );
+        if (ctrl.signal.aborted) return;
         setRuns(runsWithSummary);
         setError(null);
       } catch (err) {
+        if (ctrl.signal.aborted || isAbortError(err)) return;
         setError(err instanceof Error ? err.message : "Failed to load experiments");
       } finally {
-        setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
       }
     }
     loadData();
+    return () => ctrl.abort();
   }, []);
 
   return (
@@ -41,7 +46,7 @@ export const ExperimentsPage: React.FC = () => {
       <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <h2 className="section-title">Experiment Tracking</h2>
-          <p className="section-subtitle">Training runs from artifacts/experiments/{"{ppo,ippo}"}/ — metrics shown only once evaluated against that run's own checkpoint</p>
+          <p className="section-subtitle">Training runs under artifacts/experiments/ (PPO, IPPO and MaskablePPO phase-selection) — metrics shown only once evaluated against that run's own checkpoint. Wait time alone can reflect starvation: compare it with trips completed on the Comparison page.</p>
         </div>
         {!loading && <span className="badge-blue">{runs.length} runs</span>}
       </div>
@@ -84,7 +89,7 @@ export const ExperimentsPage: React.FC = () => {
                 <th>Algorithm</th>
                 <th>Seed</th>
                 <th>Timesteps</th>
-                <th>Avg Wait</th>
+                <th title="Mean wait per vehicle. Can look good when a controller starves traffic: check trips completed on the Comparison page.">Avg Wait</th>
                 <th>Throughput</th>
                 <th>Cum. Reward</th>
                 <th>Model</th>
@@ -104,16 +109,16 @@ export const ExperimentsPage: React.FC = () => {
                     {r.summary?.seed ?? r.seed ?? "—"}
                   </td>
                   <td style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-                    {r.total_timesteps?.toLocaleString() ?? "—"}
+                    {fmtInt(r.total_timesteps)}
                   </td>
-                  <td style={{ color: "var(--accent-cyan)", fontFamily: "var(--font-mono)", fontWeight: 600 }}>
-                    {r.summary ? `${r.summary.average_waiting_time.toFixed(1)} s` : "—"}
+                  <td style={{ color: "var(--text-secondary)", fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+                    {r.summary && Number.isFinite(r.summary.average_waiting_time) ? `${fmt(r.summary.average_waiting_time, 1)} s` : "—"}
                   </td>
                   <td style={{ fontFamily: "var(--font-mono)" }}>
-                    {r.summary ? `${(r.summary.throughput * 100).toFixed(2)}%` : "—"}
+                    {r.summary && Number.isFinite(r.summary.throughput) ? `${fmt(r.summary.throughput * 100, 2)}%` : "—"}
                   </td>
                   <td style={{ fontFamily: "var(--font-mono)", color: r.summary?.cumulative_reward !== undefined && r.summary.cumulative_reward >= 0 ? "var(--signal-green)" : "var(--signal-red)" }}>
-                    {r.summary?.cumulative_reward?.toFixed(1) ?? "—"}
+                    {fmt(r.summary?.cumulative_reward, 1)}
                   </td>
                   <td>
                     {r.has_model || r.model_path
@@ -122,9 +127,10 @@ export const ExperimentsPage: React.FC = () => {
                     }
                   </td>
                   <td>
-                    <span className="badge-green">
-                      <CheckCircle2 size={10} /> Done
-                    </span>
+                    {r.summary && (r.has_model || r.model_path)
+                      ? <span className="badge-green"><CheckCircle2 size={10} /> Evaluated</span>
+                      : <span className="badge-yellow"><Clock size={10} /> Incomplete</span>
+                    }
                   </td>
                 </tr>
               ))}

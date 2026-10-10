@@ -6,16 +6,16 @@ import { PlaybackControls } from "../components/PlaybackControls";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { SimulationControl } from "../components/SimulationControl";
 import { QueueTrendSparkline } from "../components/QueueTrendSparkline";
-import { api } from "../api/client";
-import type { MetricsSummary, TLSFrame } from "../api/client";
-import { useSimulationSocket } from "../context/simulationSocketStore";
+import { api, isAbortError } from "../api/client";
+import type { ComparisonResult, MetricsSummary, TLSFrame } from "../api/client";
+import { fmt, fmtInt } from "../utils/format";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedMs, countQueued, msToKmh, buildQueueTrend } from "../utils/trajectory";
 import { controllerLabel, replayWindowStart, REPLAY_WINDOW_SECONDS, CONTROLLER_HEX } from "../constants/controllers";
 
 export const DashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
-  const { lastMessage: wsPayload } = useSimulationSocket();
+  const [comparison, setComparison] = useState<ComparisonResult | null>(null);
 
   // Trajectory playback state — this is the RL policy's *actual* recorded
   // run (vehicle positions and real signal phases), not a live feed: training
@@ -35,9 +35,16 @@ export const DashboardPage: React.FC = () => {
   // Dashboard doesn't keep showing a stale "ppo" result once ippo overtakes
   // it. The replay below follows whatever that resolves to.
   useEffect(() => {
-    api.getMetricsSummary()
-      .then((m) => { setMetrics(m); setMetricsError(null); })
-      .catch((e: Error) => setMetricsError(e.message));
+    const ctrl = new AbortController();
+    api.getMetricsSummary(ctrl.signal)
+      .then((m) => { if (!ctrl.signal.aborted) { setMetrics(m); setMetricsError(null); } })
+      .catch((e: Error) => { if (!ctrl.signal.aborted && !isAbortError(e)) setMetricsError(e.message); });
+    // Wait-time comparison for the starvation banner (best effort; the banner
+    // stays neutral about wait time if this is unavailable).
+    api.getComparisonMetrics(ctrl.signal)
+      .then((c) => { if (!ctrl.signal.aborted) setComparison(c); })
+      .catch(() => undefined);
+    return () => ctrl.abort();
   }, []);
 
   const headlineController = metrics?.controller;
@@ -45,17 +52,21 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (!headlineController) return; // wait for /summary to resolve which controller "wins" first
     const windowStart = replayWindowStart(headlineController);
-    api.getReplayFrames(headlineController, 42, "1.0x", windowStart, windowStart + REPLAY_WINDOW_SECONDS)
+    const ctrl = new AbortController();
+    api.getReplayFrames(headlineController, 42, "1.0x", windowStart, windowStart + REPLAY_WINDOW_SECONDS, ctrl.signal)
       .then((data) => {
+        if (ctrl.signal.aborted) return;
         setFrames(data.frames);
         setTlsFrames(data.tls_frames ?? {});
         const times = Object.keys(data.frames)
           .map((t) => parseFloat(t))
           .sort((a, b) => a - b);
         setAvailableTimes(times);
+        setCurrentTimeIndex(0);
         setReplayError(null);
       })
-      .catch((e: Error) => setReplayError(e.message));
+      .catch((e: Error) => { if (!ctrl.signal.aborted && !isAbortError(e)) setReplayError(e.message); });
+    return () => ctrl.abort();
   }, [headlineController]);
 
   // Playback timer loop
@@ -111,15 +122,22 @@ export const DashboardPage: React.FC = () => {
   const liveAvgSpeedMs = useMemo(() => meanSpeedMs(currentVehicles), [currentVehicles]);
   const liveQueuedCount = useMemo(() => countQueued(currentVehicles), [currentVehicles]);
 
-  // Determine display values — follow whichever controller /summary picked as the headline.
-  const headlineWsMetrics = headlineController ? wsPayload?.metrics?.[headlineController] : undefined;
-  const displayMetrics = {
-    avgWait: headlineWsMetrics ? headlineWsMetrics.mean_waiting_time : (metrics?.mean_waiting_time ?? 0),
-    avgQueue: currentVehicles.length > 0 ? liveQueuedCount : (headlineWsMetrics?.mean_queue ?? metrics?.mean_queue ?? 0),
-    avgSpeed: currentVehicles.length > 0 ? liveAvgSpeedMs : (headlineWsMetrics?.mean_speed ?? metrics?.mean_speed ?? 0),
-    vehiclesCount: currentVehicles.length > 0 ? currentVehicles.length : (headlineWsMetrics?.total_arrived ?? metrics?.total_arrived ?? 0),
-    arrivedCount: headlineWsMetrics?.total_arrived ?? metrics?.total_arrived ?? 0,
-  };
+  // One source of truth for episode figures: REST /metrics/summary (the same
+  // seed-42 run the replay animates). The WebSocket payload is intentionally NOT
+  // mixed in here -- it can aggregate other seeds and produced a different
+  // "arrived" total than the Episode Statistics card. Instantaneous replay
+  // values are shown separately and labelled as such.
+  const hasFrame = currentVehicles.length > 0;
+  const queuedNow = hasFrame ? liveQueuedCount : null;
+  const vehiclesNow = hasFrame ? currentVehicles.length : null;
+  const speedNowMs = hasFrame ? liveAvgSpeedMs : null;
+
+  // Wait-time direction vs the SUMO-Actuated baseline (the same baseline the
+  // summary's trips_completed_gap_pct is measured against), so the starvation
+  // banner never claims a "lower wait time" the controller doesn't have.
+  const waitPctVsBaseline = comparison?.improvement_vs_actuated?.controller === metrics?.controller
+    ? comparison?.improvement_vs_actuated?.waiting_time_improvement_pct
+    : undefined;
 
   // The replay fetch only ever runs once /summary has already succeeded (see
   // the effect above), so metricsError and replayError can never both be set
@@ -154,9 +172,13 @@ export const DashboardPage: React.FC = () => {
           <span style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
             <AlertTriangle size={16} aria-hidden="true" />
             <span>
-              <strong>{controllerLabel(metrics.controller)}</strong>'s lower wait time reflects fewer completed trips,
-              not faster service — it completes {Math.abs(metrics.trips_completed_gap_pct ?? 0).toFixed(1)}% fewer
-              trips than baseline, leaving more vehicles stuck in the network.
+              <strong>{controllerLabel(metrics.controller)}</strong> completes {fmt(Math.abs(metrics.trips_completed_gap_pct ?? 0), 1)}% fewer
+              trips than baseline, leaving more vehicles stuck in the network.{" "}
+              {waitPctVsBaseline === undefined
+                ? "Read its wait time together with trips completed."
+                : waitPctVsBaseline > 0
+                  ? "Its lower wait time reflects fewer completed trips, not faster service."
+                  : `Its wait time is also ${fmt(Math.abs(waitPctVsBaseline), 1)}% higher than baseline, so it is worse on both counts.`}
             </span>
           </span>
           <Link
@@ -187,19 +209,22 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-          <span className="badge-green">Policy: {metrics ? controllerLabel(metrics.controller) : "…"}</span>
+          <span className={metrics?.starvation_flag ? "badge-yellow" : "badge-green"}>Policy: {metrics ? controllerLabel(metrics.controller) : "…"}</span>
           <span className="badge-yellow">Demand: 1.0×</span>
-          {metrics && <span className="badge-blue">{metrics.total_steps.toLocaleString()} steps</span>}
+          {metrics && <span className="badge-blue">{fmtInt(metrics.total_steps)} steps</span>}
         </div>
       </div>
 
       {/* Metrics */}
       <MetricsPanel
-        avgWait={displayMetrics.avgWait}
-        avgQueue={displayMetrics.avgQueue}
-        avgSpeed={displayMetrics.avgSpeed}
-        vehiclesCount={displayMetrics.vehiclesCount}
-        arrivedCount={displayMetrics.arrivedCount}
+        loading={!metrics && !metricsError}
+        avgWait={metrics?.mean_waiting_time}
+        avgQueue={metrics?.mean_queue}
+        avgSpeed={metrics?.mean_speed}
+        arrivedCount={metrics?.total_arrived}
+        queuedNow={queuedNow}
+        vehiclesNow={vehiclesNow}
+        speedNowMs={speedNowMs}
       />
 
       {/* Interactive Simulation Network Canvas */}
@@ -286,12 +311,12 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.75rem" }}>
             {[
-              { label: "Total Steps", value: metrics.total_steps.toLocaleString() },
-              { label: "Signal Switches", value: metrics.total_switches.toLocaleString() },
-              { label: "Cum. Reward", value: metrics.cumulative_reward.toFixed(1) },
-              { label: "Throughput", value: `${(metrics.throughput * 100).toFixed(1)}%` },
-              { label: "Mean Speed", value: `${msToKmh(metrics.mean_speed).toFixed(1)} km/h` },
-              { label: "Total Arrived", value: metrics.total_arrived.toLocaleString() },
+              { label: "Total Steps", value: fmtInt(metrics.total_steps) },
+              { label: "Signal Switches", value: fmtInt(metrics.total_switches) },
+              { label: "Cum. Reward", value: fmt(metrics.cumulative_reward, 1) },
+              { label: "Throughput", value: Number.isFinite(metrics.throughput) ? `${fmt(metrics.throughput * 100, 1)}%` : "—" },
+              { label: "Mean Speed", value: Number.isFinite(metrics.mean_speed) ? `${fmt(msToKmh(metrics.mean_speed), 1)} km/h` : "—" },
+              { label: "Total Arrived", value: fmtInt(metrics.total_arrived) },
             ].map(({ label, value }) => (
               <div key={label} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: "0.75rem 1rem", border: "1px solid var(--border-subtle)" }}>
                 <div className="metric-label">{label}</div>

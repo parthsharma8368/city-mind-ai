@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
   Activity, Layers, PlayCircle, BarChart3, Brain, Cpu, Monitor, BookOpen,
 } from "lucide-react";
@@ -11,6 +11,8 @@ import { XAIPage } from "./pages/XAIPage";
 import { ReplayPage } from "./pages/ReplayPage";
 import { SimulationSocketProvider } from "./context/SimulationSocketContext";
 import { useSimulationSocket } from "./context/simulationSocketStore";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { API_DOCS_URL } from "./api/client";
 
 const NAV_ITEMS = [
   { to: "/story",         label: "Story",        icon: <BookOpen size={16} aria-hidden="true" /> },
@@ -37,7 +39,19 @@ const ConnectionBadge: React.FC = () => {
   );
 };
 
+function NotFound() {
+  return (
+    <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
+      <h2 className="section-title">Page not found</h2>
+      <p className="section-subtitle" style={{ marginTop: "0.5rem" }}>
+        There is nothing at this address. Use the navigation above to pick a page.
+      </p>
+    </div>
+  );
+}
+
 export function App() {
+  const { pathname } = useLocation();
   return (
     <SimulationSocketProvider>
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -70,12 +84,15 @@ export function App() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <ConnectionBadge />
-            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>v1.0.0</span>
+            
           </div>
         </header>
 
         {/* ── Main Content ─────────────────────────────────────────────────── */}
-        <main id="main-content" tabIndex={-1} style={{ flex: 1, padding: "2rem", maxWidth: "1360px", width: "100%", margin: "0 auto" }}>
+        <main id="main-content" tabIndex={-1} className="app-main">
+          {/* Page-level boundary: a render error in one page keeps the header/nav
+              usable, and navigating (pathname change) resets it. */}
+          <ErrorBoundary compact resetKey={pathname}>
           <Routes>
             <Route path="/story" element={<StoryPage />} />
             <Route path="/" element={<DashboardPage />} />
@@ -83,7 +100,9 @@ export function App() {
             <Route path="/experiments" element={<ExperimentsPage />} />
             <Route path="/comparison" element={<ComparisonPage />} />
             <Route path="/xai" element={<XAIPage />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </main>
 
         {/* ── Footer ───────────────────────────────────────────────────────── */}
@@ -98,7 +117,7 @@ export function App() {
           fontSize: "0.75rem",
           color: "var(--text-muted)",
         }}>
-          <span>CityMind AI — Multi-Intersection RL Traffic Control (PPO + IPPO)</span>
+          <span>CityMind AI — Multi-Intersection RL Traffic Control (PPO · IPPO · baselines)</span>
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <Cpu size={12} aria-hidden="true" /> PPO · IPPO · SB3 · SUMO 1.27.1
@@ -106,7 +125,7 @@ export function App() {
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <Monitor size={12} aria-hidden="true" /> Local visual demo via XQuartz
             </span>
-            <a href="http://localhost:8000/docs" target="_blank" rel="noreferrer"
+            <a href={API_DOCS_URL} target="_blank" rel="noreferrer"
               style={{ color: "var(--accent-cyan)", textDecoration: "none", fontFamily: "var(--font-mono)" }}>
               API Docs →
             </a>

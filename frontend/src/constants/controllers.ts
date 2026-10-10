@@ -12,6 +12,16 @@ export const CONTROLLER_LABELS: Record<string, string> = {
   ippo_phase_select: "IPPO Phase-Select",
 };
 
+/** Short axis labels so six bars fit on a phone-width chart; the tooltip shows the full label. */
+export const CONTROLLER_SHORT_LABELS: Record<string, string> = {
+  ppo: "PPO",
+  ippo: "IPPO",
+  fixed_time: "Fixed",
+  max_pressure: "Max-Pr.",
+  sumo_actuated: "Actuated",
+  ippo_phase_select: "Phase-Sel.",
+};
+
 export const CONTROLLER_COLORS: Record<string, string> = {
   ppo: "var(--accent-cyan)",
   ippo: "var(--accent-purple)",
@@ -37,6 +47,10 @@ export const CONTROLLER_HEX: Record<string, string> = {
 
 export function controllerLabel(id: string): string {
   return CONTROLLER_LABELS[id] ?? id;
+}
+
+export function controllerShortLabel(id: string): string {
+  return CONTROLLER_SHORT_LABELS[id] ?? id;
 }
 
 // Absolute sim-time (seconds) each controller's recorded trajectory parquet
@@ -65,3 +79,18 @@ export function replayWindowStart(controllerId: string): number {
 // timestamp x ~60 timestamps — still a sub-second local fetch, not the
 // 10x-larger jump a naive "just fetch the whole episode" would be.
 export const REPLAY_WINDOW_SECONDS = 300;
+
+/**
+ * Controllers whose recorded trajectory is NOT at the current peak window and
+ * cannot be regenerated (the legacy binary-action IPPO model expects a 12-dim
+ * observation the current env no longer produces). They must never be paired
+ * side by side with peak-window controllers: the two recordings cover disjoint
+ * sim-time ranges and any merged timeline is meaningless.
+ */
+export function isPeakAligned(controllerId: string): boolean {
+  return replayWindowStart(controllerId) === PEAK_WINDOW_START;
+}
+
+export const LEGACY_REPLAY_NOTICE =
+  "Not replayable under the current environment: this model was recorded at midnight with the old observation space, " +
+  "so it is not comparable with the peak-hour (07:00) recordings of the other controllers. It is shown on its own only.";

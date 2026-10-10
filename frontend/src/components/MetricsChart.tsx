@@ -4,7 +4,8 @@ import {
   ResponsiveContainer, Cell, LineChart, Line, ReferenceLine,
 } from "recharts";
 import type { ComparisonEntry } from "../api/client";
-import { CONTROLLER_LABELS, CONTROLLER_HEX } from "../constants/controllers";
+import { CONTROLLER_LABELS, CONTROLLER_HEX, controllerShortLabel } from "../constants/controllers";
+import { formatChartValue } from "../utils/format";
 
 type MetricKey =
   | "mean_waiting_time"
@@ -19,9 +20,16 @@ interface ComparisonChartProps {
   metric: MetricKey;
   title: string;
   unit?: string;
+  /** Integer counts (trips completed): no decimals, thousands separators. */
+  isCount?: boolean;
 }
 
-function ChartTooltip({ active, payload, unit }: { active?: boolean; payload?: Array<{ value: number }>; unit: string }) {
+function ChartTooltip({ active, payload, unit, isCount }: {
+  active?: boolean;
+  payload?: Array<{ value: number; payload?: { name?: string } }>;
+  unit: string;
+  isCount: boolean;
+}) {
   if (active && payload?.length) {
     return (
       <div style={{
@@ -30,7 +38,8 @@ function ChartTooltip({ active, payload, unit }: { active?: boolean; payload?: A
         borderRadius: 8, padding: "8px 14px",
         fontSize: 13, color: "#f0f6ff",
       }}>
-        <strong>{payload[0].value.toFixed(3)}{unit}</strong>
+        {payload[0].payload?.name && <div style={{ color: "#94a3b8", fontSize: 11, marginBottom: 2 }}>{payload[0].payload.name}</div>}
+        <strong>{formatChartValue(payload[0].value, { isCount })}{unit}</strong>
       </div>
     );
   }
@@ -42,10 +51,13 @@ export const ComparisonBarChart: React.FC<ComparisonChartProps> = ({
   metric,
   title,
   unit = "",
+  isCount = false,
 }) => {
   const chartData = data.map((d) => ({
     name: CONTROLLER_LABELS[d.controller] ?? d.controller,
-    value: Number(d[metric] ?? 0),
+    short: controllerShortLabel(d.controller),
+    // Missing/non-finite values plot as 0 height but are not silently "real" zeros in the tooltip path
+    value: Number.isFinite(Number(d[metric])) ? Number(d[metric]) : 0,
     controller: d.controller,
   }));
 
@@ -58,7 +70,7 @@ export const ComparisonBarChart: React.FC<ComparisonChartProps> = ({
         <BarChart data={chartData} barCategoryGap="35%">
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis
-            dataKey="name"
+            dataKey="short"
             interval={0}
             tick={{ fill: "var(--text-muted)", fontSize: 10 }}
             axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
@@ -69,9 +81,9 @@ export const ComparisonBarChart: React.FC<ComparisonChartProps> = ({
             axisLine={false}
             tickLine={false}
             width={55}
-            tickFormatter={(v: number) => `${v.toFixed(1)}${unit}`}
+            tickFormatter={(v: number) => `${formatChartValue(v, { isCount, decimals: 1 })}${unit}`}
           />
-          <Tooltip content={<ChartTooltip unit={unit} />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+          <Tooltip content={<ChartTooltip unit={unit} isCount={isCount} />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
           <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={70}>
             {chartData.map((entry) => (
               <Cell

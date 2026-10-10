@@ -3,10 +3,15 @@ import { AlertTriangle } from "lucide-react";
 
 interface Props {
   children: React.ReactNode;
+  /** Page-level mode: no full-viewport takeover, so the nav stays usable. */
+  compact?: boolean;
+  /** When this value changes (e.g. the route path) a caught error is cleared. */
+  resetKey?: string;
 }
 
 interface State {
   error: Error | null;
+  resetKey?: string;
 }
 
 /**
@@ -15,10 +20,16 @@ interface State {
  * blank white screen with no indication of what happened.
  */
 export class ErrorBoundary extends React.Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, resetKey: this.props.resetKey };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
+  }
+
+  // Clear a caught error when resetKey (e.g. the route path) changes.
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    if (props.resetKey !== state.resetKey) return { error: null, resetKey: props.resetKey };
+    return null;
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
@@ -27,13 +38,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.error) {
+      const compact = this.props.compact;
       return (
         <div
           role="alert"
           style={{
-            minHeight: "100vh", display: "flex", flexDirection: "column",
+            minHeight: compact ? "40vh" : "100vh", display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center", gap: "0.75rem",
-            padding: "2rem", textAlign: "center", background: "#050811", color: "#e5e9f0",
+            padding: "2rem", textAlign: "center", background: compact ? "transparent" : "#050811", color: "#e5e9f0",
           }}
         >
           <AlertTriangle size={32} color="#ef4444" aria-hidden="true" />

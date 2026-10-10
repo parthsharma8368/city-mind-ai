@@ -433,6 +433,11 @@ body {
   color: var(--signal-green);
   border: 1px solid rgba(16,185,129,0.3);
 }
+.improvement-tag.neutral {
+  background: rgba(148,163,184,0.12);
+  color: var(--text-secondary);
+  border: 1px solid rgba(148,163,184,0.3);
+}
 .improvement-tag.negative {
   background: rgba(239,68,68,0.15);
   color: var(--signal-red);
@@ -638,4 +643,45 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+.skeleton-text { color: var(--text-muted); animation: pulse-skeleton 1.2s ease-in-out infinite; }
+@keyframes pulse-skeleton { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* Main content padding lives in a class (not inline) so it can shrink on phones. */
+.app-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1360px;
+  width: 100%;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+/* Phones (<= 600px): without wrapping, the navbar's six non-wrapping nav items
+   force a ~955px min-content width, so mobile browsers zoom the whole page out
+   (body{overflow-x:hidden} then hides the clipped items). Let the header and the
+   nav wrap, and tighten paddings. */
+@media (max-width: 600px) {
+  .navbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+  .nav-links {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .nav-item {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  .app-main {
+    padding: 1rem;
+  }
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
