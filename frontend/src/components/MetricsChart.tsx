@@ -13,7 +13,9 @@ type MetricKey =
   | "mean_queue"
   | "mean_speed"
   | "trips_completed"
-  | "mean_trip_timeloss";
+  | "mean_trip_timeloss"
+  | "lag_per_scheduled_car_s"
+  | "never_inserted";
 
 interface ComparisonChartProps {
   data: ComparisonEntry[];

@@ -123,6 +123,10 @@ def _resolve_model_path(model: Optional[str], controller: str) -> Path:
     return candidate
 
 
+def _demo_script_exists() -> bool:
+    return (_PROJECT_ROOT / "scripts" / "run_visual_demo.py").is_file()
+
+
 @router.post("/launch-gui", response_model=LaunchResponse, dependencies=[Depends(require_api_key)])
 def launch_gui(
     controller: str = "ppo",
@@ -134,7 +138,6 @@ def launch_gui(
     controller to open a second window and compare them live side by side."""
     if controller not in _CONTROLLERS:
         raise HTTPException(400, f"controller must be one of {_CONTROLLERS}")
-
     with _gui_lock:
         if _is_running(controller):
             proc = _gui_processes[controller]
@@ -143,13 +146,18 @@ def launch_gui(
                 message=f"SUMO-GUI for '{controller}' already running.",
             )
 
-        cmd = [sys.executable, str(_PROJECT_ROOT / "scripts" / "run_visual_demo.py"),
+        demo_script = _PROJECT_ROOT / "scripts" / "run_visual_demo.py"
+        cmd = [sys.executable, str(demo_script),
                "--controller", controller, "--delay", str(delay), "--duration", str(duration)]
 
         model_path: Optional[Path] = None
         if controller in _MODEL_BASED_CONTROLLERS:
             model_path = _resolve_model_path(model, controller)
             cmd += ["--model", str(model_path)]
+
+        if not _demo_script_exists():
+            # The live-GUI launcher was retired with the simplification (the repo keeps only the shared IPPO agent and the baselines).
+            raise HTTPException(501, "The SUMO-GUI launcher was retired; run SUMO yourself with the evaluation's sumocfg.")
 
         env = os.environ.copy()
         if "DISPLAY" not in env:

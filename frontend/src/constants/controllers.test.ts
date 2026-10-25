@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   CONTROLLER_LABELS, CONTROLLER_COLORS, CONTROLLER_HEX, CONTROLLER_SHORT_LABELS,
-  replayWindowStart, isPeakAligned, controllerLabel, controllerShortLabel,
+  REPLAY_WINDOW_START, controllerLabel, controllerShortLabel,
 } from "./controllers";
 
 describe("controller metadata", () => {
@@ -23,15 +23,14 @@ describe("controller metadata", () => {
   });
 });
 
-describe("replay windows", () => {
-  it("requests the peak window for current controllers and midnight only for legacy ippo", () => {
-    expect(replayWindowStart("ppo")).toBe(25200);
-    expect(replayWindowStart("fixed_time")).toBe(25200);
-    expect(replayWindowStart("ippo")).toBe(0);
+describe("controller ids", () => {
+  it("covers the baseline, fixed time and the two final models", () => {
+    expect(Object.keys(CONTROLLER_LABELS).sort()).toEqual(["fixed_time", "ippo_A", "ippo_B", "sumo_actuated"]);
   });
-  it("marks ippo as not peak-aligned so it can't be paired with peak baselines", () => {
-    expect(isPeakAligned("ippo")).toBe(false);
-    expect(isPeakAligned("ppo")).toBe(true);
-    expect(isPeakAligned("ippo_phase_select")).toBe(true);
+});
+
+describe("replay window", () => {
+  it("every recording covers the 07:00-08:00 peak", () => {
+    expect(REPLAY_WINDOW_START).toBe(25200);
   });
 });

@@ -68,10 +68,10 @@ describe("URL building", () => {
   });
 
   it("sends launch parameters as query string on a POST", async () => {
-    await api.launchSimulationGui("ppo", "model.zip", 80, 3600);
+    await api.launchSimulationGui("ippo_A", "model.zip", 80, 3600);
     const url = new URL(lastUrl());
     expect(url.pathname.endsWith("/simulation/launch-gui")).toBe(true);
-    expect(url.searchParams.get("controller")).toBe("ppo");
+    expect(url.searchParams.get("controller")).toBe("ippo_A");
     expect(url.searchParams.get("model")).toBe("model.zip");
     expect(url.searchParams.get("delay")).toBe("80");
     expect(url.searchParams.get("duration")).toBe("3600");
@@ -83,13 +83,13 @@ describe("URL building", () => {
     expect(new URL(lastUrl()).searchParams.has("model")).toBe(false);
     await api.stopSimulationGui();
     expect(lastUrl().endsWith("/simulation/stop-gui")).toBe(true);
-    await api.stopSimulationGui("ippo");
-    expect(new URL(lastUrl()).searchParams.get("controller")).toBe("ippo");
+    await api.stopSimulationGui("ippo_B");
+    expect(new URL(lastUrl()).searchParams.get("controller")).toBe("ippo_B");
   });
 
   it("builds replay queries and forwards the abort signal", async () => {
     const ctrl = new AbortController();
-    await api.getReplayFrames("ppo", 42, "1.0x", 25200, 25500, ctrl.signal);
+    await api.getReplayFrames("ippo_A", 42, "1.0x", 25200, 25500, ctrl.signal);
     const url = new URL(lastUrl());
     expect(url.searchParams.get("start_time")).toBe("25200");
     expect(url.searchParams.get("end_time")).toBe("25500");

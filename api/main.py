@@ -57,13 +57,12 @@ _loaded_endpoints: list[str] = []
 
 # ── Core Routers ──────────────────────────────────────────────────────────────
 try:
-    from api.routers import network, experiments, replay, comparison, xai
+    from api.routers import network, experiments, replay, xai
     app.include_router(network.router, prefix="/api/network", tags=["network"])
     app.include_router(experiments.router, prefix="/api/experiments", tags=["experiments"])
     app.include_router(replay.router, prefix="/api/replay", tags=["replay"])
-    app.include_router(comparison.router, prefix="/api/comparison", tags=["comparison"])
     app.include_router(xai.router, prefix="/api/xai", tags=["xai"])
-    _loaded_endpoints += ["/api/network", "/api/experiments", "/api/replay", "/api/comparison", "/api/xai"]
+    _loaded_endpoints += ["/api/network", "/api/experiments", "/api/replay", "/api/xai"]
 except ImportError as e:
     logger.warning("could not load core router: %s", e)
 

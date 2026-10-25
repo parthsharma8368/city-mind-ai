@@ -21,29 +21,27 @@ afterEach(() => vi.restoreAllMocks());
 
 const renderPage = () => render(<MemoryRouter><ReplayPage /></MemoryRouter>);
 
-describe("ReplayPage legacy ippo handling", () => {
-  it("does not offer the midnight-only ippo recording in the side-by-side RL picker", async () => {
+describe("ReplayPage final models", () => {
+  it("offers the two final models in the side-by-side picker", async () => {
     renderPage();
     const group = await screen.findByRole("group", { name: /RL controller to compare/i });
-    expect(group.textContent).toContain("PPO");
-    expect(group.textContent).not.toMatch(/^IPPO|\bIPPO\b(?!_)/);
-    expect(group.textContent).toContain("PHASE-SELECT");
+    expect(group.textContent).toContain("MODEL A");
+    expect(group.textContent).toContain("MODEL B");
   });
 
-  it("only ever requests peak-window data for both sides of the split view", async () => {
+  it("requests the peak window for both sides of the split view, SUMO actuated against model A", async () => {
     renderPage();
     await waitFor(() => expect(replay).toHaveBeenCalledTimes(2));
-    const starts = replay.mock.calls.map((c: unknown[]) => c[3]);
-    expect(starts).toEqual([25200, 25200]);
+    expect(replay.mock.calls.map((c: unknown[]) => c[0])).toEqual(["sumo_actuated", "ippo_A"]);
+    expect(replay.mock.calls.map((c: unknown[]) => c[3])).toEqual([25200, 25200]);
   });
 
-  it("explains that ippo is not replayable under the current environment in single view", async () => {
+  it("lists the four recorded runs in single view", async () => {
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /Single View/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /IPPO \(Parameter-Shared\)/i }));
-    const note = await screen.findByRole("note");
-    expect(note.textContent).toMatch(/Not replayable under the current environment/);
-    expect(note.textContent).toMatch(/midnight/);
+    for (const label of [/Model A \(final\)/, /Model B \(final\)/, /SUMO actuated \(baseline\)/, /^Fixed time$/]) {
+      expect(await screen.findByRole("button", { name: label })).toBeInTheDocument();
+    }
   });
 
   it("exposes accessible names and pressed state on the scrubber and toggles", async () => {

@@ -1,13 +1,11 @@
 import React from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
-  Activity, Layers, PlayCircle, BarChart3, Brain, Cpu, Monitor, BookOpen,
+  Activity, PlayCircle, BarChart3, Cpu, BookOpen,
 } from "lucide-react";
 import { StoryPage } from "./pages/StoryPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { ExperimentsPage } from "./pages/ExperimentsPage";
 import { ComparisonPage } from "./pages/ComparisonPage";
-import { XAIPage } from "./pages/XAIPage";
 import { ReplayPage } from "./pages/ReplayPage";
 import { SimulationSocketProvider } from "./context/SimulationSocketContext";
 import { useSimulationSocket } from "./context/simulationSocketStore";
@@ -18,9 +16,7 @@ const NAV_ITEMS = [
   { to: "/story",         label: "Story",        icon: <BookOpen size={16} aria-hidden="true" /> },
   { to: "/",             label: "Dashboard",    icon: <Activity size={16} aria-hidden="true" /> },
   { to: "/replay",       label: "Replay",       icon: <PlayCircle size={16} aria-hidden="true" /> },
-  { to: "/experiments",  label: "Experiments",  icon: <Layers size={16} aria-hidden="true" /> },
   { to: "/comparison",   label: "Comparison",   icon: <BarChart3 size={16} aria-hidden="true" /> },
-  { to: "/xai",          label: "XAI Analysis", icon: <Brain size={16} aria-hidden="true" /> },
 ];
 
 const ConnectionBadge: React.FC = () => {
@@ -64,7 +60,7 @@ export function App() {
             <div>
               <h1 style={{ fontSize: "1.1rem", fontWeight: 700, letterSpacing: "-0.02em" }}>CityMind AI</h1>
               <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", letterSpacing: "0.02em" }}>
-                Multi-Agent RL Traffic Intelligence
+                One shared RL policy · 98 traffic signals
               </p>
             </div>
           </div>
@@ -97,9 +93,7 @@ export function App() {
             <Route path="/story" element={<StoryPage />} />
             <Route path="/" element={<DashboardPage />} />
             <Route path="/replay" element={<ReplayPage />} />
-            <Route path="/experiments" element={<ExperimentsPage />} />
             <Route path="/comparison" element={<ComparisonPage />} />
-            <Route path="/xai" element={<XAIPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ErrorBoundary>
@@ -117,13 +111,10 @@ export function App() {
           fontSize: "0.75rem",
           color: "var(--text-muted)",
         }}>
-          <span>CityMind AI — Multi-Intersection RL Traffic Control (PPO · IPPO · baselines)</span>
+          <span>CityMind AI — shared-policy PPO (IPPO) traffic-signal control vs SUMO actuated</span>
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Cpu size={12} aria-hidden="true" /> PPO · IPPO · SB3 · SUMO 1.27.1
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Monitor size={12} aria-hidden="true" /> Local visual demo via XQuartz
+              <Cpu size={12} aria-hidden="true" /> PPO · Stable-Baselines3 · SUMO
             </span>
             <a href={API_DOCS_URL} target="_blank" rel="noreferrer"
               style={{ color: "var(--accent-cyan)", textDecoration: "none", fontFamily: "var(--font-mono)" }}>

@@ -138,10 +138,10 @@ export const XAIPanel: React.FC<{ maxItems?: number; controller?: string }> = ({
       <AlertCircle size={32} style={{ color: "var(--signal-yellow)", margin: "0 auto 0.75rem" }} />
       <p style={{ color: "var(--text-secondary)", fontWeight: 600 }}>XAI Report Not Available</p>
       <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
-        Run the XAI analyzer to generate explanations:
+        The XAI analysis was retired together with the legacy agents (no explanations are generated for the current model).
       </p>
       <code style={{ display: "block", marginTop: "0.75rem", padding: "0.6rem 1rem", background: "rgba(255,255,255,0.05)", borderRadius: 6, fontSize: "0.8rem", color: "var(--accent-cyan)", fontFamily: "var(--font-mono)", textAlign: "left" }}>
-        python scripts/run_xai.py --controller {controller} --model artifacts/experiments/{controller}/[run]/model_final.zip
+        {controller}: no XAI summary available
       </code>
     </div>
   );

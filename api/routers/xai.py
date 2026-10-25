@@ -42,7 +42,7 @@ def _xai_dir(controller: str) -> Path:
 def _load_xai_summary(controller: str) -> list[dict]:
     json_path = _xai_dir(controller) / "xai_summary.json"
     if not json_path.exists():
-        raise HTTPException(status_code=404, detail=f"XAI summary not found for {controller}. Run scripts/run_xai.py --controller {controller} first.")
+        raise HTTPException(status_code=404, detail=f"XAI summary not found for {controller}. The XAI analysis was retired with the legacy agents.")
     try:
         return json.loads(json_path.read_text())
     except json.JSONDecodeError as exc:

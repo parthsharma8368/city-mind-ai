@@ -9,7 +9,8 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from api.main import app
-from api.routers import experiments, metrics, replay, simulation
+from api import results
+from api.routers import experiments, replay, simulation
 
 LOCAL = TestClient(app, client=("127.0.0.1", 50000))
 REMOTE = TestClient(app, client=("203.0.113.9", 50000))
@@ -35,6 +36,7 @@ def no_real_processes(monkeypatch):
         calls.append((cmd, kwargs))
         return _FakeProc()
 
+    monkeypatch.setattr(simulation, "_demo_script_exists", lambda: True)   # the launcher script is retired; keep testing the API's guards
     monkeypatch.setattr(simulation.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(simulation.time, "sleep", lambda _s: None)
     monkeypatch.setattr(simulation.os, "killpg", lambda *a, **k: None)
@@ -195,25 +197,6 @@ def test_xai_controller_and_tls_id_validation():
     assert LOCAL.get("/api/xai/summary", params={"controller": "evil"}).status_code == 400
 
 
-def test_comparison_allow_lists():
-    r = LOCAL.get("/api/comparison/improvement", params={"baseline": "evil", "target": "ppo"})
-    assert r.status_code == 400
-    r = LOCAL.get("/api/comparison/improvement", params={"metric": "evil"})
-    assert r.status_code == 400
-
-
-def test_comparison_unknown_demand_id_is_422(tmp_path, monkeypatch):
-    from api.routers import comparison
-
-    pd.DataFrame({"controller": ["ppo"], "demand_id": ["1.0x"], "mean_waiting_time": [1.0]}).to_parquet(
-        tmp_path / "evaluation_results.parquet"
-    )
-    monkeypatch.setattr(comparison, "METRICS_DIR", tmp_path)
-    assert LOCAL.get("/api/comparison/summary", params={"demand_id": "zzz"}).status_code == 422
-    assert LOCAL.get("/api/comparison/summary", params={"demand_id": "1.0x"}).status_code == 200
-    assert LOCAL.get("/api/comparison/summary", params={"demand_id": "all"}).status_code == 200
-
-
 # ── CORS ─────────────────────────────────────────────────────────────────────
 def test_cors_foreign_origin_gets_no_allow_header():
     r = LOCAL.get("/api/health", headers={"Origin": EVIL_ORIGIN})
@@ -245,8 +228,10 @@ def traj_dir(tmp_path, monkeypatch):
     for t in range(0, 2000):
         rows.append({"time": float(t), "vehicle_id": f"v{t}", "x": 1.0, "y": 2.0, "speed": 3.0,
                      "tls_id": "J0", "phase": 0, "tls_state": "GG"})
-    pd.DataFrame(rows).to_parquet(tmp_path / "fixed_time_seed42_1.0x.parquet")
-    monkeypatch.setattr(replay, "TRAJECTORY_DIR", tmp_path)
+    folder = tmp_path / "fixed_time" / "s42" / "traj"
+    folder.mkdir(parents=True)
+    pd.DataFrame(rows).to_parquet(folder / "fixed_time_seed42_1.0x.parquet")
+    monkeypatch.setattr(results, "RESULTS_ROOT", tmp_path)
     return tmp_path
 
 
@@ -313,31 +298,42 @@ def test_malformed_config_does_not_break_listing(tmp_path, monkeypatch):
     assert LOCAL.get("/api/experiments/run_list").status_code == 200
 
 
-# ── metrics NaN / partial writes ─────────────────────────────────────────────
-def _write_metric(d, name, **kw):
-    (d / name).write_text(json.dumps(kw, allow_nan=True))
+# ── metrics: final-model results ─────────────────────────────────────────────
+def _write_run(root, name, seed=42, **kw):
+    folder = root / name / f"s{seed}" / "metrics"
+    folder.mkdir(parents=True)
+    stem = f"{results.CONTROLLERS[name][1]}_seed{seed}_1.0x"
+    (folder / f"{stem}.json").write_text(json.dumps({"seed": seed, **kw}, allow_nan=True))
 
 
-def test_nan_in_metrics_json_does_not_500(tmp_path, monkeypatch):
-    monkeypatch.setattr(metrics, "METRICS_DIR", tmp_path)
-    _write_metric(tmp_path, "ppo_seed42.json", controller="ppo", seed=42,
-                  mean_waiting_time=math.nan, trips_completed=math.nan, throughput=1.0)
-    _write_metric(tmp_path, "fa.json", controller="fixed_time", seed=42,
-                  mean_waiting_time=5.0, trips_completed=10, throughput=1.0)
-    r = LOCAL.get("/api/metrics/comparison")
+def test_summary_picks_the_final_model_with_most_trips_and_survives_nan(tmp_path, monkeypatch):
+    monkeypatch.setattr(results, "RESULTS_ROOT", tmp_path)
+    _write_run(tmp_path, "sumo_actuated", trips_completed=100, mean_waiting_time=6.0)
+    _write_run(tmp_path, "ippo_A", trips_completed=110, mean_waiting_time=math.nan)
+    _write_run(tmp_path, "ippo_B", trips_completed=105, mean_waiting_time=4.0)
+    r = LOCAL.get("/api/metrics/summary")
     assert r.status_code == 200
-    ppo = next(x for x in r.json()["results"] if x["controller"] == "ppo")
-    assert ppo["mean_waiting_time"] is None and ppo["seed"] == 42
-    assert LOCAL.get("/api/metrics/summary").status_code == 200
-    assert LOCAL.get("/api/metrics/experiments-list").status_code == 200
+    body = r.json()
+    assert body["controller"] == "ippo_A" and body["mean_waiting_time"] is None
+    assert body["trips_completed_gap_pct"] == 10.0 and body["starvation_flag"] is False
 
 
-def test_partial_json_does_not_substitute_other_seed(tmp_path, monkeypatch):
-    monkeypatch.setattr(metrics, "METRICS_DIR", tmp_path)
-    _write_metric(tmp_path, "ppo_seed123.json", controller="ppo", seed=123, trips_completed=1)
-    (tmp_path / "ppo_seed42.json").write_text('{"controller": "ppo", "seed": 42, "trips_')
+def test_summary_404_without_results(tmp_path, monkeypatch):
+    monkeypatch.setattr(results, "RESULTS_ROOT", tmp_path)
+    assert LOCAL.get("/api/metrics/summary").status_code == 404
+    assert LOCAL.get("/api/metrics/comparison").json()["results"] == []
+    assert LOCAL.get("/api/metrics/ten-seed").status_code == 404
+
+
+def test_partial_json_is_skipped_not_substituted(tmp_path, monkeypatch):
+    monkeypatch.setattr(results, "RESULTS_ROOT", tmp_path)
+    _write_run(tmp_path, "ippo_A", seed=123, trips_completed=1)
+    folder = tmp_path / "ippo_A" / "s42" / "metrics"
+    folder.mkdir(parents=True)
+    (folder / "ippo_seed42_1.0x.json").write_text('{"seed": 42, "trips_')
     monkeypatch.setattr("api.util.time.sleep", lambda _s: None)
-    assert metrics._load_metric_json("ppo") == {}
+    assert results.load_metrics("ippo_A", 42) == {}
+    assert results.load_metrics("evil", 42) == {}
 
 
 def test_read_json_file_retries_until_complete(tmp_path, monkeypatch):
@@ -382,3 +378,9 @@ def test_ws_loopback_allowed_origin_works():
     with LOCAL.websocket_connect("/ws/simulation", headers={"Origin": GOOD_ORIGIN}) as ws:
         msg = ws.receive_json()
         assert msg["type"] == "status" and msg["gui_running"] is False
+
+
+def test_launch_gui_reports_501_when_the_launcher_script_is_retired(monkeypatch):
+    monkeypatch.setattr(simulation, "_demo_script_exists", lambda: False)
+    r = LOCAL.post(f"{LAUNCH}?controller=sumo_actuated")
+    assert r.status_code == 501 and "retired" in r.json()["detail"]

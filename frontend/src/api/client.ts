@@ -74,11 +74,16 @@ export interface ComparisonEntry {
   throughput: number;
   mean_speed: number;
   total_arrived: number;
-  cumulative_reward: number;
+  cumulative_reward: number | null;
   backlog: number;
   total_teleports: number;
   trips_completed: number;
   mean_trip_timeloss: number;
+  /** Mean over the evaluation seeds (the comparison endpoint); absent in older payloads. */
+  n_seeds?: number;
+  lag_per_scheduled_car_s?: number;
+  never_inserted?: number;
+  due_completion_ratio?: number;
 }
 
 export interface ComparisonImprovement {
@@ -98,6 +103,7 @@ export interface ComparisonResult {
 
 export interface MetricsSummary {
   controller: string;
+  seed?: number;
   mean_waiting_time: number;
   mean_queue: number;
   throughput: number;
@@ -114,7 +120,28 @@ export interface MetricsSummary {
   starvation_flag?: boolean;
 }
 
-export type SimControllerId = "fixed_time" | "sumo_actuated" | "max_pressure" | "ppo" | "ippo" | "ippo_phase_select";
+export type SimControllerId = "fixed_time" | "sumo_actuated" | "ippo_A" | "ippo_B";
+
+export interface TenSeedMeasure {
+  key: string;
+  label: string;
+  better: "lower" | "higher";
+  baseline_mean: number;
+  model_mean: number;
+  pct_diff: number;
+  ci_lo: number;
+  ci_hi: number;
+  seeds_won: number;
+  n_seeds: number;
+  sign_test_p: number;
+  verdict: string;
+}
+
+export interface TenSeedResult {
+  baseline: string;
+  seeds: number[];
+  models: Record<string, { label: string; measures: TenSeedMeasure[] }>;
+}
 
 export interface SimulationStatus {
   gui_running: boolean;
@@ -256,6 +283,7 @@ export const api = {
   // ── Metrics ────────────────────────────────────────────────────────────
   getComparisonMetrics: (signal?: AbortSignal) => _fetch<ComparisonResult>("/metrics/comparison", { signal }),
   getMetricsSummary: (signal?: AbortSignal) => _fetch<MetricsSummary>("/metrics/summary", { signal }),
+  getTenSeed: (signal?: AbortSignal) => _fetch<TenSeedResult>("/metrics/ten-seed", { signal }),
 
   // ── Simulation Control (XQuartz) ───────────────────────────────────────
   getSimulationStatus: (signal?: AbortSignal) => _fetch<SimulationStatus>("/simulation/status", { signal }),

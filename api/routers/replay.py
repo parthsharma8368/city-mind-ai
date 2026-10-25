@@ -6,11 +6,10 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 import pandas as pd
 
+from api import results
+
 logger = logging.getLogger("citymind.api.replay")
 router = APIRouter()
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-TRAJECTORY_DIR = _PROJECT_ROOT / "artifacts" / "trajectories"
-
 _SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_.\-]+$")
 
 
@@ -25,26 +24,16 @@ MAX_ROWS = 1_500_000        # backstop on rows materialised per response
 _COLUMNS = ["time", "vehicle_id", "x", "y", "speed", "tls_id", "phase", "tls_state"]
 
 
-def _read_window(parquet_path: Path, csv_path: Path, start: float, end: float) -> pd.DataFrame:
+def _read_window(parquet_path: Path, start: float, end: float) -> pd.DataFrame:
     """Read only the rows in [start, end] (filter pushed into the parquet scan)."""
-    if parquet_path.exists():
-        import pyarrow.parquet as pq
+    if not parquet_path.exists():
+        raise FileNotFoundError(parquet_path.name)
+    import pyarrow.parquet as pq
 
-        names = set(pq.read_schema(parquet_path).names)
-        cols = [c for c in _COLUMNS if c in names]
-        table = pq.read_table(
-            parquet_path, columns=cols,
-            filters=[("time", ">=", start), ("time", "<=", end)],
-        )
-        return table.to_pandas()
-    if csv_path.exists():
-        header = pd.read_csv(csv_path, nrows=0).columns
-        cols = [c for c in _COLUMNS if c in header]
-        parts = []
-        for chunk in pd.read_csv(csv_path, usecols=cols, chunksize=200_000):
-            parts.append(chunk[(chunk["time"] >= start) & (chunk["time"] <= end)])
-        return pd.concat(parts) if parts else pd.DataFrame(columns=cols)
-    raise FileNotFoundError(parquet_path.name)
+    names = set(pq.read_schema(parquet_path).names)
+    cols = [c for c in _COLUMNS if c in names]
+    table = pq.read_table(parquet_path, columns=cols, filters=[("time", ">=", start), ("time", "<=", end)])
+    return table.to_pandas()
 
 
 @router.get("/frames")
@@ -63,11 +52,12 @@ def get_trajectory_frames(
             422, f"end_time must be >= start_time and the window at most {MAX_WINDOW_SECONDS:.0f} s."
         )
 
-    parquet_path = TRAJECTORY_DIR / f"{controller}_seed{seed}_{demand_id}.parquet"
-    csv_path = TRAJECTORY_DIR / f"{controller}_seed{seed}_{demand_id}.csv"
+    if controller not in results.CONTROLLERS:
+        raise HTTPException(404, f"Unknown controller {controller!r}; known: {list(results.CONTROLLERS)}")
+    parquet_path = results.trajectory_path(controller, seed, demand_id)
 
     try:
-        subset = _read_window(parquet_path, csv_path, start_time, end_time)
+        subset = _read_window(parquet_path, start_time, end_time)
     except FileNotFoundError:
         raise HTTPException(
             404, f"Trajectory not found for {controller} (seed={seed}, demand={demand_id})"
@@ -104,11 +94,10 @@ def get_trajectory_frames(
 
 @router.get("/available")
 def list_trajectories():
-    """List all available trajectory files."""
-    if not TRAJECTORY_DIR.exists():
-        return {"trajectories": []}
-    files = sorted(
-        {f.stem for f in TRAJECTORY_DIR.glob("*.parquet")}
-        | {f.stem for f in TRAJECTORY_DIR.glob("*.csv")}
-    )
-    return {"trajectories": files}
+    """Recorded runs that can be replayed: controller id, label and the seeds that have a trajectory."""
+    out = []
+    for controller in results.available_controllers():
+        recorded = [s for s in results.seeds() if results.trajectory_path(controller, s).is_file()]
+        if recorded:
+            out.append({"controller": controller, "label": results.label(controller), "seeds": recorded})
+    return {"trajectories": out}

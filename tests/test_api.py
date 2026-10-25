@@ -72,6 +72,7 @@ def fake_spawn(monkeypatch):
         calls.append((cmd, kwargs))
         return _FakeProc()
 
+    monkeypatch.setattr(simulation, "_demo_script_exists", lambda: True)   # the launcher script is retired; keep testing the API's guards
     monkeypatch.setattr(simulation.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(simulation.time, "sleep", lambda _s: None)
     with simulation._gui_lock:

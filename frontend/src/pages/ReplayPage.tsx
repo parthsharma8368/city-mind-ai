@@ -10,26 +10,22 @@ import type { TLSFrame, ComparisonEntry } from "../api/client";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
 import { QueueTrendSparkline } from "../components/QueueTrendSparkline";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedKmh, countQueued, buildQueueTrend } from "../utils/trajectory";
-import { CONTROLLER_LABELS, CONTROLLER_COLORS, CONTROLLER_HEX, replayWindowStart, REPLAY_WINDOW_SECONDS, isPeakAligned, LEGACY_REPLAY_NOTICE } from "../constants/controllers";
+import { CONTROLLER_LABELS, CONTROLLER_COLORS, CONTROLLER_HEX, REPLAY_WINDOW_START, REPLAY_WINDOW_SECONDS } from "../constants/controllers";
 import { fmt, fmtInt } from "../utils/format";
 
-const CONTROLLER_IDS = ["ppo", "ippo", "ippo_phase_select", "fixed_time", "max_pressure", "sumo_actuated"] as const;
-// "ippo" is deliberately NOT selectable in split view: its only recording is the
-// legacy midnight window, which can't be aligned with the peak-hour baselines.
-const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => (id === "ppo" || id === "ippo_phase_select") && isPeakAligned(id));
-// Short button labels for the RL-selector group — id.toUpperCase() alone
-// would render "IPPO_PHASE_SELECT" with the underscore intact.
-const RL_SHORT_LABELS: Record<string, string> = { ppo: "PPO", ippo: "IPPO", ippo_phase_select: "PHASE-SELECT" };
-// Split view's left-hand panel: which baseline to compare the RL controller against.
-const BASELINE_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "fixed_time" || id === "sumo_actuated");
+const CONTROLLER_IDS = ["ippo_A", "ippo_B", "sumo_actuated", "fixed_time"] as const;
+// Split view: a final model on the right, a baseline on the left.
+const RL_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "ippo_A" || id === "ippo_B");
+const RL_SHORT_LABELS: Record<string, string> = { ippo_A: "MODEL A", ippo_B: "MODEL B" };
+const BASELINE_CONTROLLER_IDS = CONTROLLER_IDS.filter((id) => id === "sumo_actuated" || id === "fixed_time");
 
 export const ReplayPage: React.FC = () => {
   const [isSplitMode, setIsSplitMode] = useState(true);
-  const [controller, setController] = useState("ppo");
+  const [controller, setController] = useState("ippo_A");
   // Split view's right-hand panel: which RL controller to compare against the baseline.
-  const [splitRlController, setSplitRlController] = useState("ppo");
+  const [splitRlController, setSplitRlController] = useState("ippo_A");
   // Split view's left-hand panel: which baseline to compare the RL controller against.
-  const [splitBaselineController, setSplitBaselineController] = useState("fixed_time");
+  const [splitBaselineController, setSplitBaselineController] = useState("sumo_actuated");
   const [seed] = useState(42);
   const [demandId] = useState("1.0x");
   const [loading, setLoading] = useState(false);
@@ -76,18 +72,9 @@ export const ReplayPage: React.FC = () => {
       setIsPlaying(false);
       try {
         if (isSplitMode) {
-          // Fetch both the selected baseline and the selected RL controller in
-          // parallel, each at ITS OWN recorded window — most controllers were
-          // regenerated at the peak window, but "ippo" still only has data at
-          // the original midnight window (see replayWindowStart), so a single
-          // shared window would silently return zero frames for whichever
-          // side doesn't match it.
-          const baselineStart = replayWindowStart(splitBaselineController);
-          const rlStart = replayWindowStart(splitRlController);
-          if (baselineStart !== rlStart) {
-            // Never merge two disjoint recordings into one timeline.
-            throw new Error("These two recordings cover different time windows and cannot be compared side by side.");
-          }
+          // Fetch the selected baseline and the selected final model in parallel; both cover the same 07:00-08:00 window.
+          const baselineStart = REPLAY_WINDOW_START;
+          const rlStart = REPLAY_WINDOW_START;
           const [ftData, ppoData] = await Promise.all([
             api.getReplayFrames(splitBaselineController, seed, demandId, baselineStart, baselineStart + REPLAY_WINDOW_SECONDS, ctrl.signal),
             api.getReplayFrames(splitRlController, seed, demandId, rlStart, rlStart + REPLAY_WINDOW_SECONDS, ctrl.signal),
@@ -110,8 +97,7 @@ export const ReplayPage: React.FC = () => {
           setAvailableTimes(times);
           setCurrentTimeIndex(0);
         } else {
-          // Fetch single controller, at its own recorded window (see above).
-          const windowStart = replayWindowStart(controller);
+          const windowStart = REPLAY_WINDOW_START;
           const data = await api.getReplayFrames(controller, seed, demandId, windowStart, windowStart + REPLAY_WINDOW_SECONDS, ctrl.signal);
           if (cancelled) return;
 
@@ -365,16 +351,6 @@ export const ReplayPage: React.FC = () => {
           busy each side looks right now — watch the queue trend line under each map over the full {REPLAY_WINDOW_SECONDS / 60} minutes.
           A side whose queue keeps falling is clearing traffic; a side whose queue stays flat near its peak is
           backing up even if its average wait number looks good (see the <Link to="/story" style={{ color: "var(--accent-cyan)" }}>Story page</Link> for why that distinction matters here).
-        </div>
-      )}
-
-      {!isSplitMode && !isPeakAligned(controller) && (
-        <div role="note" style={{
-          fontSize: "0.8rem", color: "var(--signal-yellow)", marginBottom: "1rem",
-          padding: "0.65rem 0.9rem", background: "rgba(245,158,11,0.08)",
-          border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8,
-        }}>
-          <strong>{CONTROLLER_LABELS[controller] ?? controller}:</strong> {LEGACY_REPLAY_NOTICE}
         </div>
       )}
 

@@ -77,7 +77,7 @@ export const ExperimentsPage: React.FC = () => {
             color: "var(--accent-cyan)", fontFamily: "var(--font-mono)",
             fontSize: "0.8rem", textAlign: "left", whiteSpace: "pre-wrap",
           }}>
-            {"python scripts/run_training.py --ppo-config configs/ppo.yaml\npython scripts/run_ippo_training.py --ippo-config configs/ippo.yaml"}
+            {"python scripts/run_ippo_training.py --sumo-cfg data/raw/intas/scenario/InTAS_train.sumocfg --tls-json artifacts/scenario/tls_metadata.json"}
           </code>
         </div>
       ) : (

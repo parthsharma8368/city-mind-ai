@@ -4,13 +4,13 @@ import { Activity, TrendingDown, Zap, AlertTriangle } from "lucide-react";
 import { MetricsPanel } from "../components/MetricsPanel";
 import { PlaybackControls } from "../components/PlaybackControls";
 import { NetworkCanvas, type VehiclePoint } from "../components/NetworkCanvas";
-import { SimulationControl } from "../components/SimulationControl";
+import { TenSeedTable } from "../components/TenSeedTable";
 import { QueueTrendSparkline } from "../components/QueueTrendSparkline";
 import { api, isAbortError } from "../api/client";
 import type { ComparisonResult, MetricsSummary, TLSFrame } from "../api/client";
 import { fmt, fmtInt } from "../utils/format";
 import { sampleAndHold, tlsFramesToStateMap, meanSpeedMs, countQueued, msToKmh, buildQueueTrend } from "../utils/trajectory";
-import { controllerLabel, replayWindowStart, REPLAY_WINDOW_SECONDS, CONTROLLER_HEX } from "../constants/controllers";
+import { controllerLabel, REPLAY_WINDOW_START, REPLAY_WINDOW_SECONDS, CONTROLLER_HEX } from "../constants/controllers";
 
 export const DashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
@@ -30,10 +30,8 @@ export const DashboardPage: React.FC = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const timerRef = useRef<number | null>(null);
 
-  // Fetch the headline metrics first — /api/metrics/summary picks whichever
-  // RL controller (ppo or ippo) currently has the lower waiting time, so the
-  // Dashboard doesn't keep showing a stale "ppo" result once ippo overtakes
-  // it. The replay below follows whatever that resolves to.
+  // Fetch the headline metrics first — /api/metrics/summary picks the final model (A or B) that completes the most trips
+  // over all evaluation seeds; the replay below animates that model's seed-42 run.
   useEffect(() => {
     const ctrl = new AbortController();
     api.getMetricsSummary(ctrl.signal)
@@ -51,7 +49,7 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!headlineController) return; // wait for /summary to resolve which controller "wins" first
-    const windowStart = replayWindowStart(headlineController);
+    const windowStart = REPLAY_WINDOW_START;
     const ctrl = new AbortController();
     api.getReplayFrames(headlineController, 42, "1.0x", windowStart, windowStart + REPLAY_WINDOW_SECONDS, ctrl.signal)
       .then((data) => {
@@ -98,7 +96,7 @@ export const DashboardPage: React.FC = () => {
   // Display-only: the fetched window's own first frame, so the on-screen
   // clock reads from 00:00 regardless of which absolute sim-time the
   // controller's trajectory actually starts at (peak-window controllers
-  // start around 25200s; ippo's still starts at 0 — see replayWindowStart).
+  // start at 25200s, 07:00).
   const displayWindowStart = availableTimes.length > 0 ? availableTimes[0] : 0;
 
   const currentVehicles = useMemo(
@@ -233,7 +231,7 @@ export const DashboardPage: React.FC = () => {
           <div>
             <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>Ingolstadt Traffic Network — Recorded Trajectory Replay</h3>
             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
-              Replaying {metrics ? controllerLabel(metrics.controller) : "the headline policy"}'s actual recorded run · vehicle positions and signal phases as they really occurred
+              Replaying {metrics ? controllerLabel(metrics.controller) : "the best final model"}'s actual recorded run (07:00-07:05, seed 42) · vehicle positions and signal phases as they really occurred · <Link to="/replay" style={{ color: "var(--accent-cyan)" }}>watch it next to SUMO actuated →</Link>
             </p>
           </div>
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
@@ -252,7 +250,7 @@ export const DashboardPage: React.FC = () => {
           <div className="network-canvas-wrapper" style={{ height: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center", color: "var(--text-muted)" }}>
               <p style={{ color: "var(--signal-red)", marginBottom: "0.5rem" }}>⚠ No recorded trajectory available</p>
-              <p style={{ fontSize: "0.8rem" }}>Run <code>scripts/run_evaluation.py</code> to generate one.</p>
+              <p style={{ fontSize: "0.8rem" }}>Run <code>scripts/evaluate.py</code> to generate one.</p>
             </div>
           </div>
         ) : (
@@ -299,15 +297,24 @@ export const DashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* Simulation Control (Desktop SUMO-GUI) */}
-      <SimulationControl />
+      {/* The paired 10-seed test against SUMO actuated */}
+      <div className="glass-card" style={{ padding: "1.25rem", marginTop: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
+          <TrendingDown size={16} color="var(--signal-green)" aria-hidden="true" />
+          <h3 style={{ fontSize: "0.95rem", fontWeight: 600 }}>Final models vs SUMO actuated — 10 random traffic seeds</h3>
+        </div>
+        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.9rem" }}>
+          The replay above is one run (seed 42); this table is the evidence over all seeds. Every measure is on the <Link to="/comparison" style={{ color: "var(--accent-cyan)" }}>Comparison page</Link>.
+        </p>
+        <TenSeedTable keys={["lag_per_scheduled_car_s", "mean_waiting_time", "mean_queue", "mean_speed", "trips_completed", "backlog", "never_inserted"]} />
+      </div>
 
       {/* Stats row */}
       {metrics && (
         <div className="glass-card" style={{ padding: "1.25rem", marginTop: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
             <TrendingDown size={16} color="var(--accent-cyan)" aria-hidden="true" />
-            <h3 style={{ fontSize: "0.95rem", fontWeight: 600 }}>{controllerLabel(metrics.controller)} Episode Statistics</h3>
+            <h3 style={{ fontSize: "0.95rem", fontWeight: 600 }}>{controllerLabel(metrics.controller)} · seed {metrics.seed ?? 42} · Episode Statistics</h3>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.75rem" }}>
             {[

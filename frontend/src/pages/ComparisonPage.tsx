@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BarChart3, TrendingDown, TrendingUp, Award, AlertTriangle } from "lucide-react";
+import { TenSeedTable } from "../components/TenSeedTable";
 import { ComparisonBarChart } from "../components/MetricsChart";
 import { api, isAbortError } from "../api/client";
 import { fmt, fmtInt, isNum, isStarving } from "../utils/format";
@@ -65,7 +66,7 @@ export const ComparisonPage: React.FC = () => {
           Run evaluation to generate comparison metrics.
         </p>
         <code style={{ display: "block", marginTop: "1rem", padding: "0.75rem 1rem", background: "rgba(255,255,255,0.05)", borderRadius: 8, fontSize: "0.8rem", color: "var(--accent-cyan)", fontFamily: "var(--font-mono)", textAlign: "left" }}>
-          python scripts/run_evaluation.py --sumo-cfg data/raw/intas/scenario/InTAS_buildings.sumocfg --plot
+          python scripts/report_eval.py --root artifacts/eval10_run --baseline sumo_actuated --models ippo_A ippo_B --extra fixed_time
         </code>
       </div>
     );
@@ -73,11 +74,9 @@ export const ComparisonPage: React.FC = () => {
 
   const { results, improvement } = data;
   const improvementVsActuated = data.improvement_vs_actuated;
-  // fixed_time stays the reference baseline for the table/cards below — but the
-  // starvation check right under the header looks at BOTH comparisons, because
-  // sumo_actuated (the calibrated, already-adaptive baseline) is the harder and
-  // more honest bar to clear.
-  const baseline = results.find((r) => r.controller === "fixed_time");
+  // SUMO actuated (the calibrated, already-adaptive controller) is the bar every table and badge below is measured against;
+  // the starvation check right under the header looks at both comparisons.
+  const baseline = results.find((r) => r.controller === "sumo_actuated");
 
   const starvationSources: ComparisonImprovement[] = [improvement, improvementVsActuated].filter(
     (s): s is ComparisonImprovement => Boolean(s?.starvation_flag)
@@ -86,7 +85,8 @@ export const ComparisonPage: React.FC = () => {
   // Only claim a real win when the backend has explicitly ruled out starvation
   // (trips_completed_gap_pct >= -2.0) — an unqualified wait-time badge is exactly
   // the kind of misleading headline this page exists to avoid.
-  const showsRealImprovement = improvement?.starvation_flag === false && improvement?.waiting_time_improvement_pct !== undefined;
+  const headline = improvementVsActuated;
+  const showsRealImprovement = headline?.starvation_flag === false && headline?.waiting_time_improvement_pct !== undefined;
 
   return (
     <div style={{ animation: "fade-in 0.4s ease both" }}>
@@ -94,21 +94,21 @@ export const ComparisonPage: React.FC = () => {
       <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <h2 className="section-title">Controller Comparison</h2>
-          <p className="section-subtitle">PPO · IPPO · IPPO Phase-Select · Fixed-Time · SUMO-Actuated · Max-Pressure · InTAS Ingolstadt · 1.0× demand</p>
+          <p className="section-subtitle">Final models A and B · SUMO actuated (baseline) · fixed time · InTAS Ingolstadt 07:00-08:00 · mean of {results[0]?.n_seeds ?? 10} seeds</p>
         </div>
         {showsRealImprovement && (
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {(() => {
-              const pct = improvement!.waiting_time_improvement_pct!;
+              const pct = headline!.waiting_time_improvement_pct!;
               const isImprovement = pct > 0;
-              const label = improvement!.controller
-                ? CTRL_LABELS[improvement!.controller!] ?? improvement!.controller
+              const label = headline!.controller
+                ? CTRL_LABELS[headline!.controller!] ?? headline!.controller
                 : "RL controller";
-              const tripsGap = improvement!.trips_completed_gap_pct;
+              const tripsGap = headline!.trips_completed_gap_pct;
               return (
                 <span className={`improvement-tag ${isImprovement ? "positive" : "negative"}`}>
                   {isImprovement ? <Award size={12} /> : <TrendingUp size={12} />}
-                  {label}: {fmt(Math.abs(pct), 1)}% wait time {isImprovement ? "reduction" : "increase"} vs Fixed-Time
+                  {label}: {fmt(Math.abs(pct), 1)}% wait time {isImprovement ? "reduction" : "increase"} vs SUMO actuated
                   {isNum(tripsGap) && ` · ${tripsGap >= 0 ? "+" : ""}${fmt(tripsGap, 1)}% trips completed`}
                 </span>
               );
@@ -153,47 +153,53 @@ export const ComparisonPage: React.FC = () => {
         </div>
       )}
 
-      {/* Charts — lead with the honest, trip-completion-grounded metrics.
-          mean_waiting_time and throughput (which look best for the RL
-          controllers but can be starvation artifacts) live in the table below,
-          not the headline row. */}
+      {/* Charts: the main score first (lag per scheduled car counts cars that never finish), then trips and waiting. */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <ComparisonBarChart data={results} metric="trips_completed" title="Trips Completed" isCount />
+          <ComparisonBarChart data={results} metric="lag_per_scheduled_car_s" title="Lag per scheduled car" unit="s" />
         </div>
         <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <ComparisonBarChart data={results} metric="mean_trip_timeloss" title="Mean Trip Timeloss" unit="s" />
+          <ComparisonBarChart data={results} metric="trips_completed" title="Trips completed per hour" isCount />
         </div>
         <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <ComparisonBarChart data={results} metric="mean_queue" title="Avg Queue Length" unit=" veh" />
+          <ComparisonBarChart data={results} metric="mean_waiting_time" title="Mean waiting time" unit=" s" />
         </div>
         <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <ComparisonBarChart data={results} metric="mean_speed" title="Mean Speed" unit=" m/s" />
+          <ComparisonBarChart data={results} metric="mean_queue" title="Mean queue length" unit=" veh" />
         </div>
+      </div>
+
+      {/* The paired test over all seeds */}
+      <div className="glass-card" style={{ padding: "1.5rem", marginBottom: "1.5rem" }}>
+        <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.35rem" }}>Final models vs SUMO actuated — every measure, paired by seed</h3>
+        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+          The bars above are means. This table shows whether the difference is real: it is computed seed by seed on identical traffic.
+        </p>
+        <TenSeedTable />
       </div>
 
       {/* Detailed Table */}
       <div className="glass-card" style={{ padding: "1.5rem", marginBottom: "1.5rem" }}>
-        <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "1.25rem" }}>Detailed Metrics Table</h3>
+        <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "1.25rem" }}>Mean per controller</h3>
         <div style={{ overflowX: "auto" }}>
           <table className="data-table">
             <thead>
               <tr>
                 <th>Controller</th>
+                <th>Lag (s)</th>
                 <th>Trips Completed</th>
                 <th>Backlog</th>
+                <th>Never Inserted</th>
                 <th>Avg Wait (s)</th>
                 <th>Avg Queue</th>
                 <th>Throughput</th>
                 <th>Mean Speed</th>
-                <th>Total Arrived</th>
-                <th>Cum. Reward</th>
               </tr>
             </thead>
             <tbody>
               {results.map((r) => {
                 const starving = baseline ? isStarving(r.trips_completed, baseline.trips_completed) : false;
-                const waitDelta = baseline && r.controller !== "fixed_time"
+                const waitDelta = baseline && r.controller !== baseline.controller
                   ? metricDelta("mean_waiting_time", r.mean_waiting_time, baseline.mean_waiting_time, starving)
                   : null;
                 return (
@@ -204,8 +210,10 @@ export const ComparisonPage: React.FC = () => {
                       <span style={{ fontWeight: 600 }}>{CTRL_LABELS[r.controller] ?? r.controller}</span>
                     </div>
                   </td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.lag_per_scheduled_car_s, 1)}</td>
                   <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.trips_completed)}</td>
                   <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.backlog)}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.never_inserted)}</td>
                   <td style={{ fontFamily: "var(--font-mono)", color: "var(--accent-cyan)" }}>
                     {fmt(r.mean_waiting_time, 2)}
                     {waitDelta && waitDelta.diff !== 0 && (
@@ -219,13 +227,9 @@ export const ComparisonPage: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_queue, 4)}</td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{isNum(r.throughput) ? `${fmt(r.throughput * 100, 2)}%` : "—"}</td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_speed, 3)}</td>
-                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmtInt(r.total_arrived)}</td>
-                  <td style={{ fontFamily: "var(--font-mono)", color: (r.cumulative_reward ?? 0) >= 0 ? "var(--signal-green)" : "var(--signal-red)" }}>
-                    {fmt(r.cumulative_reward, 1)}
-                  </td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_queue, 3)}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{isNum(r.throughput) ? `${fmt(r.throughput * 100, 1)}%` : "—"}</td>
+                  <td style={{ fontFamily: "var(--font-mono)" }}>{fmt(r.mean_speed, 2)}</td>
                 </tr>
                 );
               })}
