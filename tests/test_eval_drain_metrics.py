@@ -81,7 +81,7 @@ def test_entry_edge_table_and_cohorts(demand, tmp_path):
     p = write_tripinfo(tmp_path / "t.xml", [tripinfo_row("carIn1", 0, _ideal(demand, "carIn1"), 210, delay=299.0)])
     s = dm.score_run(demand, dm.trips_frame(p), entry_edges=("E0", "missing_edge"))
     table = {r["edge"]: r for r in s["entry_edges"]}
-    assert table["E0"]["role"] == "entry"
+    assert table["E0"]["role"] == "most_blocked"
     assert table["E0"]["scheduled_nonzero"] == 2 and table["E0"]["completed"] == 1
     assert table["E0"]["completion_ratio"] == pytest.approx(0.5)
     assert table["E0"]["completed_at_cap"] == 1                    # depart delay 299 s ~ max-depart-delay cap

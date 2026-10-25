@@ -46,9 +46,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no-trajectories", action="store_true")
     p.add_argument("--default-calibration", action="store_true",
                    help="use the EDA's free-flow calibration constants instead of re-fitting on the tripinfo")
-    p.add_argument("--plot", action="store_true",
-                   help="also regenerate artifacts/reports/comparison_*.png from the stored results + these scores")
-    p.add_argument("--report-dir", default="artifacts/reports")
     return p.parse_args()
 
 
@@ -178,17 +175,6 @@ def main() -> None:
     Path(f"{prefix}.json").write_text(json.dumps(out, indent=2, default=float))
     print("\n" + md)
     print(f"[rescore] wrote {prefix}.json / .csv / .md")
-
-    if args.plot:
-        from src.evaluation.compare import plot_comparison_bars
-
-        base = pd.read_parquet(mdir / "evaluation_results.parquet")
-        drop = [c for c in df.columns if c in base.columns and c not in ("controller", "seed", "demand_id")]
-        merged = base.merge(df.drop(columns=drop), on=["controller", "seed", "demand_id"], how="left")
-        cache.mkdir(parents=True, exist_ok=True)
-        merged_path = cache / "plot_input.parquet"
-        merged.to_parquet(merged_path, index=False)
-        plot_comparison_bars(str(merged_path), output_dir=args.report_dir)
 
 
 if __name__ == "__main__":

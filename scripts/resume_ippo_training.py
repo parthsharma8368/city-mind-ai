@@ -1,17 +1,17 @@
 """
-resume_ippo_maskable_training.py
-=================================
-Continues phase-selection IPPO training from a saved checkpoint after an
+resume_ippo_training.py
+=======================
+Continues binary keep/advance IPPO training from a saved checkpoint after an
 interruption (the process was killed by something outside the run itself
 — e.g. a machine restart — not a normal completion). Not a substitute for
-run_ippo_maskable_training.py on a fresh run.
+run_ippo_training.py on a fresh run.
 
 Usage:
-  python scripts/resume_ippo_maskable_training.py \
+  python scripts/resume_ippo_training.py \
     --sumo-cfg data/raw/intas/scenario/InTAS_train.sumocfg \
     --tls-json artifacts/scenario/tls_metadata.json \
-    --checkpoint artifacts/experiments/ippo_phase_select/run_.../checkpoints/ippo_phase_select_2822400_steps.zip \
-    --run-dir artifacts/experiments/ippo_phase_select/run_...
+    --checkpoint artifacts/experiments/ippo/run_.../checkpoints/ippo_citymind_2116800_steps.zip \
+    --run-dir artifacts/experiments/ippo/run_...
 """
 from __future__ import annotations
 
@@ -23,16 +23,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Resume phase-selection IPPO training from a checkpoint")
+    p = argparse.ArgumentParser(description="Resume binary keep/advance IPPO training from a checkpoint")
     p.add_argument("--sumo-cfg", required=True)
     p.add_argument("--tls-json", required=True)
     p.add_argument("--checkpoint", required=True, help="Path to the checkpoint .zip to resume from")
     p.add_argument("--run-dir", required=True,
-                   help="The ORIGINAL run's directory (artifacts/experiments/ippo_phase_select/run_...) "
+                   help="The ORIGINAL run's directory (artifacts/experiments/ippo/run_...) "
                         "— new checkpoints/model_final.zip are written here, continuing that run "
                         "rather than starting a new run_<timestamp> directory.")
-    p.add_argument("--ppo-config", default="configs/ippo_phase_select.yaml")
-    p.add_argument("--env-config", default="configs/environment_phase_select.yaml")
+    p.add_argument("--ppo-config", default="configs/ippo.yaml")
+    p.add_argument("--env-config", default="configs/environment.yaml")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--demand-id", default="1.0x")
     return p.parse_args()
@@ -40,10 +40,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    from src.agents.ippo_maskable_agent import IPPOMaskableAgent
+    from src.agents.ippo_agent import IPPOAgent
 
     run_dir = Path(args.run_dir)
-    agent = IPPOMaskableAgent(
+    agent = IPPOAgent(
         sumo_cfg=args.sumo_cfg,
         tls_metadata_json=args.tls_json,
         ppo_config_path=args.ppo_config,
@@ -52,7 +52,7 @@ def main() -> None:
         demand_id=args.demand_id,
         output_dir=str(run_dir.parent),
     )
-    # IPPOMaskableAgent.__init__ always creates a fresh timestamped run_dir;
+    # IPPOAgent.__init__ always creates a fresh timestamped run_dir;
     # override it to continue writing into the ORIGINAL run's directory
     # instead, so checkpoints/model_final.zip land alongside the ones
     # already there rather than starting a new run_<timestamp> folder.

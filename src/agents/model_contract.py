@@ -100,6 +100,18 @@ def _find_run_config(model_path: str | Path | None) -> dict | None:
     return None
 
 
+def run_env_settings(model_path: str | Path | None) -> dict:
+    """The observation options a model was TRAINED with, from its run's config.yaml: queue_reach_m, timing_source,
+    pending_in_demand. Evaluating a model with other options is silent when the sizes match, so the evaluator reads this
+    instead of trusting defaults. A run without a config gets the defaults."""
+    obs = ((_find_run_config(model_path) or {}).get("env_config") or {}).get("observation") or {}
+    return {
+        "queue_reach_m": float(obs.get("queue_reach_m", 0.0)),
+        "timing_source": str(obs.get("timing_source", "safety")),
+        "pending_in_demand": bool(obs.get("pending_in_demand", False)),
+    }
+
+
 def validate_model_contract(
     model,
     expected_obs_size: int,
@@ -119,7 +131,7 @@ def validate_model_contract(
             f"Model{where} was trained with observation size {got}, but this environment "
             f"produces ({expected_obs_size},). Re-train, or load it with the matching "
             "environment/feature version (obs size changes when the observation features, "
-            "TLS metadata or LOCAL_OBS_SIZE change)."
+            "TLS metadata or OBS_SIZE change)."
         )
     if expected_action_n is not None:
         n = getattr(model.action_space, "n", None)

@@ -1,0 +1,36 @@
+# STAGE 2 (fine-tune): the stage-1 recipe + pending_in_demand. scripts/finetune_ippo.py applies it to a stage-1 model for 10 updates.
+# Every key is read by src/agents/ippo_agent.py; keys of a dataclass (observation:, reward:) override its defaults.
+
+sumo:
+  begin: 25200              # 07:00:00 - the morning peak
+  end: 28800                # 08:00:00 (one-hour episode)
+  # warm_start_seconds: 0   # run SUMO's own signals this long before `begin` (0 = start from an empty network)
+
+decision_interval: 5        # the agent acts every 5 simulated seconds
+seed_mode: per_episode      # training: SUMO seed = seed + episode index (never one fixed traffic realisation)
+
+# Observation: 22 numbers per intersection, see src/environment/local_observation.py for every formula.
+observation:
+  queue_reach_m: 300        # add cars halted on the UNSIGNALISED roads up to 300 m behind each stop-line lane
+  timing_source: program    # elapsed-time ratios use each phase's own authored min / max green
+  pending_in_demand: true   # true: also add cars waiting OUTSIDE the network to the demand of the lanes they will queue at
+  demand_squash_k: 8.0
+  queue_squash_k: 8.0
+  pending_squash_k: 20.0
+
+# Safety layer: minimum / maximum green when a phase has no authored actuated range, and clearance floors.
+safety:
+  min_green: 5
+  max_green: 60
+  yellow_duration: 3
+  all_red_duration: 1
+
+# Reward: - scale * clip( w_q*Q + w_d*D + w_s*S + w_b*P_own + w_g*P_all/N , c )  - see src/environment/local_reward.py
+reward:
+  queue_level_weight: 1.0         # w_q  cars halted on the signal's own incoming lanes (+ feeder roads)
+  downstream_level_weight: 2.0    # w_d  mean halted cars per lane the signal feeds into (spillback)
+  switching_penalty: 1.0          # w_s  one phase change
+  backlog_weight: 0.5             # w_b  cars waiting outside whose first signal is this one
+  global_backlog_weight: 0.5      # w_g  all cars waiting outside / number of signals (shared)
+  reward_scale: 0.1
+  reward_clip: 200

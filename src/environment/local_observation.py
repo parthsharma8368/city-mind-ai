@@ -1,33 +1,24 @@
 """
 local_observation.py
 =====================
-Fixed-size per-TLS observation for parameter-shared decentralized training.
+The agent's observation of ONE intersection: a fixed-size vector (22 numbers), the same shape for every intersection, so a
+single shared policy can control all of them.
 
-A single shared policy network is invoked once per intersection per decision
-step, so every intersection must produce an observation of the *same shape* —
-but InTAS's 98 TLS range from 4 to 19 controlled lanes and 3 to 11 phases.
-A one-hot-per-phase / one-value-per-lane vector (what the centralized
-CentralizedSumoEnv observation uses) can't be shared across agents that
-disagree on the vector's length.
+  0-5    active_slot_i         one-hot of the active green phase (slot i = this signal's i-th green phase)
+  6      in_transition         1 while a yellow / all-red clearance is running
+  7      elapsed_over_min      min(elapsed / min_green, 3) / 3          (time in the phase vs ITS OWN minimum)
+  8      elapsed_over_max      min(elapsed / max_green, 1.5) / 1.5      (time in the phase vs ITS OWN maximum)
+  9-14   slot_demand_i         d_i / (|d_i| + k)  in (-1, 1), d_i = demand of the movements green in slot i (padded: 0)
+  15     max_queue             q / (q + k),  q = halted cars on the worst incoming lane (incl. unsignalised feeders)
+  16     pending               n / (n + k),  n = cars waiting OUTSIDE the network whose route starts at this signal
+  17     n_green               number of real green phases / 6
+  18-19  upstream_queue_0/1    max queue of the 2 strongest road-connected UPSTREAM signals, q / (q + k)
+  20-21  downstream_queue_0/1  max queue of the 2 strongest road-connected DOWNSTREAM signals, q / (q + k)
 
-This module trades per-lane resolution for aggregates (mean/max over an
-intersection's own lanes, a normalized phase index instead of a one-hot) so
-every agent's observation is the same fixed size regardless of its own
-lane/phase count. It reads from TLSRuntimeState fields that ObservationBuilder
-already populates each decision step (raw units — see observation.py), so
-building all 98 agents' local observations costs zero extra TraCI calls
-beyond the downstream-lane queue lookups already required for
-downstream_queue_norm (unchanged by the neighbor features below — those come
-from OTHER agents' already-computed own-queue values, not new TraCI calls).
-
-XAI evidence (2026-09-20 IPPO analysis) found a sampled junction's decision
-was 94.1% driven by its own state and 0.1% by the single aggregate
-downstream_queue_norm below — consistent with the network's 3.02s vs 4.15s
-gap to Fixed-Time being a *missing-information* problem, not an
-architecture problem. neighbor_queue_norm_1/2 give each agent explicit
-visibility into its 2 geographically-nearest other TLS's own current
-congestion, which downstream_queue_norm (this TLS's own outflow lanes, not
-another TLS's state) never provided.
+Phase demand (Varaiya pressure of the movements that are green in slot i):
+    d_i = sum over the green movements of [ halted(lane) + halted(feeders of lane) (+ pending share) - halted(downstream lanes) ]
+Feeders = lanes of the UNSIGNALISED roads that feed a short stop-line lane, walked upstream up to ``queue_reach_m`` metres and
+stopping at the previous signal. Without them a 20 m stop-line lane (~2 cars per lane) hides a 60-car queue behind it.
 """
 from __future__ import annotations
 
@@ -38,25 +29,31 @@ import numpy as np
 from src.environment.sumo_connection import traci
 from src.scenario.tls_metadata import MAX_GREEN_PHASES, TLSRuntimeState, TLSSpec
 
-# phase_elapsed_norm, phase_progress_norm, mean_queue_norm, max_queue_norm,
-# mean_speed_norm, mean_density_norm, num_lanes_norm, downstream_queue_norm,
-# neighbor_queue_norm_1, neighbor_queue_norm_2, total_vehicles_norm,
-# total_waiting_norm, phase_pressure_norm_0..5 (RL-strategy Phase 2:
-# phase-selection needs per-phase pressure, not just the aggregate
-# intersection-wide pressure below — see compute_per_phase_pressure)
-LOCAL_OBS_SIZE = 12 + MAX_GREEN_PHASES
-N_NEIGHBORS = 2
+N_ROAD_NEIGHBORS = 2
+OBS_SIZE = 2 * MAX_GREEN_PHASES + 6 + 2 * N_ROAD_NEIGHBORS     # 6 + 3 + 6 + 3 = 18, + 4 neighbour queues = 22
+OBS_NAMES = (
+    [f"active_slot_{i}" for i in range(MAX_GREEN_PHASES)]
+    + ["in_transition", "elapsed_over_min", "elapsed_over_max"]
+    + [f"slot_demand_{i}" for i in range(MAX_GREEN_PHASES)]
+    + ["max_queue", "pending", "n_green"]
+    + [f"upstream_queue_{i}" for i in range(N_ROAD_NEIGHBORS)]
+    + [f"downstream_queue_{i}" for i in range(N_ROAD_NEIGHBORS)]
+)
+assert len(OBS_NAMES) == OBS_SIZE
 
 
 @dataclass
 class LocalObservationConfig:
-    max_lane_vehicles: float = 50.0
-    max_speed: float = 13.9         # ~50 km/h in m/s
-    max_phase_elapsed: float = 120.0
-    max_total_vehicles: float = 2000.0
-    max_waiting_time: float = 3600.0
-    max_lanes_reference: float = 20.0  # normalizes "how big is this intersection"
-    max_phase_pressure: float = 30.0   # normalizes phase_pressure_norm_* (signed, clipped to [-1, 1])
+    demand_squash_k: float = 8.0       # d / (|d| + k): a demand of k cars maps to 0.5
+    queue_squash_k: float = 8.0        # same squash for max_queue and the neighbour queues
+    pending_squash_k: float = 20.0     # n / (n + k) for cars waiting outside the network
+    queue_reach_m: float = 0.0         # > 0: count halted cars on unsignalised feeder roads this far upstream (m)
+    # Source of the min/max green behind the two elapsed ratios: "safety" = the safety layer's bounds (fallback
+    # min/max green for signals without an authored actuated range), "program" = the phase's own authored min / max
+    # (== its duration for a fixed-time program).
+    timing_source: str = "safety"
+    # Add cars waiting outside the network to the demand of the stop-line lanes they will queue at.
+    pending_in_demand: bool = False
 
 
 def _mean(values: list[float]) -> float:
@@ -77,51 +74,12 @@ def get_downstream_lanes(lane_id: str, cache: dict[str, list[str]]) -> list[str]
     return downstream
 
 
-def compute_mean_queue_norm(state: TLSRuntimeState, cfg: LocalObservationConfig) -> float:
-    """This TLS's own mean queue, normalized — the value neighbors read about each other."""
-    queue = state.lane_queue or [0.0]
-    return min(_mean(queue) / cfg.max_lane_vehicles, 1.0)
-
-
-def compute_intersection_pressure(
-    spec: TLSSpec, state: TLSRuntimeState, downstream_cache: dict[str, list[str]]
-) -> float:
-    """Total Varaiya pressure for this intersection right now: this TLS's
-    own total queue minus the total queue on the lanes it feeds into,
-    summed over every controlled lane — the standard MPLight/PressLight
-    per-step reward signal (max_pressure.py's _phase_pressure is the
-    discrete phase-choice variant of the same idea, computed only over one
-    candidate phase's movements rather than the whole intersection).
-
-    Added 2026-09-21 (RL-strategy Phase 1) as an ablation arm against the
-    existing waiting-delta reward — see LocalRewardConfig.pressure_weight.
-    Positive pressure means this TLS's own approaches are more congested
-    than what they feed into (the ordinary case: serve more). Large
-    negative pressure means the opposite — this TLS is pushing traffic
-    into lanes more congested than its own (spillback) — so the reward
-    penalizes |pressure| in either direction, not just positive pressure:
-    a good policy keeps upstream and downstream roughly balanced.
-
-    NOTE: re-walks the same downstream lanes compute_downstream_queue_sum
-    visits for the observation's downstream_queue_norm feature (a second
-    TraCI query pass) — get_downstream_lanes's per-lane cache still avoids
-    re-querying the STRUCTURE (traci.lane.getLinks), only the per-step
-    occupancy values are queried twice. Acceptable for now; a lane-
-    subscription rewrite (noted in the RL-strategy plan) would remove
-    this."""
-    upstream = float(sum(state.lane_queue)) if state.lane_queue else 0.0
-    downstream = 0.0
-    for lane_id in spec.controlled_lanes:
-        for dl in get_downstream_lanes(lane_id, downstream_cache):
-            try:
-                downstream += float(traci.lane.getLastStepHaltingNumber(dl))
-            except traci.exceptions.TraCIException:
-                pass
-    return upstream - downstream
-
-
 def compute_per_phase_pressure(
-    spec: TLSSpec, downstream_cache: dict[str, list[str]]
+    spec: TLSSpec,
+    downstream_cache: dict[str, list[str]],
+    feeders: dict[str, list[str]] | None = None,
+    halting=None,
+    extra_upstream: dict[str, float] | None = None,
 ) -> list[float]:
     """Varaiya pressure (upstream halting - downstream halting, summed over
     that phase's own green movements) for each of this TLS's own green
@@ -135,7 +93,19 @@ def compute_per_phase_pressure(
     lanes regardless of which phase is active), this is what actually makes
     phase-selection learnable: the aggregate can't tell the policy WHICH of
     its available phases would help, only that something is imbalanced.
+
+    feeders (lane -> unsignalised upstream lanes, see compute_feeder_lanes) adds the cars halted behind a short
+    stop-line lane to that lane's upstream term; halting (lane -> count, memoised per step) replaces the direct
+    TraCI query so a lane that serves several phases is read once.
     """
+    def _h(lane: str) -> float:
+        if halting is not None:
+            return halting(lane)
+        try:
+            return traci.lane.getLastStepHaltingNumber(lane)
+        except traci.exceptions.TraCIException:
+            return 0.0
+
     pressures: list[float] = []
     for idx in spec.green_phase_indices:
         phase = spec.phases[idx]
@@ -146,16 +116,14 @@ def compute_per_phase_pressure(
             # rl-core-007: signal index -> its own incoming lane(s)
             # (spec.signal_lanes), not controlled_lanes[i] (flattened per link).
             for lane_id in spec.incoming_lanes_for_signal(i):
-                try:
-                    upstream = traci.lane.getLastStepHaltingNumber(lane_id)
-                except traci.exceptions.TraCIException:
-                    upstream = 0.0
+                upstream = _h(lane_id)
+                if feeders:
+                    upstream += sum(_h(f) for f in feeders.get(lane_id, ()))
+                if extra_upstream:
+                    upstream += extra_upstream.get(lane_id, 0.0)
                 downstream = 0.0
                 for dl in get_downstream_lanes(lane_id, downstream_cache):
-                    try:
-                        downstream += traci.lane.getLastStepHaltingNumber(dl)
-                    except traci.exceptions.TraCIException:
-                        pass
+                    downstream += _h(dl)
                 p += upstream - downstream
         pressures.append(p)
     return pressures
@@ -180,83 +148,79 @@ def compute_downstream_queue_sum(
     return _mean(downstream_queues)
 
 
-def build_local_observation(
+def build_observation(
     spec: TLSSpec,
     state: TLSRuntimeState,
     cfg: LocalObservationConfig,
-    downstream_cache: dict[str, list[str]],
-    total_vehicles: float,
-    total_waiting: float,
-    downstream_queue_sum: float | None = None,
-    neighbor_queue_norms: list[float] | None = None,
-    phase_pressures: list[float] | None = None,
+    *,
+    phase_pressures: list[float],
+    min_green: float,
+    max_green: float,
+    pending_count: float = 0.0,
+    upstream_max_queues: list[float] | None = None,
+    downstream_max_queues: list[float] | None = None,
 ) -> np.ndarray:
-    """
-    Build this one TLS's fixed-size local observation.
+    """The 22-number observation described in the module docstring. Missing neighbours are 0."""
+    greens = spec.green_phase_indices
+    n_green = len(greens)
+    obs = np.zeros(OBS_SIZE, dtype=np.float32)
 
-    Requires state.lane_queue / lane_vehicles / lane_speed / lane_density to
-    already be populated with this step's *raw* values (ObservationBuilder.build()
-    does this for every TLS in one pass before any agent's local obs is built).
+    if state.current_phase in greens:
+        obs[greens.index(state.current_phase)] = 1.0
+    obs[MAX_GREEN_PHASES] = 1.0 if state.yellow_pending else 0.0
+    obs[MAX_GREEN_PHASES + 1] = min(state.phase_elapsed / max(min_green, 1.0), 3.0) / 3.0
+    obs[MAX_GREEN_PHASES + 2] = min(state.phase_elapsed / max(max_green, 1.0), 1.5) / 1.5
 
-    downstream_queue_sum: this TLS's own raw downstream-lane queue sum,
-    precomputed once by the caller (compute_downstream_queue_sum) — computed
-    internally here if omitted, for callers (e.g. the unit tests) that don't
-    need to share it with the reward calculator too.
+    k = cfg.demand_squash_k
+    for i, d in enumerate((list(phase_pressures) + [0.0] * MAX_GREEN_PHASES)[:MAX_GREEN_PHASES]):
+        obs[MAX_GREEN_PHASES + 3 + i] = d / (abs(d) + k) if i < n_green else 0.0
 
-    neighbor_queue_norms: the 2 geographically-nearest other TLS's own
-    compute_mean_queue_norm() values, precomputed by the caller (which has to
-    already know every TLS's position and mean queue to build this list —
-    see DecentralizedSumoEnv._neighbor_map). Padded/truncated to exactly
-    N_NEIGHBORS; defaults to zeros when omitted (e.g. no neighbor data
-    available, or fewer than N_NEIGHBORS TLS exist).
+    max_q = max(state.lane_queue) if state.lane_queue else 0.0
+    obs[2 * MAX_GREEN_PHASES + 3] = max_q / (max_q + cfg.queue_squash_k)
+    obs[2 * MAX_GREEN_PHASES + 4] = pending_count / (pending_count + cfg.pending_squash_k)
+    obs[2 * MAX_GREEN_PHASES + 5] = n_green / MAX_GREEN_PHASES
 
-    phase_pressures: this TLS's own compute_per_phase_pressure() values (one
-    per green phase, in green_phase_indices/action-index order), precomputed
-    by the caller so it can be shared with the phase-selection action mask.
-    Padded to MAX_GREEN_PHASES with 0.0 for TLS with fewer green phases —
-    those slots are also masked out of the action space, so their pressure
-    value is never actable on; 0.0 (neutral/balanced) rather than some
-    extreme value keeps an unmasked forward pass numerically harmless.
-    """
-    n_phases = len(spec.phases)
-    phase_elapsed_norm = min(state.phase_elapsed / cfg.max_phase_elapsed, 1.0)
-    phase_progress_norm = (state.current_phase / (n_phases - 1)) if n_phases > 1 else 0.0
+    base = 2 * MAX_GREEN_PHASES + 6
+    for off, qs in ((0, upstream_max_queues or []), (N_ROAD_NEIGHBORS, downstream_max_queues or [])):
+        for i, q in enumerate(qs[:N_ROAD_NEIGHBORS]):
+            obs[base + off + i] = q / (q + cfg.queue_squash_k)
+    return obs
 
-    queue = state.lane_queue or [0.0]
-    speed = state.lane_speed or [0.0]
-    density = state.lane_density or [0.0]
 
-    mean_queue_norm = compute_mean_queue_norm(state, cfg)
-    max_queue_norm = min(max(queue) / cfg.max_lane_vehicles, 1.0)
-    mean_speed_norm = min(max(_mean(speed), 0.0) / cfg.max_speed, 1.0)
-    mean_density_norm = min(_mean(density), 1.0)
-    num_lanes_norm = min(len(spec.controlled_lanes) / cfg.max_lanes_reference, 1.0)
 
-    if downstream_queue_sum is None:
-        downstream_queue_sum = compute_downstream_queue_sum(spec, downstream_cache)
-    downstream_queue_norm = min(downstream_queue_sum / cfg.max_lane_vehicles, 1.0)
-
-    neighbors = list(neighbor_queue_norms or [])
-    neighbors = (neighbors + [0.0] * N_NEIGHBORS)[:N_NEIGHBORS]
-
-    total_vehicles_norm = min(total_vehicles / cfg.max_total_vehicles, 1.0)
-    total_waiting_norm = min(total_waiting / cfg.max_waiting_time, 1.0)
-
-    pressures = list(phase_pressures or [])
-    pressures = (pressures + [0.0] * MAX_GREEN_PHASES)[:MAX_GREEN_PHASES]
-    pressures_norm = [max(-1.0, min(1.0, p / cfg.max_phase_pressure)) for p in pressures]
-
-    return np.array([
-        phase_elapsed_norm,
-        phase_progress_norm,
-        mean_queue_norm,
-        max_queue_norm,
-        mean_speed_norm,
-        mean_density_norm,
-        num_lanes_norm,
-        downstream_queue_norm,
-        *neighbors,
-        total_vehicles_norm,
-        total_waiting_norm,
-        *pressures_norm,
-    ], dtype=np.float32)
+def compute_feeder_lanes(
+    incoming_lanes: list[str],
+    downstream_cache: dict[str, list[str]],
+    all_lanes: list[str],
+    signalised_edges: set[str],
+    lane_length,
+    reach_m: float,
+    max_feeders: int = 60,
+) -> dict[str, list[str]]:
+    """For each stop-line lane, the lanes of the UNSIGNALISED roads that feed it, walking upstream through the
+    lane-to-lane connections until ``reach_m`` metres are covered. A walk stops at a lane whose road ends at a signal
+    (that queue belongs to another agent). Static for the network: call once."""
+    pred: dict[str, list[str]] = {}
+    for ln in all_lanes:
+        if ln.startswith(":"):
+            continue
+        for dl in get_downstream_lanes(ln, downstream_cache):
+            if not dl.startswith(":"):
+                pred.setdefault(dl, []).append(ln)
+    out: dict[str, list[str]] = {}
+    for lane in dict.fromkeys(incoming_lanes):
+        seen: set[str] = {lane}
+        found: list[str] = []
+        frontier = [(lane, 0.0)]
+        while frontier and len(found) < max_feeders:
+            cur, dist = frontier.pop(0)
+            for p in pred.get(cur, ()):
+                if p in seen or p.rsplit("_", 1)[0] in signalised_edges:
+                    continue
+                seen.add(p)
+                found.append(p)
+                nd = dist + lane_length(p)
+                if nd < reach_m:
+                    frontier.append((p, nd))
+        out[lane] = found
+    return out

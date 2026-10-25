@@ -1,55 +1,28 @@
-# ─── IPPO (parameter-shared) Hyperparameters ─────────────────────────────────
-# One shared policy, invoked once per TLS per decision step (98 agents x
-# num_vec_envs parallel SUMO instances per step). SB3 counts total_timesteps
-# across all agents AND all parallel instances, so one real decision step
-# across the whole run contributes 98*num_vec_envs to the counter.
+# CityMind - PPO hyper-parameters (Stable-Baselines3) for the parameter-shared IPPO agent.
+# One shared policy acts at all 98 intersections; 6 parallel SUMO instances -> 98 x 6 = 588 "environments" per step.
+# Samples per update = n_steps x 588 = 105,840; total_timesteps / 105,840 = number of PPO updates (100).
 algorithm: PPO
 device: cpu
-
-# 2026-09-21 (RL-strategy Phase 1) — repaired safety-layer mechanics +
-# 07:00-08:00 peak window (environment.yaml) + num_vec_envs=6 parallel SUMO
-# instances (98*6=588 "agents" per step; ippo_agent.py's make_ippo_env,
-# verified safe/correct via a live 2-instance smoke test the same day —
-# see make_ippo_env's docstring for why num_cpus must always equal
-# num_vec_envs with libsumo). Reward/observation formulation deliberately
-# UNCHANGED from the 2026-09-20 neighbor-obs+spillback run (still 4.09s at
-# the old midnight window) — isolates the mechanics+peak+parallelism
-# effect on its own before layering in the pressure-reward ablation
-# (environment.yaml's reward.pressure_weight).
-#
-# n_steps=720 (one real episode per instance) x 588 = 423,360-sample
-# rollout per update. total_timesteps=36,000,000 -> ~85 rounds of 6
-# parallel real episodes = ~510 real episodes total, comparable in count
-# to the original 50M-step single-instance run's ~708 (that one covered
-# more real episodes per wall-clock hour only because midnight episodes
-# are ~3x faster than peak-hour ones; parallelism buys back most of that).
-# checkpoint_freq=4,000,000 saves roughly every 9-10 rounds (~57-60 real
-# episodes) so progress can be evaluated from a live checkpoint without
-# ever stopping this process.
-total_timesteps: 36000000
-n_steps: 720
-batch_size: 52920          # 423,360 / 8
+total_timesteps: 10584000
+n_steps: 180                 # 4 updates per simulated hour
+batch_size: 13230            # 105,840 / 8 minibatches
 n_epochs: 10
 num_vec_envs: 6
 
 gamma: 0.99
 gae_lambda: 0.95
 normalize_advantage: true
-
 clip_range: 0.2
-
 ent_coef: 0.01
 vf_coef: 0.5
 max_grad_norm: 0.5
-
+split_clip: true             # clip the actor's and the critic's gradient norms separately (src/agents/split_clip.py)
 learning_rate: 3.0e-4
 
 policy: MlpPolicy
 policy_kwargs:
-  net_arch:
-    - 256
-    - 256
+  net_arch: [256, 256]
   activation_fn: tanh
 
-checkpoint_freq: 4000000
+checkpoint_freq: 1058400     # a checkpoint every 10 updates
 tensorboard_log: artifacts/tb_logs

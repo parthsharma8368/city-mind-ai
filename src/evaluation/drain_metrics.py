@@ -56,8 +56,8 @@ from src.evaluation.tripinfo import MIN_ROUTE_LENGTH_M, read_tripinfo_rows
 # version of the per-step metric definitions, src/environment/schema.py.)
 PROTOCOL_ID = "drain-v1"
 
-# Entry edges singled out by the EDA (heavy carIn gates; 380271165#0 is a TLS-metered gate).
-DEFAULT_ENTRY_EDGES: tuple[str, ...] = ("380271165#0", "450072140", "266507542", "-233673422#10")
+N_BLOCKED_EDGES = 4        # how many origin edges are reported as "most_blocked" (chosen from the run, never by name)
+EARLY_FRACTION = 2 / 3     # departures in this leading share of the window had time to finish (see score_run)
 # Linear calibration fitted by the EDA on the 18 stored runs (n=8658, R^2=0.948).
 # Used by the live evaluator; the offline rescorer re-fits it from the tripinfo it is given.
 DEFAULT_FF_CALIBRATION: dict[str, float] = {"a": 0.9877174633263874, "c": 13.038266572183339}
@@ -303,17 +303,22 @@ def build_scheduled_demand(
     end: float,
     *,
     calibration_trips: pd.DataFrame | None = None,
+    calibration: dict[str, float] | None = None,
     cache_dir: str | Path | None = None,
 ) -> ScheduledDemand:
     """Scheduled cars + calibrated free-flow times for [begin, end).
 
-    With ``calibration_trips`` (tripinfo of existing runs) the free-flow
-    calibration is re-fitted; otherwise DEFAULT_FF_CALIBRATION is used.
+    The zero-delay reference T* = a * t_free_flow + c is the SAME for every controller, so it cancels out of every
+    controller-to-controller difference. Source of (a, c), in order: ``calibration_trips`` (tripinfo of existing runs,
+    re-fitted), ``calibration`` (e.g. ``ff_calibration`` from configs/evaluation.yaml), else DEFAULT_FF_CALIBRATION.
     """
     all_cars = load_scheduled_cars(route_files, net_file, begin, end, cache_dir)
     if calibration_trips is not None:
         calib = calibrate_free_flow(all_cars, calibration_trips)
         source = f"fitted on {calib['n']} stored trips"
+    elif calibration is not None:
+        calib = {"a": float(calibration["a"]), "c": float(calibration["c"])}
+        source = "configs/evaluation.yaml: ff_calibration"
     else:
         calib = dict(DEFAULT_FF_CALIBRATION)
         source = "default constants from the demand/capacity EDA"
@@ -383,7 +388,7 @@ def score_run(
     demand: ScheduledDemand,
     trips: pd.DataFrame,
     *,
-    entry_edges: Iterable[str] = DEFAULT_ENTRY_EDGES,
+    entry_edges: Iterable[str] | None = None,
     n_top_origin_edges: int = 10,
     seen_ids: set[str] | None = None,
     inserted: int | None = None,
@@ -465,8 +470,17 @@ def score_run(
         out["teleports_source"] = "MetricsCollector (getStartingTeleportNumber)"
 
     # --- per-entry-edge table -----------------------------------------------------------
-    edges = list(dict.fromkeys([*entry_edges, *top_origin_edges(cars, n_top_origin_edges)]))
     first = cars["firstEdge"].to_numpy()
+    if entry_edges is None:
+        # Pure logic, no names: the origin edges that lose the most scheduled cars in THIS run. Only cars that departed in the
+        # first EARLY_FRACTION of the window count (they had time to finish), so end-of-hour drain is not mistaken for blocking.
+        early = nonzero & (cars["depart"].to_numpy() < demand.begin + EARLY_FRACTION * (demand.end - demand.begin))
+        lost = pd.Series(early & ~done).groupby(first).sum()
+        volume = pd.Series(early).groupby(first).sum()
+        order = pd.DataFrame({"lost": lost, "volume": volume}).sort_values(["lost", "volume"], ascending=False)
+        entry_edges = [e for e, r in order.head(N_BLOCKED_EDGES).iterrows() if r["lost"] > 0]
+    entry_edges = list(entry_edges)
+    edges = list(dict.fromkeys([*entry_edges, *top_origin_edges(cars, n_top_origin_edges)]))
     dd = g.set_index("id")["departDelay"].reindex(ids).to_numpy()
     seen = np.array([i in seen_ids for i in ids]) if seen_ids is not None else None
     table = []
@@ -474,7 +488,7 @@ def score_run(
         m = (first == e) & nonzero
         sched = int(m.sum())
         row: dict[str, Any] = {
-            "edge": e, "role": "entry" if e in set(entry_edges) else "top_origin",
+            "edge": e, "role": "most_blocked" if e in set(entry_edges) else "top_origin",
             "scheduled_nonzero": sched, "completed": int((m & done).sum()),
             "completion_ratio": _safe_ratio((m & done).sum(), sched),
             "due_nz": int((m & due).sum()), "due_completed": int((m & due & done).sum()),

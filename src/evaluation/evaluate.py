@@ -25,11 +25,7 @@ Result files and the overwrite guard
   combined parquet is rebuilt from ALL per-run JSONs in the directory, in a
   ``finally`` block, so a crash mid-run never loses finished controllers.
 
-Usage:
-  python scripts/run_evaluation.py \
-    --sumo-cfg data/raw/intas/scenario/InTAS_train.sumocfg \
-    --tls-json artifacts/scenario/tls_metadata.json \
-    [--ppo-model ...] [--ippo-model ...] [--phase-select-model ...]
+Usage: python scripts/evaluate.py --controller sumo_actuated|fixed_time|ippo [--model MODEL.zip] --out DIR
 """
 from __future__ import annotations
 
@@ -44,7 +40,6 @@ import yaml
 
 from src.controllers.base import ControllerResult, result_from_summary
 from src.controllers.fixed_time import FixedTimeController
-from src.controllers.max_pressure import MaxPressureController
 from src.controllers.sumo_actuated import SumoActuatedController
 from src.evaluation import drain_metrics
 from src.evaluation.provenance import (
@@ -59,14 +54,13 @@ from src.evaluation.tripinfo import parse_tripinfo
 DEFAULT_METRICS_DIR = "artifacts/metrics"
 DEFAULT_TRAJECTORY_DIR = "artifacts/trajectories"
 
-BASELINES = ("sumo_actuated", "fixed_time", "max_pressure")
-RL_CONTROLLERS = ("ppo", "ippo", "ippo_phase_select")
+BASELINES = ("sumo_actuated", "fixed_time")
+RL_CONTROLLERS = ("ippo",)
 ALL_CONTROLLERS = BASELINES + RL_CONTROLLERS
 
 _BASELINE_CLASSES = {
     "sumo_actuated": SumoActuatedController,
     "fixed_time": FixedTimeController,
-    "max_pressure": MaxPressureController,
 }
 
 
@@ -91,9 +85,7 @@ class EvaluationRunner:
         sumo_cfg: str,
         tls_metadata_json: str,
         eval_config_path: str = "configs/evaluation.yaml",
-        ppo_model_path: str | None = None,
         ippo_model_path: str | None = None,
-        ippo_phase_select_model_path: str | None = None,
         output_dir: str | None = None,
         trajectory_dir: str | None = None,
         controllers: list[str] | None = None,
@@ -102,11 +94,12 @@ class EvaluationRunner:
     ) -> None:
         self.sumo_cfg = sumo_cfg
         self.tls_metadata_json = tls_metadata_json
-        self.ppo_model_path = ppo_model_path
         self.ippo_model_path = ippo_model_path
-        self.ippo_phase_select_model_path = ippo_phase_select_model_path
         self.overwrite = overwrite
         self.compute_drain = compute_drain
+        # What-if knob (default None = the training-time SafetyConfig): minimum green for phases without an authored
+        # actuated min_dur (the static-program signals). Lets a trained policy be tested with a green-time floor.
+        self.safety_min_green: float | None = None
 
         with open(eval_config_path) as f:
             self.cfg: dict = yaml.safe_load(f)
@@ -150,11 +143,7 @@ class EvaluationRunner:
         return default if self.canonical else str(Path(default) / "runs" / self.window_tag)
 
     def _select_controllers(self, requested: list[str] | None) -> list[str]:
-        models = {
-            "ppo": self.ppo_model_path,
-            "ippo": self.ippo_model_path,
-            "ippo_phase_select": self.ippo_phase_select_model_path,
-        }
+        models = {"ippo": self.ippo_model_path}
         if requested is None:
             return list(BASELINES) + [c for c in RL_CONTROLLERS if models[c]]
         unknown = [c for c in requested if c not in ALL_CONTROLLERS]
@@ -175,8 +164,7 @@ class EvaluationRunner:
         return f"{controller}_seed{seed}_{demand_id}{self.name_suffix}"
 
     def _model_path(self, controller: str) -> str | None:
-        return {"ppo": self.ppo_model_path, "ippo": self.ippo_model_path,
-                "ippo_phase_select": self.ippo_phase_select_model_path}.get(controller)
+        return {"ippo": self.ippo_model_path}.get(controller)
 
     # ── overwrite guard ─────────────────────────────────────────────────────
     def _guard(self, controller: str, seed: int, demand_id: str) -> None:
@@ -202,7 +190,7 @@ class EvaluationRunner:
             info = self._sumocfg_info
             self._demand = drain_metrics.build_scheduled_demand(
                 info["route_files"], info["net_file"], self.begin_time, self.absolute_end,
-                cache_dir=self.cache_dir,
+                calibration=self.cfg.get("ff_calibration"), cache_dir=self.cache_dir,
             )
         return self._demand
 
@@ -261,85 +249,38 @@ class EvaluationRunner:
                 self.sumo_cfg, self.tls_metadata_json, seed, demand_id,
                 trajectory_path=traj, tripinfo_path=tripinfo,
             )
-        elif ctrl == "ppo":
-            result = self._run_ppo_episode(seed, demand_id, stem, tripinfo, traj)
         else:
-            result = self._run_ippo_episode(ctrl, seed, demand_id, stem, tripinfo, traj)
+            result = self._run_ippo_episode(seed, demand_id, stem, tripinfo, traj)
         self._save_result(result, stem, tripinfo, traj, seed, demand_id)
         return result
 
-    def _run_ppo_episode(self, seed: int, demand_id: str, stem: str, tripinfo: str, traj: str) -> ControllerResult:
-        """Run one centralized-PPO evaluation episode."""
-        from src.agents.ppo_agent import PPOAgent, make_env
-
-        agent = PPOAgent(
-            sumo_cfg=self.sumo_cfg,
-            tls_metadata_json=self.tls_metadata_json,
-            seed=seed,
-            demand_id=demand_id,
-        )
-        agent.load(self.ppo_model_path)
-
-        env = make_env(
-            sumo_cfg=self.sumo_cfg,
-            tls_metadata_json=self.tls_metadata_json,
-            seed=seed,
-            demand_id=demand_id,
-            episode_duration=self.absolute_end,
-            begin_time=self.begin_time,
-            record_trajectories=True,
-            tripinfo_path=tripinfo,
-        )
-        # make_env cannot take extra SUMO args; the env starts SUMO lazily at reset().
-        extra = getattr(env.unwrapped, "sumo_extra_args", None)
-        if isinstance(extra, list):
-            extra += self._sumo_extra_args(stem)[2:]  # statistic/summary outputs (--begin is already set)
-
-        obs, _ = env.reset()
-        done = False
-        total_reward = 0.0
-        steps = 0
-        while not done:
-            action, _ = agent.predict(obs, deterministic=True)
-            obs, reward, terminated, truncated, info = env.step(action)
-            total_reward += reward
-            steps += 1
-            done = terminated or truncated
-
-        # Must run before env.close() tears down the TraCI connection —
-        # record_backlog() reads live SUMO state.
-        env.unwrapped.metrics.record_backlog()
-        summary = env.unwrapped.metrics.summarize()
-        env.unwrapped.save_trajectory(traj)
-        env.close()
-
-        return self._rl_result("ppo", summary, seed, demand_id, steps, total_reward, tripinfo)
-
     def _run_ippo_episode(
-        self, controller: str, seed: int, demand_id: str, stem: str, tripinfo: str, traj: str
+        self, seed: int, demand_id: str, stem: str, tripinfo: str, traj: str
     ) -> ControllerResult:
-        """One parameter-shared IPPO episode (plain loop, no SuperSuit needed for inference).
+        """One parameter-shared IPPO episode (a plain loop; SuperSuit is only needed for training). The observation
+        options the model was trained with are read from its run's config.yaml."""
+        from stable_baselines3 import PPO
 
-        controller == "ippo_phase_select" loads a MaskablePPO and passes the
-        per-agent action masks to predict(); "ippo" is the plain binary-action PPO.
-        """
+        from src.agents.model_contract import run_env_settings
         from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
+        from src.environment.local_observation import LocalObservationConfig
+        from src.environment.safety import SafetyConfig
         from src.environment.sumo_connection import traci
 
-        maskable = controller == "ippo_phase_select"
+        controller = "ippo"
         model_path = self._model_path(controller)
-        if maskable:
-            from sb3_contrib import MaskablePPO
-            model = MaskablePPO.load(model_path, device="cpu")
-        else:
-            from stable_baselines3 import PPO
-            model = PPO.load(model_path, device="cpu")
-
+        model = PPO.load(model_path, device="cpu")
+        settings = run_env_settings(model_path)
         env = DecentralizedSumoEnv(
             sumo_cfg=self.sumo_cfg,
             tls_metadata_json=self.tls_metadata_json,
             seed=seed,
             demand_id=demand_id,
+            obs_config=LocalObservationConfig(
+                queue_reach_m=settings["queue_reach_m"], timing_source=settings["timing_source"],
+                pending_in_demand=settings["pending_in_demand"],
+            ),
+            safety_config=(SafetyConfig(min_green=self.safety_min_green) if self.safety_min_green else None),
             episode_duration=self.absolute_end,
             sumo_extra_args=[
                 *self._sumo_extra_args(stem), "--end", str(self.absolute_end), "--tripinfo-output", tripinfo,
@@ -353,16 +294,7 @@ class EvaluationRunner:
         done = False
 
         while not done:
-            if maskable:
-                masks = env.action_masks()
-                actions = {
-                    tid: int(model.predict(observations[tid], action_masks=masks[tid], deterministic=True)[0])
-                    for tid in env.agents
-                }
-            else:
-                actions = {
-                    tid: int(model.predict(observations[tid], deterministic=True)[0]) for tid in env.agents
-                }
+            actions = {tid: int(model.predict(observations[tid], deterministic=True)[0]) for tid in env.agents}
             observations, rewards, terminations, truncations, _ = env.step(actions)
             total_reward += sum(rewards.values())
             steps += 1

@@ -87,3 +87,7 @@ artifacts/rl_training_visualizer.*
 mypy_cache/
 .hypothesis/
 docs/da2/
+
+# Large evaluation outputs (re-create with scripts/evaluate.py + scripts/report_eval.py)
+artifacts/eval10_run/
+artifacts/eval_demo/

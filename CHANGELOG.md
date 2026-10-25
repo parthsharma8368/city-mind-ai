@@ -4,7 +4,32 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: Se
 Dates below come from `git log`.
 
 ## [Unreleased]
+### Simplified (2026-10-23): one model, one algorithm
+- The repository now contains only the approach that beats the SUMO-actuated baseline: parameter-shared IPPO (PPO, split actor/critic
+  gradient clipping), a 22-number road-graph-aware observation, a level-based delay reward and a keep/advance action behind the
+  safety layer. Removed: centralized PPO, the phase-select MaskablePPO agent, Max-Pressure, the XAI module, three generations of
+  observation / reward code, the `version` / `action_mode` switches, 15 one-off scripts and ~20 configs. History stays in git.
+- No road or signal ids in the code: neighbours, feeder roads and the "most blocked" entry roads in the report are derived from the
+  network and from each run; the observation's slot count is checked against the network instead of assumed.
+- One evaluation entry point: `scripts/evaluate.py`; `scripts/report_eval.py` turns many runs into the paired multi-seed report. One training entry point: `scripts/run_ippo_training.py` (+ `resume_` / `finetune_`).
+- Configs: `configs/environment.yaml` + `configs/ippo.yaml` (the trained recipe); `*_pending` / `*_finetune` are an experiment.
+### Dashboard (2026-10-25): shows the final models
+- `api/results.py` reads the 10-seed evaluation (`artifacts/eval10_run`, or `CITYMIND_RESULTS_ROOT`): SUMO actuated, fixed time, model A, model B.
+  `/api/metrics/{summary,comparison,ten-seed}` and `/api/replay/*` serve them; the replay animates the recorded 07:00 run of any of the four controllers,
+  side by side (baseline vs model) or alone. Dashboard, Comparison and Story show the paired 10-seed verdicts (`scripts/report_eval.py`).
+- Removed from the UI: Experiments and XAI pages (they described retired models), the SUMO-GUI launcher card (its script was already retired). The `/api/comparison` router
+  (unused by the UI) is gone; the experiments / xai API routers and page sources are still in the tree, unreferenced.
+### Results
+- Stage 1 (two independently trained models, seeds 42 and 1042) beats `sumo_actuated` on lag per scheduled car by ~26 s on three seeds and on backlog,
+  time loss, waiting time, queues and speed; cars never inserted stayed ~100 above the baseline on those seeds.
+- Stage 2 (fine-tune with cars waiting outside the network in the demand input; 10 updates for seed 42, 20 for seed 1042) gives, over 10 simulation seeds
+  (`docs/TEST_REPORT_10_SEEDS.md`): lag -41.4 s (A) / -36.9 s (B) on 10 of 10 seeds, trips completed +258 / +206, waiting time -41% / -40%,
+  11-12 of 14 measures beaten, none worse. Cars never inserted is level (501 / 481 vs 503) and teleports are too noisy to call.
 ### Added
+- Final observation (22 numbers: active phase, elapsed vs own min/max green, per-phase demand incl. unsignalised feeder roads and
+  cars waiting outside, queue, entry backlog, road-connected neighbour queues), basis `artifacts/eda/observation_relevance/REPORT.md`.
+- Level-based delay reward; `split_clip` (separate actor / critic gradient clipping); `scripts/evaluate.py`,
+  `scripts/finetune_ippo.py` (stage 2), `scripts/resume_ippo_training.py`, `scripts/summarize_training_logs.py`.
 - Repository tooling: Apache-2.0 LICENSE and NOTICE, CI workflow, Dockerfile/compose, Makefile,
   pre-commit, `.env.example`, `requirements.lock`, SECURITY/CONTRIBUTING, issue/PR templates,
   `docs/MODELS.md` + `artifacts/models/MANIFEST.json`, tracked `configs/sumo/InTAS_train.sumocfg`.

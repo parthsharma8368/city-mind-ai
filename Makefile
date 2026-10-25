@@ -2,7 +2,7 @@
 PY      ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 API_PORT ?= 8000
 
-.PHONY: help install install-lock sumo lint typecheck test run-api run-frontend eval audit docker-up
+.PHONY: help install install-lock sumo lint typecheck test train finetune eval run-api run-frontend audit docker-up
 help:  ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
 
@@ -31,9 +31,18 @@ run-api:  ## API on loopback
 run-frontend:  ## Vite dev server
 	cd frontend && npm install && npm run dev
 
-eval:  ## baselines + RL eval (needs SUMO + InTAS + models; see docs/MODELS.md)
-	$(PY) scripts/run_evaluation.py --sumo-cfg data/raw/intas/scenario/InTAS_buildings.sumocfg \
-	  --tls-json artifacts/scenario/tls_metadata.json --output-dir artifacts/metrics --plot
+train:  ## train the shared IPPO policy (10.6M steps, ~7 h; configs/ippo.yaml + configs/environment.yaml)
+	$(PY) scripts/run_ippo_training.py --sumo-cfg data/raw/intas/scenario/InTAS_train.sumocfg \
+	  --tls-json artifacts/scenario/tls_metadata.json --output-dir artifacts/experiments/ippo
+
+finetune:  ## stage 2: 10 updates with cars waiting outside the network in the demand input (MODEL=path/to/stage-1 model_final.zip)
+	$(PY) scripts/finetune_ippo.py --init-model $(MODEL) --sumo-cfg data/raw/intas/scenario/InTAS_train.sumocfg \
+	  --tls-json artifacts/scenario/tls_metadata.json --ppo-config configs/ippo_finetune.yaml \
+	  --env-config configs/environment_pending.yaml --output-dir artifacts/experiments/finetune --seed 2042
+
+eval:  ## baselines on 3 seeds (set MODEL=path/to/model_final.zip to add the trained agent)
+	for c in sumo_actuated fixed_time; do $(PY) scripts/evaluate.py --controller $$c --out artifacts/eval/$$c; done
+	$(if $(MODEL),$(PY) scripts/evaluate.py --controller ippo --model $(MODEL) --out artifacts/eval/ippo)
 
 audit:  ## dependency vulnerability report
 	$(PY) -m pip_audit -r requirements.lock --no-deps --disable-pip || true

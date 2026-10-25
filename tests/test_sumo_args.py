@@ -4,9 +4,7 @@ from __future__ import annotations
 import pytest
 
 from src.controllers.fixed_time import FixedTimeController
-from src.controllers.max_pressure import MaxPressureController
 from src.controllers.sumo_actuated import SumoActuatedController
-from src.environment.centralized_sumo_env import CentralizedSumoEnv
 from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
 from src.environment.sumo_args import build_sumo_command, command_signature, get_option, with_option
 
@@ -53,19 +51,16 @@ def test_controllers_and_envs_build_identical_simulation_commands(tmp_path):
     kw = {"sumo_extra_args": extra, "route_steps": 100, "teleport_time": 300}
     cmds = {
         "actuated": SumoActuatedController(**kw).build_command(str(cfg), 42),
-        "mp": MaxPressureController(**kw).build_command(str(cfg), 42),
     }
-    cen = CentralizedSumoEnv(str(cfg), str(TLS_METADATA), seed=42, **kw)
     dec = DecentralizedSumoEnv(str(cfg), str(TLS_METADATA), seed=42, **kw)
-    cmds["cen"] = cen.build_command()
     cmds["dec"] = dec.build_command()
     cfg_resolved = str(cfg.resolve())
     expected = command_signature(cmds["actuated"])
     for name, c in cmds.items():
         c = [cfg_resolved if t == str(cfg) else t for t in c]
         assert command_signature(c) == expected, name
-    assert get_option(cmds["cen"], "--route-steps") == "100"
-    assert get_option(cmds["cen"], "--time-to-teleport") == "300"
+    assert get_option(cmds["dec"], "--route-steps") == "100"
+    assert get_option(cmds["dec"], "--time-to-teleport") == "300"
 
     # fixed_time = same command + the static program as extra additional file
     (tmp_path / "static.add.xml").write_text("<additional/>")

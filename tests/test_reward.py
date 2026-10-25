@@ -1,92 +1,73 @@
-"""
-test_reward.py
-==============
-Unit tests for RewardCalculator.
-"""
+"""The level-based delay reward and the count of cars waiting outside the network."""
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+import pytest
 
-from unittest.mock import patch, MagicMock
-from src.scenario.tls_metadata import TLSRuntimeState
-from src.environment.reward import RewardCalculator, RewardConfig
+from src.environment import local_reward as lr
+from src.environment.local_reward import LocalRewardCalculator, LocalRewardConfig
 
 
-def make_states() -> dict[str, TLSRuntimeState]:
-    s = TLSRuntimeState(tls_id="TLS_1")
-    s.lane_queue = [5.0, 3.0]
-    return {"TLS_1": s}
+def _calc(**kw):
+    base = {"queue_level_weight": 0.0, "downstream_level_weight": 0.0, "switching_penalty": 0.0, "backlog_weight": 0.0,
+            "global_backlog_weight": 0.0, "reward_scale": 1.0, "reward_clip": None}
+    return LocalRewardCalculator(LocalRewardConfig(**{**base, **kw}))
 
 
-@patch("src.environment.reward.traci")
-def test_reward_decreases_when_waiting_improves(mock_traci):
-    """When waiting time decreases, reward should be positive."""
-    mock_traci.vehicle.getIDList.return_value = ["v1", "v2"]
-    # Step 1: 100s waiting
-    mock_traci.vehicle.getWaitingTime.return_value = 50.0  # 2 vehicles * 50 = 100
-    mock_traci.exceptions.TraCIException = Exception
+def test_reward_is_minus_the_weighted_cars_delayed_and_has_no_see_saw():
+    """Same queue, same reward: no 'release bonus' from a change-of-waiting-time term."""
+    calc = _calc(queue_level_weight=1.0, downstream_level_weight=2.0, switching_penalty=1.0)
+    r1, _ = calc.compute("T", False, queue_level=10.0, downstream_level=1.5)
+    r2, _ = calc.compute("T", False, queue_level=10.0, downstream_level=1.5)
+    assert r1 == r2 == pytest.approx(-(10.0 + 2.0 * 1.5))
+    rs, info = calc.compute("T", True, queue_level=10.0, downstream_level=1.5)
+    assert rs == pytest.approx(-(10.0 + 3.0 + 1.0)) and info["reward/switch_component"] == -1.0
 
-    calc = RewardCalculator(RewardConfig(waiting_delta_weight=1.0))
+
+def test_clip_bounds_the_cost_and_the_scale_is_applied_last():
+    calc = _calc(queue_level_weight=1.0, reward_scale=0.1, reward_clip=50.0)
+    r, _ = calc.compute("T", False, queue_level=500.0, downstream_level=0.0)
+    assert r == pytest.approx(-5.0)                                    # cost 500 -> clipped to 50 -> x0.1
+
+
+def test_defaults_match_the_trained_recipe():
+    c = LocalRewardConfig()
+    assert (c.queue_level_weight, c.downstream_level_weight, c.switching_penalty) == (1.0, 2.0, 1.0)
+    assert (c.backlog_weight, c.global_backlog_weight, c.reward_scale, c.reward_clip) == (0.5, 0.5, 0.1, 200.0)
+
+
+class _Traci:
+    class exceptions:                      # noqa: N801
+        TraCIException = Exception
+
+    class simulation:                      # noqa: N801
+        pending = ["a", "b", "c"]
+
+        @classmethod
+        def getPendingVehicles(cls):
+            return cls.pending
+
+    class vehicle:                         # noqa: N801
+        calls = 0
+
+        @classmethod
+        def getRoute(cls, v):
+            cls.calls += 1
+            return {"a": ["E0", "x"], "b": ["E0"], "c": ["u", "G"], "d": ["x"]}[v]
+
+
+def test_pending_cars_are_charged_to_the_first_signalised_edge_on_their_route(monkeypatch):
+    monkeypatch.setattr(lr, "traci", _Traci)
+    _Traci.vehicle.calls = 0
+    calc = _calc(backlog_weight=0.5, global_backlog_weight=0.5)
+    calc.refresh_pending({"E0": "T0", "G": "T1"})
+    assert calc.pending_by_edge() == {"E0": 2, "G": 1} and calc.pending_for("T0") == 2 and calc.pending_for("T1") == 1
+    r, _ = calc.compute("T0", False, 0.0, 0.0, n_agents=3)
+    assert r == pytest.approx(-(0.5 * 2 + 0.5 * 3 / 3))                # own share + shared share
+    calc.refresh_pending({"E0": "T0", "G": "T1"})
+    assert _Traci.vehicle.calls == 3                                   # a route is looked up once per vehicle
+    _Traci.simulation.pending = ["d"]                                  # a car that never meets a signal counts only globally
+    calc.refresh_pending({"E0": "T0", "G": "T1"})
+    assert calc.pending_by_edge() == {} and calc.pending_for("T0") == 0
+    _Traci.simulation.pending = ["a", "b", "c"]
     calc.reset()
-    states = make_states()
-
-    # First call sets baseline: delta from the initial 0 to 100 -> r1 = -100
-    r1, _ = calc.compute(states)
-    assert r1 == -100.0
-
-    # Step 2: waiting decreases to 50s
-    mock_traci.vehicle.getWaitingTime.return_value = 25.0  # 50 total
-    r2, _ = calc.compute(states)
-
-    assert r2 == 50.0, f"Expected +50 (waiting fell 100 -> 50), got {r2}"
-
-
-@patch("src.environment.reward.traci")
-def test_reward_negative_when_congestion_grows(mock_traci):
-    """When waiting time increases, reward should be negative."""
-    mock_traci.vehicle.getIDList.return_value = ["v1"]
-    mock_traci.vehicle.getWaitingTime.return_value = 10.0
-    mock_traci.exceptions.TraCIException = Exception
-
-    calc = RewardCalculator()
-    calc.reset()
-    states = make_states()
-
-    calc.compute(states)  # baseline
-
-    mock_traci.vehicle.getWaitingTime.return_value = 100.0  # big increase
-    r, info = calc.compute(states)
-    assert r == -90.0, f"Expected -(100-10), got {r}"
-    assert info["reward/waiting_component"] == -90.0
-    assert info["metrics/total_queue"] == 8.0
-
-
-@patch("src.environment.reward.traci")
-def test_reward_clipping(mock_traci):
-    mock_traci.vehicle.getIDList.return_value = ["v1"] * 1000
-    mock_traci.vehicle.getWaitingTime.return_value = 1000.0
-    mock_traci.exceptions.TraCIException = Exception
-
-    calc = RewardCalculator(RewardConfig(reward_clip=50.0))
-    calc.reset()
-    states = make_states()
-    calc.compute(states)
-
-    mock_traci.vehicle.getWaitingTime.return_value = 0.001  # huge improvement
-    r, _ = calc.compute(states)
-    assert abs(r) <= 50.0, f"Reward not clipped: {r}"
-
-
-@patch("src.environment.reward.traci")
-def test_global_switching_and_queue_terms(mock_traci):
-    mock_traci.vehicle.getIDList.return_value = []
-    mock_traci.exceptions.TraCIException = Exception
-    calc = RewardCalculator(RewardConfig(waiting_delta_weight=0.0, queue_weight=0.5, switching_penalty=2.0))
-    calc.reset()
-    calc.set_switch_count(3)
-    r, info = calc.compute(make_states())          # lane_queue = [5, 3] -> total queue 8
-    assert info["reward/queue_component"] == -4.0
-    assert info["reward/switch_component"] == -6.0
-    assert r == -10.0 and info["metrics/switch_count"] == 3
+    assert calc.pending_by_edge() == {}

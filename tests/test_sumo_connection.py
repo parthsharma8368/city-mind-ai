@@ -20,7 +20,7 @@ def test_import_works_with_no_sumo_anywhere_and_fails_clearly_on_first_use():
         "sc._MAC_DEFAULT_SUMO_HOME = '/nonexistent'\n"
         "sc._LazyTraci._module = None\n"
         "os.environ.pop('SUMO_HOME', None)\n"
-        "import src.environment.safety, src.environment.metrics, src.environment.centralized_sumo_env\n"
+        "import src.environment.safety, src.environment.metrics, src.environment.decentralized_sumo_env\n"
         "try:\n"
         "    sc.traci.trafficlight\n"
         "except sc.SumoNotAvailableError as e:\n"

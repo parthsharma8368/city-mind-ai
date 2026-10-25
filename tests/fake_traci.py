@@ -179,10 +179,9 @@ def install(monkeypatch, fake: FakeTraci) -> FakeTraci:
 
     for mod in (
         "src.environment.sumo_session", "src.environment.safety", "src.environment.metrics",
-        "src.environment.observation", "src.environment.reward", "src.environment.local_observation",
-        "src.environment.local_reward", "src.environment.centralized_sumo_env",
+        "src.environment.lane_stats", "src.environment.local_observation", "src.environment.local_reward",
         "src.environment.decentralized_sumo_env", "src.controllers.base",
-        "src.controllers.sumo_actuated", "src.controllers.fixed_time", "src.controllers.max_pressure",
+        "src.controllers.sumo_actuated", "src.controllers.fixed_time",
     ):
         m = importlib.import_module(mod)
         if hasattr(m, "traci"):

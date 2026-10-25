@@ -31,29 +31,25 @@ def _sumo_children() -> list[int]:
 
 
 def _hold(env):
-    acts = {}
-    for tid, st in env._runtime_states.items():
-        gi = env.specs_by_id[tid].green_phase_indices
-        acts[tid] = gi.index(st.current_phase) if st.current_phase in gi else 0
-    return acts
+    """Keep every signal on its current green (action 0 = keep)."""
+    return {tid: 0 for tid in env._runtime_states}
 
 
 def test_decentralized_env_smoke_reset_20_steps_close_without_orphans():
     from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
-    from src.environment.local_observation import LOCAL_OBS_SIZE
+    from src.environment.local_observation import OBS_SIZE
 
     assert _sumo_children() == []
     env = DecentralizedSumoEnv(CFG, META, episode_duration=BEGIN + 100, sumo_extra_args=EXTRA)
     try:
         obs, infos = env.reset()
-        assert len(obs) == 98 and all(o.shape == (LOCAL_OBS_SIZE,) for o in obs.values())
-        assert all(infos[t]["action_mask"].shape == (6,) for t in infos)
+        assert len(obs) == 98 and all(o.shape == (OBS_SIZE,) for o in obs.values())
         for _ in range(20):
             obs, rew, te, tr, inf = env.step(_hold(env))
         assert env.agents == []                                  # 20 x 5 s == the 100 s window
         assert all(tr.values()) and not any(te.values())         # time limit => truncated only
         assert all(inf[t]["TimeLimit.truncated"] for t in inf)
-        assert all(0.0 <= v <= 1.0 for o in obs.values() for v in o)
+        assert all(-1.0 <= v <= 1.0 for o in obs.values() for v in o)
         assert all(abs(r) < 1e4 for r in rew.values())
         summary = env.metrics.summarize()
         assert summary.episode_steps == 20 and summary.metrics_schema_version == 2
@@ -114,11 +110,10 @@ def test_env_and_native_baseline_start_in_identical_conditions():
 
 def test_baselines_and_unified_metrics_smoke():
     from src.controllers.fixed_time import FixedTimeController
-    from src.controllers.max_pressure import MaxPressureController
     from src.controllers.sumo_actuated import SumoActuatedController
 
     results = {}
-    for ctrl in (SumoActuatedController, FixedTimeController, MaxPressureController):
+    for ctrl in (SumoActuatedController, FixedTimeController):
         c = ctrl(episode_duration=BEGIN + 100, sumo_extra_args=EXTRA)
         results[c.name] = c.run_episode(CFG, META, seed=42)
         assert _sumo_children() == [], f"{c.name} left a sumo process behind"
@@ -128,4 +123,3 @@ def test_baselines_and_unified_metrics_smoke():
         assert 0.0 <= r.mean_speed <= 20.0 and r.max_queue >= 0.0
     assert results["sumo_actuated"].total_switches > 0 and results["fixed_time"].total_switches > 0
     assert any("static_programs.add.xml" in a for a in results["fixed_time"].sumo_command)
-    assert command_signature(results["sumo_actuated"].sumo_command) == command_signature(results["max_pressure"].sumo_command)

@@ -1,137 +1,101 @@
 """
 local_reward.py
-================
-Per-TLS local reward for parameter-shared decentralized training.
+===============
+Per-intersection reward for parameter-shared IPPO: a LEVEL of delay, summed over decision steps.
 
-The centralized environment's reward.py hands every one of the 98 joint
-action dimensions the *same* network-wide diff-waiting-time signal — the
-credit-assignment problem diagnosed from the 2026-09-18 training run
-(rollout/ep_rew_mean flat for 500k steps, entropy never leaving ~max). This
-gives each intersection a reward computed only from its own controlled
-lanes, so a policy update actually reflects that intersection's own decision.
+  r_i(t) = - scale * clip( w_q * Q_i + w_d * D_i + w_s * S_i + w_b * P_i + w_g * P / N ,  c )
 
-refresh_lane_waiting() does one pass over every vehicle in the network to
-build a lane -> summed-waiting-time map; call it once per decision step
-(shared across all 98 agents) rather than querying per agent, which would be
-O(agents x vehicles) instead of O(vehicles).
+  Q_i  cars halted on this signal's own incoming lanes (+ the unsignalised feeder roads behind them)   [stopped cars]
+  D_i  mean cars halted per lane this signal feeds into                                              [spillback]
+  S_i  1 if the signal changed phase during the step, else 0                                          [lost clearance time]
+  P_i  cars waiting OUTSIDE the network whose route's first signal is this one                         [entry backlog]
+  P    all cars waiting outside the network, N = number of signals (shared by every agent)
+  c    clip bound (applied before the scale)
 
-spillback_weight penalizes an *increase* in this TLS's own downstream-lane
-queue — a proxy for "my green phase is pushing more traffic than the next
-intersection can absorb." Paired with local_observation.py's
-neighbor_queue_norm features (2026-09-20): those give an agent visibility
-into a neighbor's congestion, this gives it an incentive to act on it,
-rather than relying on the untargeted waiting-delta term to happen to
-capture the same effect indirectly.
+Every term counts delayed cars, so the return over an episode is (minus) total vehicle-delay - the quantity the evaluation
+scores. Weights w_b + w_g = 1 make a car held outside the network cost as much as a stopped one: blocking entry can't pay.
+Unlike the change-of-waiting-time reward (a see-saw that telescopes to final-minus-initial waiting and rewards every switch),
+a level cannot be gamed by timing a queue release.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from src.environment.sumo_connection import traci
-from src.scenario.tls_metadata import TLSSpec
 
 
 @dataclass
 class LocalRewardConfig:
-    waiting_delta_weight: float = 1.0
-    queue_weight: float = 0.0
-    switching_penalty: float = 0.3
-    spillback_weight: float = 0.2
-    # Ablation arm added 2026-09-21 (RL-strategy Phase 1): 0.0 = disabled
-    # (default, preserves existing behavior exactly). Penalizes |pressure|
-    # (see local_observation.compute_intersection_pressure) instead of, or
-    # alongside, the waiting-delta term — the MPLight/PressLight-style
-    # signal, tried because it's dense, bounded, and already contains the
-    # spillback effect the hand-added spillback_weight term approximates.
-    pressure_weight: float = 0.0
-    # RL-strategy Phase 2 fix (2026-09-24): pressure_weight above uses
-    # AGGREGATE intersection pressure (all controlled lanes, summed) —
-    # a number that doesn't move in any agent-attributable way when the
-    # policy switches phases, so it gave phase-selection training no signal
-    # connecting "I chose to serve phase X" to "phase X's backlog went
-    # down." Diagnosed directly against the first phase-selection training
-    # run (gate G1, 2026-09-23): a 6-phase TLS let one phase's own pressure
-    # climb from 6 to 9+ over 15 real minutes while the policy sat on a
-    # different, already-empty phase, switching only 8 times in that window
-    # — switching_penalty was the only reward term that clearly fired on
-    # every step, so the policy learned to minimize switching regardless of
-    # what was building up elsewhere. neglected_pressure_weight penalizes
-    # the WORST pressure among this TLS's own green phases OTHER than the
-    # one currently active — directly, per-step, whether or not the policy
-    # acts on it — so ignoring a growing queue is no longer free. 0.0 =
-    # disabled (preserves existing behavior for callers that don't pass
-    # neglected_pressure, e.g. binary-action IPPO / MaxPressureController).
-    neglected_pressure_weight: float = 0.0
-    reward_clip: float | None = 50.0  # per-agent rewards are much smaller-scale than the network-wide sum
+    queue_level_weight: float = 1.0          # w_q
+    downstream_level_weight: float = 2.0     # w_d
+    switching_penalty: float = 1.0           # w_s
+    backlog_weight: float = 0.5              # w_b
+    global_backlog_weight: float = 0.5       # w_g
+    reward_scale: float = 0.1                # scale: keeps returns O(10-100) so the value loss stays small
+    reward_clip: float | None = 200.0        # c
 
 
 class LocalRewardCalculator:
     def __init__(self, config: LocalRewardConfig | None = None) -> None:
         self.cfg = config or LocalRewardConfig()
-        self._lane_waiting: dict[str, float] = {}
-        self._prev_tls_waiting: dict[str, float] = {}
-        self._prev_downstream_queue: dict[str, float] = {}
+        self.reset()
 
     def reset(self) -> None:
-        self._lane_waiting = {}
-        self._prev_tls_waiting = {}
-        self._prev_downstream_queue = {}
+        self._pending_by_tls: dict[str, int] = {}
+        self._pending_by_edge: dict[str, int] = {}
+        self._pending_total = 0
+        self._pending_cache: dict[str, tuple[str | None, str | None]] = {}   # vehicle -> (tls, first signalised edge)
 
-    def refresh_lane_waiting(self) -> None:
-        """One pass over all vehicles, building lane_id -> summed waiting time."""
-        lane_waiting: dict[str, float] = {}
+    # ── cars waiting outside the network ────────────────────────────────────
+    def pending_for(self, tls_id: str) -> int:
+        return self._pending_by_tls.get(tls_id, 0)
+
+    def pending_by_edge(self) -> dict[str, int]:
+        """Waiting-outside cars keyed by the first signalised edge on their route (where they will queue once inserted)."""
+        return self._pending_by_edge
+
+    def refresh_pending(self, edge_to_tls: dict[str, str]) -> None:
+        """One cheap TraCI call per decision step; a vehicle's route is looked up once."""
+        by_tls: dict[str, int] = {}
+        by_edge: dict[str, int] = {}
         try:
-            for vid in traci.vehicle.getIDList():
-                lane_id = traci.vehicle.getLaneID(vid)
-                wait = traci.vehicle.getWaitingTime(vid)
-                lane_waiting[lane_id] = lane_waiting.get(lane_id, 0.0) + wait
+            pending = list(traci.simulation.getPendingVehicles())
         except traci.exceptions.TraCIException:
-            pass
-        self._lane_waiting = lane_waiting
+            pending = []
+        for vid in pending:
+            if vid not in self._pending_cache:
+                tls = first_edge = None
+                try:
+                    for edge in traci.vehicle.getRoute(vid):
+                        if edge in edge_to_tls:
+                            tls, first_edge = edge_to_tls[edge], edge
+                            break
+                except traci.exceptions.TraCIException:
+                    pass
+                self._pending_cache[vid] = (tls, first_edge)
+            tls, first_edge = self._pending_cache[vid]
+            if tls is not None:
+                by_tls[tls] = by_tls.get(tls, 0) + 1
+                by_edge[first_edge] = by_edge.get(first_edge, 0) + 1
+        alive = set(pending)
+        self._pending_cache = {v: x for v, x in self._pending_cache.items() if v in alive}
+        self._pending_by_tls, self._pending_by_edge, self._pending_total = by_tls, by_edge, len(pending)
 
+    # ── reward ──────────────────────────────────────────────────────────────
     def compute(
-        self,
-        tls_id: str,
-        spec: TLSSpec,
-        queue_sum: float,
-        switched: bool,
-        downstream_queue_sum: float = 0.0,
-        pressure: float = 0.0,
-        neglected_pressure: float = 0.0,
+        self, tls_id: str, switched: bool, queue_level: float, downstream_level: float, n_agents: int = 1
     ) -> tuple[float, dict]:
-        current_waiting = sum(self._lane_waiting.get(lane, 0.0) for lane in spec.controlled_lanes)
-        prev_waiting = self._prev_tls_waiting.get(tls_id, current_waiting)
-
-        delta_waiting = current_waiting - prev_waiting
-        r_waiting = -self.cfg.waiting_delta_weight * delta_waiting
-        r_queue = -self.cfg.queue_weight * queue_sum
-        r_switch = -self.cfg.switching_penalty * (1.0 if switched else 0.0)
-
-        prev_downstream = self._prev_downstream_queue.get(tls_id, downstream_queue_sum)
-        delta_downstream = downstream_queue_sum - prev_downstream
-        r_spillback = -self.cfg.spillback_weight * max(0.0, delta_downstream)
-
-        r_pressure = -self.cfg.pressure_weight * abs(pressure)
-        # Only the POSITIVE case (a neglected phase actually wants service)
-        # is penalized — a negative value would mean every other phase is
-        # under-saturated, which is fine, not something to punish.
-        r_neglected = -self.cfg.neglected_pressure_weight * max(0.0, neglected_pressure)
-
-        reward = r_waiting + r_queue + r_switch + r_spillback + r_pressure + r_neglected
-
-        if self.cfg.reward_clip is not None:
-            reward = max(-abs(self.cfg.reward_clip), min(abs(self.cfg.reward_clip), reward))
-
-        self._prev_tls_waiting[tls_id] = current_waiting
-        self._prev_downstream_queue[tls_id] = downstream_queue_sum
-
-        info = {
-            "reward/waiting_component": r_waiting,
-            "reward/queue_component": r_queue,
-            "reward/switch_component": r_switch,
-            "reward/spillback_component": r_spillback,
-            "reward/pressure_component": r_pressure,
-            "reward/neglected_pressure_component": r_neglected,
-            "metrics/local_waiting": current_waiting,
+        c = self.cfg
+        terms = {
+            "queue": c.queue_level_weight * queue_level,
+            "downstream": c.downstream_level_weight * downstream_level,
+            "switch": c.switching_penalty * (1.0 if switched else 0.0),
+            "backlog": c.backlog_weight * self.pending_for(tls_id),
+            "global_backlog": c.global_backlog_weight * (self._pending_total / max(1, n_agents)),
         }
-        return float(reward), info
+        cost = sum(terms.values())
+        if c.reward_clip is not None:
+            cost = min(cost, abs(c.reward_clip))
+        info = {f"reward/{k}_component": -v for k, v in terms.items()}
+        info["metrics/pending_local"] = self.pending_for(tls_id)
+        return float(-c.reward_scale * cost), info

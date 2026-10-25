@@ -1,17 +1,13 @@
 """
 ippo_agent.py
 =============
-Parameter-shared IPPO training for CityMind AI's centralized environment
-design retired the credit-assignment problem onto a single global reward
-split across 98 joint action dimensions (see 2026-09-18 diagnosis in
-project memory / commit history). This trains ONE shared-weight policy
-that is invoked independently per intersection, each with its own local
-observation and local reward (DecentralizedSumoEnv), wrapped with SuperSuit
-so vanilla Stable-Baselines3 PPO sees it as a 98-way vectorized single-agent
-problem — the standard pattern for parameter-shared IPPO with SB3.
+Parameter-shared IPPO training. ONE shared-weight policy is invoked independently at every intersection, each with its own
+local observation and local reward (DecentralizedSumoEnv), wrapped with SuperSuit so vanilla Stable-Baselines3 PPO sees it as
+a 98-way vectorized single-agent problem. Actor and critic gradients are clipped separately (split_clip.py).
 """
 from __future__ import annotations
 
+import dataclasses
 import threading
 import time
 from pathlib import Path
@@ -24,11 +20,18 @@ from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import VecMonitor
 
+from src.agents.split_clip import SplitClipPPO
 from src.agents.model_contract import build_artifact, validate_model_contract, write_run_artifacts
 from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
-from src.environment.local_observation import LOCAL_OBS_SIZE, LocalObservationConfig
+from src.environment.local_observation import OBS_SIZE, LocalObservationConfig
 from src.environment.local_reward import LocalRewardConfig
 from src.environment.safety import SafetyConfig
+
+
+def _fields_of(dataclass_type, section: dict) -> dict:
+    """The entries of a yaml section that are fields of the dataclass (unknown keys, e.g. from older configs, are ignored)."""
+    names = {f.name for f in dataclasses.fields(dataclass_type)}
+    return {k: v for k, v in (section or {}).items() if k in names}
 
 
 def make_ippo_env(
@@ -146,7 +149,7 @@ def _close_env_with_timeout(env, timeout: float = 30.0) -> None:
 
 
 class IPPOAgent:
-    """Mirrors PPOAgent's config-driven interface, for the decentralized env."""
+    """Config-driven parameter-shared IPPO: builds the env, trains / resumes / loads the shared policy."""
 
     def __init__(
         self,
@@ -180,16 +183,12 @@ class IPPOAgent:
         # model must not leave an empty experiment run behind.
         self.run_dir = self.output_dir / self._run_id
 
-    def build_model(self) -> PPO:
-        set_random_seed(self.seed)
-        self.run_dir.mkdir(parents=True, exist_ok=True)
-        reward_cfg = LocalRewardConfig(
-            waiting_delta_weight=self.env_cfg["reward"].get("waiting_delta_weight", 1.0),
-            queue_weight=self.env_cfg["reward"].get("queue_weight", 0.0),
-            switching_penalty=self.env_cfg["reward"].get("switching_penalty", 0.3),
-            spillback_weight=self.env_cfg["reward"].get("spillback_weight", 0.2),
-            pressure_weight=self.env_cfg["reward"].get("pressure_weight", 0.0),
-        )
+    def _build_env(self):
+        """Env construction shared by build_model() and resume_training(), so a resumed run is built from the
+        exact same config-derived parameters as the original."""
+        # Every key present in the yaml sections is passed through; absent keys keep the dataclass defaults.
+        reward_cfg = LocalRewardConfig(**_fields_of(LocalRewardConfig, self.env_cfg.get("reward", {})))
+        obs_cfg = LocalObservationConfig(**_fields_of(LocalObservationConfig, self.env_cfg.get("observation", {})))
         safety_cfg = SafetyConfig(
             min_green=self.env_cfg["safety"].get("min_green", 5.0),
             max_green=self.env_cfg["safety"].get("max_green", 60.0),
@@ -207,6 +206,7 @@ class IPPOAgent:
             tls_metadata_json=self.tls_metadata_json,
             seed=self.seed,
             demand_id=self.demand_id,
+            obs_config=obs_cfg,
             reward_config=reward_cfg,
             safety_config=safety_cfg,
             decision_interval=self.env_cfg.get("decision_interval", 5),
@@ -216,6 +216,12 @@ class IPPOAgent:
             seed_mode=self.env_cfg.get("seed_mode", "per_episode"),
             warm_start_seconds=float(sumo_cfg_dict.get("warm_start_seconds", 0.0)),
         )
+        return env
+
+    def build_model(self) -> PPO:
+        set_random_seed(self.seed)
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+        env = self._build_env()
 
         ppo = self.ppo_cfg
         policy_kwargs = dict(ppo.get("policy_kwargs", {}))
@@ -224,7 +230,9 @@ class IPPOAgent:
             activation_map = {"tanh": nn.Tanh, "relu": nn.ReLU}
             policy_kwargs["activation_fn"] = activation_map.get(policy_kwargs["activation_fn"], nn.Tanh)
 
-        self.model = PPO(
+        # split_clip: clip actor and critic gradient norms separately (see src/agents/split_clip.py)
+        ppo_cls = SplitClipPPO if bool(ppo.get("split_clip", False)) else PPO
+        self.model = ppo_cls(
             policy=ppo.get("policy", "MlpPolicy"),
             env=env,
             learning_rate=float(ppo.get("learning_rate", 3e-4)),
@@ -257,17 +265,37 @@ class IPPOAgent:
     def train(self) -> PPO:
         if self.model is None:
             self.build_model()
+        return self._run_learn(int(self.ppo_cfg.get("total_timesteps", 3_600_000)), reset_num_timesteps=True)
 
-        total_timesteps = int(self.ppo_cfg.get("total_timesteps", 3_600_000))
+    def resume_training(self, checkpoint_path: str, completed_timesteps: int | None = None) -> PPO:
+        """Continue an interrupted run from a CheckpointCallback file ("ippo_citymind_<steps>_steps.zip"). Optimizer
+        state is part of the SB3 checkpoint; the env is rebuilt from the same config. total_timesteps in the config
+        stays the real target."""
+        if completed_timesteps is None:
+            completed_timesteps = int(Path(checkpoint_path).stem.rsplit("_", 2)[-2])
+        total = int(self.ppo_cfg.get("total_timesteps", 3_600_000))
+        if completed_timesteps >= total:
+            raise ValueError(f"Checkpoint has {completed_timesteps:,} >= target {total:,} timesteps - nothing to resume.")
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+        ppo_cls = SplitClipPPO if bool(self.ppo_cfg.get("split_clip", False)) else PPO
+        model = ppo_cls.load(checkpoint_path, device=self.device)
+        validate_model_contract(model, OBS_SIZE, model_path=checkpoint_path)
+        env = self._build_env()
+        # Models saved before the bounds were corrected declare Box(0, 1) although the signed demand inputs span [-1, 1]; the
+        # network ignores the declared bounds, so adopt the environment's (SB3 refuses to attach an env whose space differs).
+        model.observation_space = model.policy.observation_space = env.observation_space
+        model.set_env(env)
+        self.model = model
+        print(f"[IPPOAgent] Resumed from {checkpoint_path} at {completed_timesteps:,} timesteps.")
+        return self._run_learn(total - completed_timesteps, reset_num_timesteps=False)
+
+    def _run_learn(self, total_timesteps: int, reset_num_timesteps: bool) -> PPO:
         checkpoint_freq = int(self.ppo_cfg.get("checkpoint_freq", 720_000))
 
         # CheckpointCallback triggers on self.n_calls (one env.step() CALL),
-        # not num_timesteps — with a 98-way VecEnv, num_timesteps advances by
+        # not num_timesteps - with a 98-way VecEnv, num_timesteps advances by
         # 98 per call, so save_freq must be divided by n_envs or it fires 98x
-        # too rarely (SB3's own docstring warns about exactly this). Verified
-        # against the first real run: checkpoint_freq=1_000_000 without this
-        # fix produced zero checkpoints through 3.6M timesteps (51 real
-        # episodes) because n_calls never reached 1,000,000.
+        # too rarely (SB3's own docstring warns about exactly this).
         save_freq = max(checkpoint_freq // self.model.n_envs, 1)
         checkpoint_cb = CheckpointCallback(
             save_freq=save_freq,
@@ -276,23 +304,21 @@ class IPPOAgent:
         )
         callbacks = CallbackList([checkpoint_cb])
 
-        print(f"\n[IPPOAgent] Starting training — {total_timesteps:,} timesteps "
+        print(f"\n[IPPOAgent] Training for {total_timesteps:,} timesteps "
               f"({total_timesteps // self.model.n_envs:,} real decision steps across {self.model.n_envs} agents)")
         self._save_config_artifact(total_timesteps, status="started")
         status = "failed"
         try:
-            self.model.learn(total_timesteps=total_timesteps, callback=callbacks, tb_log_name="ippo", progress_bar=True)
+            self.model.learn(total_timesteps=total_timesteps, callback=callbacks, tb_log_name="ippo",
+                             reset_num_timesteps=reset_num_timesteps, progress_bar=True)
             status = "finished"
             model_path = self.run_dir / "model_final.zip"
             self.model.save(str(model_path))
             print(f"\n[IPPOAgent] Model saved: {model_path}")
         finally:
             self._save_config_artifact(total_timesteps, status=status)
-            # Without this, num_vec_envs>1's ProcConcatVec worker subprocesses
-            # (each holding its own SUMO instance) are orphaned when this
-            # function returns or raises -- SB3 does not close the env.
-            # self.model.env is the VecMonitor wrapper; .close() propagates
-            # through VecMonitor -> SB3VecEnvWrapper -> ProcConcatVec.
+            # Without this, num_vec_envs>1's ProcConcatVec worker subprocesses (each holding its own SUMO instance)
+            # are orphaned when this function returns or raises - SB3 does not close the env.
             _close_env_with_timeout(self.model.env, timeout=30.0)
         return self.model
 
@@ -305,12 +331,12 @@ class IPPOAgent:
             demand_id=self.demand_id,
             ppo_cfg=self.ppo_cfg,
             env_cfg=self.env_cfg,
-            obs_size=int(model.observation_space.shape[0]) if model is not None else LOCAL_OBS_SIZE,
+            obs_size=int(model.observation_space.shape[0]) if model is not None else OBS_SIZE,
             action_space=str(model.action_space) if model is not None else None,
             requested_timesteps=total_timesteps,
             num_timesteps=int(model.num_timesteps) if model is not None else 0,
             status=status,
-            extra={"local_obs_size": LOCAL_OBS_SIZE, "sumo_cfg": self.sumo_cfg,
+            extra={"local_obs_size": OBS_SIZE, "sumo_cfg": self.sumo_cfg,
                    "tls_metadata_json": self.tls_metadata_json,
                    "seed_mode": self.env_cfg.get("seed_mode", "per_episode")},
         )
@@ -319,7 +345,7 @@ class IPPOAgent:
     def load(self, model_path: str) -> PPO:
         """Load a saved model; raises ModelContractError on an obs/action mismatch."""
         model = PPO.load(model_path, device=self.device)
-        validate_model_contract(model, LOCAL_OBS_SIZE, model_path=model_path)
+        validate_model_contract(model, OBS_SIZE, model_path=model_path)
         self.model = model
         return self.model
 

@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "description": "Maps headline controllers to the experiment run directory whose model_final.zip produced artifacts/metrics/<controller>_seed*_1.0x.json (source_run_id). Weights are NOT tracked in git (*.zip ignored); distribute as release assets and verify sha256.",
+  "schema_version": 3,
+  "description": "The trained IPPO weights behind every reported result. Weights are NOT tracked in git (*.zip ignored); distribute as release assets and verify sha256.",
   "library_versions_at_manifest_time": {
     "stable-baselines3": "2.9.0",
     "sb3-contrib": "2.9.0",
@@ -10,46 +10,36 @@
   },
   "models": [
     {
-      "controller": "ppo",
-      "run_id": "run_20260917_174650_seed42",
-      "run_dir": "artifacts/experiments/ppo/run_20260917_174650_seed42",
-      "model_file": "artifacts/experiments/ppo/run_20260917_174650_seed42/model_final.zip",
-      "sha256": "6ada56dcacc6187d070c6adfc82114e89e87d14ff60f6dc52f0169eb9a2341c2",
-      "size_bytes": 31970983,
-      "training_git_commit": "b165297bf7c01396aa9ad1f473bab2168cd04e1c",
-      "seed": 42,
-      "train_config_template": "configs/ppo.yaml",
-      "run_config_snapshot": "artifacts/experiments/ppo/run_20260917_174650_seed42/config.yaml",
-      "metrics_files": "artifacts/metrics/ppo_seed{42,123,777}_1.0x.json",
-      "release_asset": "ppo-run_20260917_174650_seed42.zip"
+      "name": "stage1_seed42",
+      "description": "stage 1: 100 updates, training seed 42",
+      "model_file": "artifacts/experiments/obs_compare/v3r_100/run_20261013_192101_seed42/model_final.zip",
+      "sha256": "75b2694f9a8942e3874e97a3420ab59eb494fd619894bc231a4b67479c84d2cd",
+      "size_bytes": 1833673,
+      "run_config": "artifacts/experiments/obs_compare/v3r_100/run_20261013_192101_seed42/config.yaml"
     },
     {
-      "controller": "ippo",
-      "run_id": "run_20260921_194748_seed42",
-      "run_dir": "artifacts/experiments/ippo/run_20260921_194748_seed42",
-      "model_file": "artifacts/experiments/ippo/run_20260921_194748_seed42/model_final.zip",
-      "sha256": "3185128367bfab0f2e490b40687a52b137b2dcb0fd67035d0e4e7c4551452050",
-      "size_bytes": 1740508,
-      "training_git_commit": "3706d23c018b56863cb620a9948486b87a358a79",
-      "seed": 42,
-      "train_config_template": "configs/ippo.yaml",
-      "run_config_snapshot": "artifacts/experiments/ippo/run_20260921_194748_seed42/config.yaml",
-      "metrics_files": "artifacts/metrics/ippo_seed{42,123,777}_1.0x.json",
-      "release_asset": "ippo-run_20260921_194748_seed42.zip"
+      "name": "stage1_seed1042",
+      "description": "stage 1: 100 updates, training seed 1042",
+      "model_file": "artifacts/experiments/obs_compare/v3r_100_seed1042/run_20261022_182635_seed1042/model_final.zip",
+      "sha256": "8481653b61bdbfe2a1c2ec0679da0b8671993413f1ccc6add5960d5308eeba24",
+      "size_bytes": 1833635,
+      "run_config": "artifacts/experiments/obs_compare/v3r_100_seed1042/run_20261022_182635_seed1042/config.yaml"
     },
     {
-      "controller": "ippo_phase_select",
-      "run_id": "run_20260924_085542_seed42",
-      "run_dir": "artifacts/experiments/ippo_phase_select/run_20260924_085542_seed42",
-      "model_file": "artifacts/experiments/ippo_phase_select/run_20260924_085542_seed42/model_final.zip",
-      "sha256": "f46f1b85d34ba40bf80767c8071540e02c1aeb3e2e973473af83a9591572d68a",
-      "size_bytes": 1759616,
-      "training_git_commit": "5238b9de72ecfc7696643299e7249e9e69ec36fa",
-      "seed": 42,
-      "train_config_template": "configs/ippo_phase_select.yaml",
-      "run_config_snapshot": "artifacts/experiments/ippo_phase_select/run_20260924_085542_seed42/config.yaml",
-      "metrics_files": "artifacts/metrics/ippo_phase_select_seed{42,123,777}_1.0x.json",
-      "release_asset": "ippo_phase_select-run_20260924_085542_seed42.zip"
+      "name": "final_seed42",
+      "description": "FINAL: stage 1 (seed 42) + 10 fine-tune updates with pending_in_demand",
+      "model_file": "artifacts/models/ippo_final_seed42/model_final.zip",
+      "sha256": "7a94580dd00cd82d3bdcf527399d243f94381408f19ba81c58aabf7145d28e29",
+      "size_bytes": 1833691,
+      "run_config": "artifacts/models/ippo_final_seed42/config.yaml"
+    },
+    {
+      "name": "final_seed1042",
+      "description": "FINAL: stage 1 (seed 1042) + 20 fine-tune updates with pending_in_demand",
+      "model_file": "artifacts/models/ippo_final_seed1042/model_final.zip",
+      "sha256": "347380e38f81903042c8bb37781e6a4c81e552f255ca159e9dd0957fed84d69d",
+      "size_bytes": 1833710,
+      "run_config": "artifacts/models/ippo_final_seed1042/config.yaml"
     }
   ]
 }

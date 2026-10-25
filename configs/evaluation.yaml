@@ -37,3 +37,9 @@ episode_duration: 3600     # seconds (1 hour)
 output_dir: artifacts/metrics
 trajectory_dir: artifacts/trajectories
 report_dir: artifacts/reports
+
+# Zero-delay reference for the lag metric: T* = a * t_free_flow + c. Fitted once by regression on stored trips; the SAME for every
+# controller, so it cancels out of every controller-to-controller difference.
+ff_calibration:
+  a: 0.9877174633263874
+  c: 13.038266572183339

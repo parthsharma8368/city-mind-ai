@@ -60,11 +60,11 @@ def test_explicit_output_dir_wins(runner_factory, tmp_path):
 
 
 def test_default_controllers_follow_model_paths(runner_factory):
-    assert runner_factory().controllers == ["sumo_actuated", "fixed_time", "max_pressure"]
-    r = runner_factory(ippo_phase_select_model_path="m.zip")
-    assert r.controllers[-1] == "ippo_phase_select"
+    assert runner_factory().controllers == ["sumo_actuated", "fixed_time"]
+    r = runner_factory(ippo_model_path="m.zip")
+    assert r.controllers[-1] == "ippo"
     with pytest.raises(ValueError, match="no model path"):
-        runner_factory(controllers=["ppo"])
+        runner_factory(controllers=["ippo"])
     with pytest.raises(ValueError, match="unknown"):
         runner_factory(controllers=["nope"])
 

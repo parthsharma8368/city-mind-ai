@@ -12,12 +12,10 @@ import json
 import numpy as np
 import pytest
 
-from src.environment.centralized_sumo_env import CentralizedSumoEnv
 from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
-from src.environment.local_observation import LOCAL_OBS_SIZE
+from src.environment.local_observation import OBS_SIZE
 from src.environment.sumo_args import get_option
 from src.environment.sumo_session import episode_end_flags, mark_time_limit
-from src.scenario.tls_metadata import MAX_GREEN_PHASES
 from tests.fake_traci import FakeTraci, install
 
 STATES = ["GGrr", "yyrr", "rrGG", "rryy"]
@@ -54,13 +52,11 @@ def _hold(env):
             for tid, s in env._runtime_states.items()}
 
 
-def test_reset_shapes_masks_command_and_takeover(world):
+def test_reset_shapes_command_and_takeover(world):
     fake, cfg, meta = world
     env = _dec(world, seed=11)
     obs, infos = env.reset()
-    assert set(obs) == {"T0", "T1"} and all(o.shape == (LOCAL_OBS_SIZE,) for o in obs.values())
-    for tid in obs:
-        assert infos[tid]["action_mask"].tolist() == [True, True] + [False] * (MAX_GREEN_PHASES - 2)
+    assert set(obs) == {"T0", "T1"} and all(o.shape == (OBS_SIZE,) for o in obs.values())
     cmd = fake.started[0]
     assert get_option(cmd, "--seed") == "11" and get_option(cmd, "--begin") == "100"
     assert infos["T0"]["sumo_command"] == cmd == env.last_sumo_command
@@ -191,32 +187,96 @@ def test_supersuit_sb3_chain_passes_timelimit_truncated_to_the_bootstrap_hook(wo
     assert dones.tolist() == [True, True]
     for inf in infos:
         assert inf["TimeLimit.truncated"] is True
-        assert inf["terminal_observation"].shape == (LOCAL_OBS_SIZE,)
+        assert inf["terminal_observation"].shape == (OBS_SIZE,)
     vec.close()
 
 
-def test_centralized_env_flags_trajectory_and_command(world):
-    fake, cfg, meta = world
-    env = CentralizedSumoEnv(cfg, meta, seed=3, episode_duration=120.0, record_trajectories=True,
-                             sumo_extra_args=["--begin", "100", "--end", "120"])
-    obs, info = env.reset()
-    assert info["sumo_command"] == fake.started[0] and info["seed"] == 3
-    assert obs.shape == env.observation_space.shape
-    # force a switch on T0 only (action bit 1) once min green (3 s) has elapsed
-    for _ in range(2):
-        obs, r, te, tr, inf = env.step(np.array([1, 0], dtype=np.int8))
-    assert (te, tr) == (False, False)
-    obs, r, te, tr, inf = env.step(np.array([0, 0], dtype=np.int8))
-    obs, r, te, tr, inf = env.step(np.array([0, 0], dtype=np.int8))
-    assert (te, tr, inf["TimeLimit.truncated"]) == (False, True, True)
-
-    # trajectory frames: post-step time grid, and the DISPLAYED (not frozen-green) state
-    times = sorted({f["time"] for f in env._trajectory})
-    assert times[0] == 101.0 and times[-1] == 120.0
-    t0_states = [next(x["state"] for x in f["tls"] if x["id"] == "T0") for f in env._trajectory]
-    assert "yyrr" in t0_states or "rrrr" in t0_states
-    t1_states = {next(x["state"] for x in f["tls"] if x["id"] == "T1") for f in env._trajectory}
-    assert t1_states == {"GGrr"}
-    # the layer's own current_phase stayed on the old green during the clearance
+def test_action_and_observation_spaces_and_unique_lane_bookkeeping(world):
+    """Discrete(2) keep / advance; a 22-number signed observation; lanes that serve several links are counted once."""
+    env = _dec(world)
+    assert env.action_space("T0").n == 2
+    box = env.observation_space("T0")
+    assert box.shape == (OBS_SIZE,) and box.low.min() == -1.0 and box.high.max() == 1.0
+    assert env._unique_lane_idx["T0"] == [0, 1]            # controlled_lanes = [l0, l1, l0, l1]
+    assert env._edge_to_tls == {"l0": "T0", "l1": "T0"}    # topology is derived from the metadata, not written by hand
+    obs, _ = env.reset()
+    assert obs["T0"][0] == 1.0 and obs["T0"][6] == 0.0     # slot 0 active, not in transition
+    obs, rew, *_ = env.step({t: 1 for t in env.agents})    # advance
+    assert all(np.isfinite(o).all() for o in obs.values()) and set(rew) == {"T0", "T1"}
+    assert all(r <= 0.0 for r in rew.values())             # every reward term is a cost
     env.close()
-    assert fake.closed == 1
+
+
+def test_road_neighbours_follow_the_road_graph_not_straight_line_distance(tmp_path, monkeypatch):
+    """T0 -> (unsignalised eB, 100 m) -> T1 are neighbours; T0 -> 700 m of unsignalised road -> T2 are not."""
+    import json
+
+    from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
+    from src.environment.local_observation import LocalObservationConfig
+    from tests.fake_traci import FakeTraci, install
+
+    states = ["GGrr", "yyrr", "rrGG", "rryy"]
+    fake = FakeTraci({t: list(states) for t in ("T0", "T1", "T2")}, end_time=1e9, begin=100.0)
+    install(monkeypatch, fake)
+    lane_of = {"T0": "eA_0", "T1": "eC_0", "T2": "eE_0"}
+    meta = [{
+        "tls_id": t, "program_id": "0", "type": "actuated",
+        "phases": [{"index": i, "state": s, "duration": 10.0 if "G" in s else 3.0, "min_dur": 3.0,
+                    "max_dur": 40.0 if "G" in s else 3.0} for i, s in enumerate(states)],
+        "controlled_lanes": [ln] * 4, "signal_lanes": [[ln]] * 4,
+    } for t, ln in lane_of.items()]
+    (tmp_path / "meta.json").write_text(json.dumps(meta))
+    (tmp_path / "s.sumocfg").write_text("<configuration/>")
+    fake.halting.clear()
+    fake.halting.update({"eA_0": 3, "eB_0": 0, "eC_0": 8, "eG_0": 0, "eE_0": 0})
+    links = {"eA_0": ["eB_0", "eG_0"], "eB_0": ["eC_0"], "eG_0": ["eE_0"]}
+    lengths = {"eB_0": 100.0, "eG_0": 700.0}
+    monkeypatch.setattr(fake.lane, "getLinks", staticmethod(lambda lid: [(x, True, True, False, "M", "s", 1.0)
+                                                                           for x in links.get(lid, [])]), raising=False)
+    monkeypatch.setattr(fake.lane, "getLength", staticmethod(lambda lid: lengths.get(lid, 100.0)), raising=False)
+
+    env = DecentralizedSumoEnv(str(tmp_path / "s.sumocfg"), str(tmp_path / "meta.json"),
+                               obs_config=LocalObservationConfig(), episode_duration=120.0,
+                               sumo_extra_args=["--begin", "100", "--end", "120"])
+    assert env.observation_space("T0").shape == (OBS_SIZE,)
+    obs, _ = env.reset()
+    assert env._road_down["T0"] == ["T1"] and env._road_up["T1"] == ["T0"]
+    assert env._road_down["T1"] == [] and env._road_up["T2"] == [] and env._road_down["T2"] == []
+    assert obs["T0"][20] == pytest.approx(8 / 16)           # T0 sees T1's queue (8 cars) downstream
+    assert obs["T1"][18] == pytest.approx(3 / 11)           # T1 sees T0's queue (3 cars) upstream
+    assert obs["T2"][18:].tolist() == [0.0, 0.0, 0.0, 0.0]  # unreachable within 500 m -> no neighbours
+    env.close()
+
+
+
+
+def test_env_queue_reach_extends_lane_queue_and_reward_level_without_double_counting(tmp_path, monkeypatch):
+    import json
+
+    from src.environment.decentralized_sumo_env import DecentralizedSumoEnv
+    from src.environment.local_observation import LocalObservationConfig
+    from tests.fake_traci import FakeTraci, install
+
+    states = ["GGrr", "yyrr", "rrGG", "rryy"]
+    fake = FakeTraci({"T0": list(states)}, end_time=1e9, begin=100.0)
+    install(monkeypatch, fake)
+    meta = [{"tls_id": "T0", "program_id": "0", "type": "actuated",
+             "phases": [{"index": i, "state": st, "duration": 10.0 if "G" in st else 3.0, "min_dur": 3.0,
+                         "max_dur": 40.0 if "G" in st else 3.0} for i, st in enumerate(states)],
+             "controlled_lanes": ["eX_0", "eX_0", "eX_1", "eX_1"], "signal_lanes": [["eX_0"], ["eX_0"], ["eX_1"], ["eX_1"]]}]
+    (tmp_path / "meta.json").write_text(json.dumps(meta))
+    (tmp_path / "s.sumocfg").write_text("<configuration/>")
+    fake.halting.clear()
+    fake.halting.update({"eX_0": 2, "eX_1": 1, "eF_0": 10, "eF_1": 5})
+    links = {"eF_0": ["eX_0", "eX_1"], "eF_1": ["eX_1"]}      # eF_0 feeds BOTH stop-line lanes
+    monkeypatch.setattr(fake.lane, "getLinks", staticmethod(lambda lid: [(x, True, True, False, "M", "s", 1.0)
+                                                                           for x in links.get(lid, [])]), raising=False)
+    monkeypatch.setattr(fake.lane, "getLength", staticmethod(lambda lid: 100.0), raising=False)
+    env = DecentralizedSumoEnv(str(tmp_path / "s.sumocfg"), str(tmp_path / "meta.json"),
+                               obs_config=LocalObservationConfig(queue_reach_m=300.0), episode_duration=120.0,
+                               sumo_extra_args=["--begin", "100", "--end", "120"])
+    env.reset()
+    st = env._runtime_states["T0"]
+    assert st.lane_queue == [2 + 10, 2 + 10, 1 + 10 + 5, 1 + 10 + 5]      # each stop-line lane + its feeders
+    assert env._queue_level["T0"] == (2 + 1) + (10 + 5)                    # own unique lanes + UNION of feeders
+    env.close()

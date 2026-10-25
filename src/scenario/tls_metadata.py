@@ -10,12 +10,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# RL-strategy Phase 2 (phase-selection action space): the largest number of
-# green phases any InTAS TLS has, verified against tls_metadata.json — 2
-# signals have 1, 18 have 2, 50 have 3, 26 have 4, 1 has 5, 1 has 6. The
-# parameter-shared Discrete(MAX_GREEN_PHASES) action space and the per-phase
-# pressure observation are both sized off this constant; a TLS with fewer
-# phases has its extra action slots masked out (see TLSSpec.action_mask).
+# Capacity of the observation: the number of green-phase "slots" per signal. It is a design capacity, not network data -
+# load_tls_specs() refuses a network with a signal that has more green phases than this, rather than silently truncating.
 MAX_GREEN_PHASES = 6
 
 
@@ -112,30 +108,9 @@ class TLSSpec:
 
     @property
     def green_phase_indices(self) -> list[int]:
-        """Native phase indices of this TLS's own green phases, in program
-        (cycle) order. Position i in this list is what a parameter-shared
-        phase-selection action value `i` refers to — the RL action space is
-        Discrete(MAX_GREEN_PHASES) shared across every TLS regardless of how
-        many green phases it actually has, so actions must be expressed as
-        "my i-th own green phase," not as a raw phase index (which isn't
-        comparable across TLS with different phase layouts)."""
+        """Native phase indices of this TLS's own green phases, in program (cycle) order. Position i is the
+        signal's "slot i" in the observation (comparable across signals with different phase layouts)."""
         return [p.index for p in self.phases if p.is_green]
-
-    def action_to_phase_index(self, action: int) -> int | None:
-        """Map a Discrete(MAX_GREEN_PHASES) action value to this TLS's own
-        native phase index, or None if the action doesn't correspond to one
-        of this TLS's real green phases (out of range, or masked-out slot —
-        the safety layer treats None as "hold current phase")."""
-        indices = self.green_phase_indices
-        return indices[action] if 0 <= action < len(indices) else None
-
-    def action_mask(self, max_actions: int = MAX_GREEN_PHASES) -> list[bool]:
-        """Boolean mask of length max_actions: True for action values that
-        map to one of this TLS's real green phases. Used by MaskablePPO so
-        the policy never has probability mass on a phase this intersection
-        doesn't have."""
-        n_green = len(self.green_phase_indices)
-        return [i < n_green for i in range(max_actions)]
 
 
 @dataclass
@@ -218,4 +193,10 @@ def load_tls_specs(json_path: Path) -> list[TLSSpec]:
         ))
 
     specs.sort(key=lambda s: s.tls_id)
+    too_many = [s.tls_id for s in specs if len(s.green_phase_indices) > MAX_GREEN_PHASES]
+    if too_many:
+        raise ValueError(
+            f"{len(too_many)} signal(s) have more than MAX_GREEN_PHASES={MAX_GREEN_PHASES} green phases (e.g. {too_many[0]}); "
+            "raise MAX_GREEN_PHASES in src/scenario/tls_metadata.py - the observation reserves one slot per green phase."
+        )
     return specs
