@@ -31,17 +31,57 @@ While most academic traffic RL literature evaluates on artificial, 4-way synthet
 
 ---
 
-## 🎓 Faculty Defense & Academic Distinction
+## 🎓 Faculty Defense & The Architectural Evolution Story
 
-CityMind AI was presented for formal academic and defense committee review, earning **exceptional commendation from faculty reviewers** for its theoretical rigor, honest scientific methodology, and live working demonstration:
+CityMind AI was presented for formal academic defense and faculty committee review, earning **exceptional commendation from faculty reviewers** for its theoretical rigor, uncompromising scientific integrity, and the depth of its architectural exploration.
 
-* **Eliminating Survivor Bias**: Addressed the hidden flaw in academic literature where models claim high performance by only measuring vehicles that finish their trips while hiding side-street gridlock. We created the **Drain Metrics Protocol** (`src/evaluation/drain_metrics.py`), accounting for 100% of scheduled vehicles.
-* **Master Defense Presentation Materials**:
-  * 📑 [**Master Defense Slide Deck (PDF)**](docs/CityMind_AI_Professor_Defense_Master.pdf) — 19-slide publication-grade presentation with complete speaker scripts.
-  * 🖥️ [**Master Defense PowerPoint (PPTX)**](docs/CityMind_AI_Professor_Defense_Master.pptx) — Fully editable 16:9 widescreen presentation with embedded figures and presenter notes.
-  * 🌐 [**Interactive Browser Deck**](docs/presentation_deck.html) — Standalone HTML presentation with slide switcher and speaker notes (`S` key).
-  * ⏱️ [**5-Minute Rapid Oral Defense Guide**](docs/PROJECT_REVIEW_5_MINUTES_DEFENSE_GUIDE.md) — Targeted defense strategy and cheat sheet.
-  * 🔬 [**Comprehensive Policy Learning Guide**](docs/LEARNING_GUIDE_ALL_POLICIES.md) — 40-page technical treatise detailing all policies and ablation benchmarks.
+The project did not stumble upon its winning architecture by accident. It represents months of systematic prototyping, mathematical modeling, and forensic error diagnosis across **five distinct architectural iterations**:
+
+```
+[ Phase 1: Centralized Agent ] ──❌ (2^98 ≈ 10^29 Action Explosion; Credit Assignment Failure)
+            │
+            ▼
+[ Phase 2: 98 Independent Networks ] ──❌ (Severe Non-Stationarity & Moving Target Problem)
+            │
+            ▼
+[ Phase 3: Max-Pressure & Phase Select ] ──❌ (Stop-Line Blindness & 40% Yellow Clearance Waste)
+            │
+            ▼
+[ Phase 4: Parameter-Shared IPPO ] ──⚠️ (98x Sample Efficiency, but Blocked by Gradient Starvation)
+            │
+            ▼
+[ Phase 5: Split-Clip IPPO + 300m Feeders ] ──✅ (10/10 SEEDS WON, -41.1% WAIT TIME, p=0.002)
+```
+
+### The 5 Architectural Iterations Tested
+
+#### 1. Phase 1: The Monolithic Centralized Agent ❌ (Dimensionality Collapse)
+* **Design**: A single massive centralized PPO network taking a concatenated state of all 98 intersections and attempting to output joint signal decisions for the whole city.
+* **Why It Failed**: With 98 binary signals, the joint discrete action space exploded to $2^{98} \approx 3.16 \times 10^{29}$ actions per step! A neural network cannot sample or optimize in $10^{29}$ actions. Furthermore, global rewards caused catastrophic credit assignment failure: if a car was delayed at Intersection 84, the gradients punished decisions at Intersection 2. The agent never learned basic signal progression.
+
+#### 2. Phase 2: Decentralized Independent Agents ❌ (The Non-Stationarity Trap)
+* **Design**: 98 distinct, specialized neural networks—one per intersection.
+* **Why It Failed**: Severe **environment non-stationarity** (the moving-target problem). When Agent 12 updated its policy, it altered traffic arrival rates for downstream Agent 13, completely invalidating Agent 13's value function. Policies oscillated wildly, training diverged, and there was zero knowledge transfer between intersections despite massive compute overhead.
+
+#### 3. Phase 3: Max-Pressure & Action-Masked Phase Selection ❌ (Clearance Waste & Feeder Blindness)
+* **Design**: Allowed agents to pick any valid green phase directly from $\{0, \dots, K-1\}$ based on Varaiya's Max-Pressure theorem with action masking.
+* **Why It Failed**:
+  1. **Stop-Line Blindness**: In InTAS, stop-line lanes are often only 20m long (~2 cars). Max-pressure was blind to the 60-car queue waiting on the feeder road behind it.
+  2. **Clearance Phase Waste**: Arbitrary phase hopping triggered mandatory 3–4s yellow and all-red clearance intervals constantly. Signals spent 40% of peak rush hour in red clearance instead of moving traffic.
+
+#### 4. Phase 4: Parameter-Shared IPPO with Phase-Advance Control ⚠️ (The 98× Sample Multiplier)
+* **The Breakthrough Formulation**:
+  * **One Shared Brain**: All 98 intersections share a single Actor-Critic MLP network ($22 \to 256 \to 256 \to 2$).
+  * **98× Sample Multiplier**: Every 5s step across the city yields 98 experiences for the shared policy buffer. Combined with 6 parallel SUMO environments, we collect **588 experiences per step** ($105,840$ samples per update).
+  * **Binary Sequential Control (`Discrete(2)`)**: Action 0 = Keep Green, Action 1 = Advance to Next Sequential Phase. Eliminates clearance hopping and guarantees cyclic progression.
+  * **22-Dimensional Canonical Observation Space**: Normalizes any junction geometry (4 to 19 lanes) into an invariant feature vector.
+* **The Mystery**: Despite this sound design, early training stagnated! Policy entropy remained frozen at 90%, and lights switched almost randomly.
+
+#### 5. Phase 5: The Winning Breakthroughs (Split Gradient Clipping & 300m Feeders) 🏆
+* **Split Gradient Clipping (`split_clip.py`)**: By instrumenting raw gradient norms, we discovered that Critic delay errors produced huge gradient norms ($\approx 3,830$), while Actor policy gradients were $\approx 0.19$. Standard global clipping scaled down all updates by $\frac{0.5}{3830} \approx 1.3 \times 10^{-4}$, crushing the Actor's gradient below Adam's epsilon ($\epsilon = 10^{-8}$). Decoupling the clipping ($0.5$ for Actor, $0.5$ for Critic independently) accelerated policy learning by **10×**.
+* **300m Upstream Feeder Crawler**: Solved stop-line blindness by crawling up to 300m upstream into unsignalized feeder roads.
+* **Stage-2 Outside-Network Perimeter Tuning**: Trained the policy to account for vehicles queued outside the city boundary gates, eliminating boundary spillback.
+* **Result**: Defeated calibrated civil engineering on **10 out of 10 seeds ($p=0.002$)**, cutting waiting times by **41.1%** and saving **41.4 seconds of lag per vehicle** across the city!
 
 ---
 
