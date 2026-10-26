@@ -2,16 +2,19 @@
 simulation.py — Simulation control endpoints for CityMind AI.
 
 Provides:
-  - POST /api/simulation/launch-gui  → launch sumo-gui via XQuartz
-  - GET  /api/simulation/status      → process alive/idle status
-  - GET  /api/simulation/latest-model → auto-discover latest model zip
-  - WebSocket /ws/simulation         → stream live metrics
+  - POST /api/simulation/launch-gui  → open a live SUMO-GUI window for one controller
+                                        (sumo_actuated | fixed_time | ippo_A | ippo_B)
+  - POST /api/simulation/stop-gui    → close one (or every) window
+  - GET  /api/simulation/status      → which windows are running, which controllers can be launched
+  - WebSocket /ws/simulation         → stream live status + stored metrics
+The client only ever sends a controller id: the model files are fixed on the server (MODEL_FILES), never taken from a request.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -23,28 +26,33 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from api.routers.experiments import _load_yaml, _sanitize_json
+from api import results
 from api.security import require_api_key, websocket_allowed
-from api.util import read_json_file, sanitize_nan
+from api.util import sanitize_nan
 
 logger = logging.getLogger("citymind.api.simulation")
 
 router = APIRouter()
 
-# Keyed by controller name ("fixed_time" | "max_pressure" | "ppo" | "ippo") so
-# multiple controllers can run as separate SUMO-GUI windows at once — the
-# whole point is comparing a specific intersection live between two windows.
+# Keyed by controller id so several controllers can run as separate SUMO-GUI windows at once -
+# the point is comparing the same junction live between two windows.
 _gui_processes: dict[str, subprocess.Popen] = {}
 # Reentrant: _is_running is called both standalone and from inside locked sections.
 # The registry is per-process, so run a single uvicorn worker.
 _gui_lock = threading.RLock()
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-_ARTIFACTS_DIR = (_PROJECT_ROOT / "artifacts").resolve()
-_EXPERIMENTS_DIR = (_PROJECT_ROOT / "artifacts" / "experiments").resolve()
+_LOG_DIR = _PROJECT_ROOT / "artifacts" / "demo_logs"
+# Why a window stopped by itself (exit code + the end of its log), so the dashboard can say so instead of staying "starting".
+_last_exit: dict[str, str] = {}
 _MAX_WS_CONNECTIONS = 20
 _ws_connections = 0
-_CONTROLLERS = ("fixed_time", "sumo_actuated", "max_pressure", "ppo", "ippo")
-_MODEL_BASED_CONTROLLERS = ("ppo", "ippo")
+_CONTROLLERS = tuple(results.CONTROLLERS)   # ("sumo_actuated", "fixed_time", "ippo_A", "ippo_B")
+# SECURITY: SB3 model zips are pickles (code on load). The server only ever loads these two files.
+MODEL_FILES: dict[str, str] = {
+    "ippo_A": "artifacts/models/ippo_final_seed42/model_final.zip",
+    "ippo_B": "artifacts/models/ippo_final_seed1042/model_final.zip",
+}
+_XY = re.compile(r"^\d{1,5},\d{1,5}$")
 
 
 class LaunchResponse(BaseModel):
@@ -57,20 +65,10 @@ class LaunchResponse(BaseModel):
 class StatusResponse(BaseModel):
     gui_running: bool
     gui_pid: Optional[int] = None
-    latest_model: Optional[str] = None
     xquartz_display: Optional[str] = None
     running_controllers: list[str] = []
-
-
-def _find_latest_model(experiments_subdir: str = "") -> Optional[Path]:
-    experiments_dir = _PROJECT_ROOT / "artifacts" / "experiments" / experiments_subdir
-    candidates = list(experiments_dir.glob("**/model_final.zip"))
-    if not candidates:
-        candidates = list(experiments_dir.glob("**/*.zip"))
-    if not candidates:
-        return None
-    candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    return candidates[0]
+    controllers: list[dict[str, Any]] = []
+    last_errors: dict[str, str] = {}
 
 
 def _get_display() -> str:
@@ -85,13 +83,30 @@ def _rel(path: Path) -> str:
         return path.name
 
 
+def _log_path(controller: str) -> Path:
+    return _LOG_DIR / f"{controller}.log"
+
+
+def _log_tail(controller: str, limit: int = 400) -> str:
+    try:
+        lines = [ln.strip() for ln in _log_path(controller).read_text(errors="replace").splitlines() if ln.strip()]
+    except OSError:
+        return ""
+    # the last line that is not TraCI's connection-retry chatter
+    useful = [ln for ln in lines if "Retrying in" not in ln and "Could not connect to TraCI" not in ln]
+    return (useful[-1] if useful else (lines[-1] if lines else ""))[-limit:]
+
+
 def _is_running(controller: str) -> bool:
     with _gui_lock:
         proc = _gui_processes.get(controller)
         if proc is None:
             return False
-        if proc.poll() is not None:
+        code = proc.poll()
+        if code is not None:
             _gui_processes.pop(controller, None)
+            if code != 0:
+                _last_exit[controller] = f"exited with code {code}: {_log_tail(controller) or 'no output'}"
             return False
         return True
 
@@ -104,40 +119,36 @@ def _running_snapshot() -> tuple[list[str], Optional[int]]:
     return running, pid
 
 
-def _resolve_model_path(model: Optional[str], controller: str) -> Path:
-    """Resolve a requested model path and require it to be a .zip under artifacts/experiments/.
-
-    SECURITY: SB3 model zips contain pickled data executed on PPO.load - treat them as code.
-    """
-    if not model:
-        found = _find_latest_model(controller)
-        if found is None:
-            raise HTTPException(404, f"No trained {controller} model found in artifacts/experiments/{controller}/.")
-        return found
-
-    candidate = (_PROJECT_ROOT / model).resolve() if not Path(model).is_absolute() else Path(model).resolve()
-    if _EXPERIMENTS_DIR not in candidate.parents:
-        raise HTTPException(400, "Model path must be inside artifacts/experiments/.")
-    if candidate.suffix != ".zip" or not candidate.is_file():
-        raise HTTPException(404, f"Model not found: {model}")
-    return candidate
-
-
 def _demo_script_exists() -> bool:
     return (_PROJECT_ROOT / "scripts" / "run_visual_demo.py").is_file()
 
 
+def _model_file(controller: str) -> Optional[Path]:
+    rel = MODEL_FILES.get(controller)
+    return (_PROJECT_ROOT / rel) if rel else None
+
+
 @router.post("/launch-gui", response_model=LaunchResponse, dependencies=[Depends(require_api_key)])
 def launch_gui(
-    controller: str = "ppo",
-    model: Optional[str] = None,
+    controller: str = "sumo_actuated",
     delay: int = Query(80, ge=0, le=1000),
     duration: int = Query(3600, ge=60, le=86400),
+    pos: Optional[str] = Query(None, description="window position X,Y (to tile several windows)"),
+    size: Optional[str] = Query(None, description="window size W,H"),
 ):
-    """Launch a SUMO-GUI window for one controller. Call again with a different
-    controller to open a second window and compare them live side by side."""
+    """Launch a SUMO-GUI window for one controller. Call again with a different controller to open a second window
+    and compare them live side by side."""
     if controller not in _CONTROLLERS:
         raise HTTPException(400, f"controller must be one of {_CONTROLLERS}")
+    for name, value in (("pos", pos), ("size", size)):
+        if value is not None and not _XY.match(value):
+            raise HTTPException(422, f"{name} must look like 120,80")
+    model_path = _model_file(controller)
+    if model_path is not None and not model_path.is_file():
+        raise HTTPException(404, f"Model file {MODEL_FILES[controller]} is missing (see docs/MODELS.md).")
+    if not _demo_script_exists():
+        raise HTTPException(501, "scripts/run_visual_demo.py is missing; the live SUMO-GUI launcher is unavailable.")
+
     with _gui_lock:
         if _is_running(controller):
             proc = _gui_processes[controller]
@@ -146,42 +157,37 @@ def launch_gui(
                 message=f"SUMO-GUI for '{controller}' already running.",
             )
 
-        demo_script = _PROJECT_ROOT / "scripts" / "run_visual_demo.py"
-        cmd = [sys.executable, str(demo_script),
+        cmd = [sys.executable, str(_PROJECT_ROOT / "scripts" / "run_visual_demo.py"),
                "--controller", controller, "--delay", str(delay), "--duration", str(duration)]
-
-        model_path: Optional[Path] = None
-        if controller in _MODEL_BASED_CONTROLLERS:
-            model_path = _resolve_model_path(model, controller)
-            cmd += ["--model", str(model_path)]
-
-        if not _demo_script_exists():
-            # The live-GUI launcher was retired with the simplification (the repo keeps only the shared IPPO agent and the baselines).
-            raise HTTPException(501, "The SUMO-GUI launcher was retired; run SUMO yourself with the evaluation's sumocfg.")
+        if pos:
+            cmd += ["--window-pos", pos]
+        if size:
+            cmd += ["--window-size", size]
 
         env = os.environ.copy()
-        if "DISPLAY" not in env:
-            env["DISPLAY"] = ":0"
-
+        env.setdefault("DISPLAY", ":0")
+        _last_exit.pop(controller, None)
+        _LOG_DIR.mkdir(parents=True, exist_ok=True)
         try:
-            proc = subprocess.Popen(
-                cmd, cwd=str(_PROJECT_ROOT), env=env,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            with open(_log_path(controller), "wb") as log:
+                proc = subprocess.Popen(
+                    cmd, cwd=str(_PROJECT_ROOT), env=env,
+                    stdout=log, stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
         except Exception as exc:
             raise HTTPException(500, f"Failed to launch SUMO-GUI: {exc}") from exc
 
         time.sleep(0.5)
         if proc.poll() is not None:
-            raise HTTPException(500, f"SUMO-GUI for '{controller}' exited immediately.")
+            raise HTTPException(500, f"SUMO-GUI for '{controller}' exited immediately: {_log_tail(controller) or 'see artifacts/demo_logs'}")
 
         _gui_processes[controller] = proc
         return LaunchResponse(
             status="launched",
             pid=proc.pid,
-            model=_rel(model_path) if model_path else None,
-            message=f"SUMO-GUI for '{controller}' launched (PID={proc.pid}). XQuartz window opening.",
+            model=MODEL_FILES.get(controller),
+            message=f"SUMO-GUI for '{results.label(controller)}' is starting (PID={proc.pid}); the window opens in about half a minute.",
         )
 
 
@@ -219,57 +225,47 @@ def stop_gui(controller: Optional[str] = None):
         return {"status": "stopped", "stopped": stopped, "message": f"Stopped {len(stopped)} SUMO-GUI process(es)."}
 
 
+def _controller_info() -> list[dict[str, Any]]:
+    out = []
+    for c in _CONTROLLERS:
+        model = _model_file(c)
+        out.append({
+            "id": c, "label": results.label(c), "kind": "model" if model else "baseline",
+            "available": model is None or model.is_file(),
+        })
+    return out
+
+
 @router.get("/status", response_model=StatusResponse)
 def get_status():
-    """Return current simulation status."""
+    """Current windows and the controllers that can be launched."""
     running, first_pid = _running_snapshot()
-    model = _find_latest_model()
     return StatusResponse(
         gui_running=bool(running),
         gui_pid=first_pid,
-        latest_model=_rel(model) if model else None,
         xquartz_display=_get_display(),
         running_controllers=running,
+        controllers=_controller_info(),
+        last_errors=dict(_last_exit),
     )
 
 
-@router.get("/latest-model")
-def get_latest_model():
-    """Return the path to the most recently trained model."""
-    model = _find_latest_model()
-    if model is None:
-        raise HTTPException(404, "No trained model found.")
-    run_dir = model.parent
-    config: dict[str, Any] = {}
-    cfg_path = run_dir / "config.yaml"
-    if cfg_path.exists():
-        try:
-            config = _sanitize_json(_load_yaml(cfg_path.read_text()))
-        except OSError as exc:
-            logger.warning("could not read %s: %s", cfg_path.name, exc)
-    return {
-        "model_path": _rel(model),
-        "run_id": run_dir.name,
-        "modified": model.stat().st_mtime,
-        "config": config,
-    }
-
-
 def _collect_metrics() -> dict[str, Any]:
-    """Blocking file I/O; run via asyncio.to_thread so the event loop is never stalled."""
-    metrics_dir = _PROJECT_ROOT / "artifacts" / "metrics"
-    metrics: dict[str, Any] = {}
-    for json_file in metrics_dir.glob("*.json"):
-        data = read_json_file(json_file, retries=1)
-        if not isinstance(data, dict):
-            continue
-        ctrl = data.get("controller", json_file.stem)
-        metrics[ctrl] = {
-            k: data.get(k, 0)
-            for k in ("mean_waiting_time", "mean_queue", "throughput", "mean_speed",
-                      "total_arrived", "cumulative_reward")
-        }
-    return sanitize_nan(metrics)
+    """Seed-mean headline numbers of every controller (blocking file I/O; run via asyncio.to_thread)."""
+    try:
+        table = results.per_seed_table()
+    except Exception as exc:  # noqa: BLE001 - a half-written results file must not kill the stream
+        logger.info("could not read results table: %s", exc)
+        return {}
+    if table is None:
+        return {}
+    means = table.groupby("name").mean(numeric_only=True)
+    keys = {"mean_waiting_time": "mean_waiting_time", "mean_queue": "mean_queue", "throughput": "throughput",
+            "mean_speed": "mean_speed", "total_arrived": "trips_completed"}
+    return sanitize_nan({
+        name: {out: float(row[col]) for out, col in keys.items() if col in row} | {"cumulative_reward": 0.0}
+        for name, row in means.iterrows() if name in results.CONTROLLERS
+    })
 
 
 @router.websocket("/ws")

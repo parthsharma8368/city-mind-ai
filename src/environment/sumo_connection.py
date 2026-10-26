@@ -68,7 +68,9 @@ def _prepare_tools_path() -> str | None:
 
 _prepare_tools_path()
 # Decided at import time WITHOUT importing libsumo (importing it may need SUMO).
-USING_LIBSUMO: bool = importlib.util.find_spec("libsumo") is not None
+# CITYMIND_USE_TRACI=1 forces the socket ``traci`` binding: libsumo runs SUMO inside the Python process and cannot drive
+# the sumo-gui window, so the live-GUI demo (scripts/run_visual_demo.py) sets it.
+USING_LIBSUMO: bool = importlib.util.find_spec("libsumo") is not None and os.environ.get("CITYMIND_USE_TRACI") != "1"
 
 
 class _LazyTraci:

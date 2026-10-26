@@ -36,7 +36,7 @@ def no_real_processes(monkeypatch):
         calls.append((cmd, kwargs))
         return _FakeProc()
 
-    monkeypatch.setattr(simulation, "_demo_script_exists", lambda: True)   # the launcher script is retired; keep testing the API's guards
+    monkeypatch.setattr(simulation, "_demo_script_exists", lambda: True)
     monkeypatch.setattr(simulation.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(simulation.time, "sleep", lambda _s: None)
     monkeypatch.setattr(simulation.os, "killpg", lambda *a, **k: None)
@@ -136,40 +136,51 @@ def test_delay_duration_bounds(params, no_real_processes):
     assert no_real_processes == []
 
 
-def test_model_path_jail(tmp_path, no_real_processes):
-    outside = tmp_path / "m.zip"
-    outside.write_bytes(b"x")
-    for bad in (str(outside), "../../etc/passwd.zip", "/etc/hosts"):
-        r = LOCAL.post(LAUNCH, params={"controller": "ppo", "model": bad})
-        assert r.status_code in (400, 404), bad
-    # inside artifacts/ but outside artifacts/experiments/ is also refused
-    r = LOCAL.post(LAUNCH, params={"controller": "ppo", "model": "artifacts/metrics/x.zip"})
-    assert r.status_code == 400
+def test_a_client_can_never_choose_a_model_path(no_real_processes):
+    """The launcher takes a controller id only; a smuggled ``model`` parameter is ignored and never reaches the command line."""
+    r = LOCAL.post(LAUNCH, params={"controller": "ippo_A", "model": "/etc/hosts"})
+    assert r.status_code == 200
+    cmd, _kwargs = no_real_processes[-1]
+    assert "/etc/hosts" not in " ".join(cmd) and "--model" not in cmd
+
+
+@pytest.mark.parametrize("controller", ["sumo_actuated", "fixed_time", "ippo_A", "ippo_B"])
+def test_every_demo_controller_launches_with_fixed_arguments(controller, no_real_processes):
+    r = LOCAL.post(LAUNCH, params={"controller": controller, "pos": "10,40", "size": "800,500"})
+    assert r.status_code == 200 and r.json()["status"] == "launched"
+    cmd, kwargs = no_real_processes[-1]
+    assert cmd[1].endswith("scripts/run_visual_demo.py")
+    assert cmd[cmd.index("--controller") + 1] == controller
+    assert cmd[cmd.index("--window-pos") + 1] == "10,40" and cmd[cmd.index("--window-size") + 1] == "800,500"
+    assert kwargs["start_new_session"] is True
+
+
+def test_legacy_controllers_are_refused(no_real_processes):
+    for legacy in ("ppo", "ippo", "max_pressure"):
+        assert LOCAL.post(LAUNCH, params={"controller": legacy}).status_code == 400
     assert no_real_processes == []
 
 
-def test_model_path_inside_experiments_accepted_and_relative(monkeypatch, no_real_processes):
-    exp = simulation._EXPERIMENTS_DIR
-    zip_path = exp / "ppo" / "_pytest_tmp_run" / "model_final.zip"
-    zip_path.parent.mkdir(parents=True, exist_ok=True)
-    zip_path.write_bytes(b"x")
-    try:
-        r = LOCAL.post(LAUNCH, params={"controller": "ppo", "model": str(zip_path)})
-        assert r.status_code == 200
-        assert r.json()["model"] == "artifacts/experiments/ppo/_pytest_tmp_run/model_final.zip"
-        assert "/Users" not in r.text and not r.json()["model"].startswith("/")
-    finally:
-        zip_path.unlink()
-        zip_path.parent.rmdir()
+@pytest.mark.parametrize("params", [{"pos": "x,y"}, {"pos": "1,2,3"}, {"size": "800x500"}, {"pos": "-5,10"}])
+def test_window_options_are_validated(params, no_real_processes):
+    assert LOCAL.post(LAUNCH, params={"controller": "fixed_time", **params}).status_code == 422
+    assert no_real_processes == []
 
 
-def test_latest_model_and_status_have_relative_paths():
-    for path in ("/api/simulation/status", "/api/simulation/latest-model"):
-        r = LOCAL.get(path)
-        if r.status_code == 200:
-            body = r.json()
-            val = body.get("latest_model") or body.get("model_path")
-            assert val is None or not val.startswith("/")
+def test_missing_model_file_is_a_clear_404(monkeypatch, no_real_processes):
+    monkeypatch.setitem(simulation.MODEL_FILES, "ippo_A", "artifacts/models/does_not_exist/model_final.zip")
+    r = LOCAL.post(LAUNCH, params={"controller": "ippo_A"})
+    assert r.status_code == 404 and "missing" in r.json()["detail"]
+    assert no_real_processes == []
+
+
+def test_status_lists_the_launchable_controllers_with_relative_data():
+    r = LOCAL.get("/api/simulation/status")
+    assert r.status_code == 200
+    body = r.json()
+    assert [c["id"] for c in body["controllers"]] == ["sumo_actuated", "fixed_time", "ippo_A", "ippo_B"]
+    assert {c["kind"] for c in body["controllers"]} == {"baseline", "model"}
+    assert "/Users" not in r.text
 
 
 # ── other path jails / allow-lists ───────────────────────────────────────────
@@ -380,7 +391,7 @@ def test_ws_loopback_allowed_origin_works():
         assert msg["type"] == "status" and msg["gui_running"] is False
 
 
-def test_launch_gui_reports_501_when_the_launcher_script_is_retired(monkeypatch):
+def test_launch_gui_reports_501_when_the_launcher_script_is_missing(monkeypatch):
     monkeypatch.setattr(simulation, "_demo_script_exists", lambda: False)
     r = LOCAL.post(f"{LAUNCH}?controller=sumo_actuated")
-    assert r.status_code == 501 and "retired" in r.json()["detail"]
+    assert r.status_code == 501 and "missing" in r.json()["detail"]
