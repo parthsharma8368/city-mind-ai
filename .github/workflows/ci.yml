@@ -51,7 +51,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
           cache: npm
@@ -76,7 +76,7 @@ jobs:
         run: |
           pip install pip-audit
           pip-audit -r requirements.lock --no-deps --disable-pip || true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
       - name: npm audit
