@@ -101,3 +101,57 @@ def test_config_lists_the_controllers_and_the_window(fake_results):
     by_id = {c["id"]: c for c in d["controllers"]}
     assert by_id["ippo_A"]["has_recording"] and not by_id["fixed_time"]["has_recording"]
     assert [c["id"] for c in d["controllers"]] == list(results.CONTROLLERS)
+
+
+# ── /policy: the trained weights the "inside the model" figure runs ─────────────────────────────────────────────────────
+@pytest.fixture
+def fake_models(tmp_path, monkeypatch):
+    """A project root holding a model zip (policy.pth with the real layer shapes) for ippo_A only."""
+    import io
+    import zipfile
+
+    import torch
+
+    def lin(out, inp, fill):
+        return {"weight": torch.full((out, inp), fill), "bias": torch.zeros(out)}
+
+    state = {}
+    for key, out_rows, fill in (("mlp_extractor.policy_net.0", 256, 0.01), ("mlp_extractor.policy_net.2", 256, 0.02), ("action_net", 2, 0.03),
+                                ("mlp_extractor.value_net.0", 256, 0.04), ("mlp_extractor.value_net.2", 256, 0.05), ("value_net", 1, 0.06)):
+        inp = 22 if key.endswith(".0") else 256
+        for name, tensor in lin(out_rows, inp, fill).items():
+            state[f"{key}.{name}"] = tensor
+    buf = io.BytesIO()
+    torch.save(state, buf)
+    rel = showcase.MODEL_FILES["ippo_A"]
+    path = tmp_path / rel
+    path.parent.mkdir(parents=True)
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("policy.pth", buf.getvalue())
+    monkeypatch.setattr(showcase, "_PROJECT_ROOT", tmp_path)
+    showcase._policy_payload.cache_clear()
+    return tmp_path
+
+
+def test_policy_serves_both_networks_with_their_shapes(fake_models):
+    r = client.get("/api/showcase/policy/ippo_A")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["controller"] == "ippo_A" and d["activation"] == "tanh" and len(d["obs_names"]) == 22
+    assert d["actor"]["l1"]["shape"] == [256, 22] and len(d["actor"]["l1"]["w"]) == 256 * 22
+    assert d["actor"]["out"]["shape"] == [2, 256] and d["critic"]["out"]["shape"] == [1, 256]
+    assert d["actor"]["l1"]["w"][0] == pytest.approx(0.01) and d["critic"]["l2"]["w"][0] == pytest.approx(0.05)
+
+
+def test_policy_only_serves_the_fixed_model_files(fake_models):
+    assert client.get("/api/showcase/policy/sumo_actuated").status_code == 404      # a baseline has no weights
+    assert client.get("/api/showcase/policy/..%2F..%2Fetc%2Fpasswd").status_code == 404
+    assert client.get("/api/showcase/policy/ippo_B").status_code == 404             # known id, file absent in the fake root
+    assert "missing" in client.get("/api/showcase/policy/ippo_B").json()["detail"]
+
+
+def test_policy_reports_a_corrupt_model_without_leaking_the_cause(fake_models):
+    (fake_models / showcase.MODEL_FILES["ippo_A"]).write_bytes(b"not a zip")
+    showcase._policy_payload.cache_clear()
+    r = client.get("/api/showcase/policy/ippo_A")
+    assert r.status_code == 500 and r.json()["detail"] == "Could not read the weights of ippo_A."

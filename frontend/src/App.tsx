@@ -1,9 +1,10 @@
 import React from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
-  Activity, PlayCircle, BarChart3, Cpu, BookOpen, Sparkles,
+  Activity, PlayCircle, BarChart3, Cpu, BookOpen, Sparkles, BrainCircuit,
 } from "lucide-react";
 import { ShowcasePage } from "./pages/ShowcasePage";
+import { BrainPage } from "./pages/BrainPage";
 import { StoryPage } from "./pages/StoryPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ComparisonPage } from "./pages/ComparisonPage";
@@ -15,6 +16,7 @@ import { API_DOCS_URL } from "./api/client";
 
 const NAV_ITEMS = [
   { to: "/",             label: "Showcase",     icon: <Sparkles size={16} aria-hidden="true" /> },
+  { to: "/model",         label: "Inside the model", icon: <BrainCircuit size={16} aria-hidden="true" /> },
   { to: "/story",         label: "Story",        icon: <BookOpen size={16} aria-hidden="true" /> },
   { to: "/dashboard",    label: "Dashboard",    icon: <Activity size={16} aria-hidden="true" /> },
   { to: "/replay",       label: "Replay",       icon: <PlayCircle size={16} aria-hidden="true" /> },
@@ -93,6 +95,7 @@ export function App() {
           <ErrorBoundary compact resetKey={pathname}>
           <Routes>
             <Route path="/" element={<ShowcasePage />} />
+            <Route path="/model" element={<BrainPage />} />
             <Route path="/story" element={<StoryPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/replay" element={<ReplayPage />} />

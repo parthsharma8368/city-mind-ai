@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Play, Pause, RotateCcw, FastForward, AlertTriangle } from "lucide-react";
 import { api, isAbortError } from "../api/client";
 import type { NetworkGeoJSON, ShowcaseConfig, ShowcaseMetrics, TenSeedResult } from "../api/client";
@@ -257,7 +258,7 @@ export const ShowcasePage: React.FC = () => {
               </div>
             </>
           )}
-          <p className="sc-foot">Replays recorded evaluation runs (seed 42) and reads stored results; nothing is re-simulated for this demo. Use the SUMO buttons below to watch a live simulation.</p>
+          <p className="sc-foot">Replays recorded evaluation runs (seed 42) and reads stored results; nothing is re-simulated for this demo. Use the SUMO buttons below to watch a live simulation. How does the model decide? <Link to="/model">See inside it →</Link></p>
         </section>
         <SumoLauncher colors={allColors} />
       </div>

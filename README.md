@@ -84,7 +84,7 @@ Model weights are not in git: see [docs/MODELS.md](docs/MODELS.md).
 SUMO actuated, fixed time, model A and model B plays side by side at 10x; the stored results of each controller dissolve in below while
 it plays, and the benchmarks (paired 10-seed verdicts, lag per seed, mini-bars, paired test) load only after all four are in.
 **Watch it in SUMO** (bottom of the page) starts the real SUMO-GUI on this computer for one controller, or all four tiled, through
-`scripts/run_visual_demo.py` (needs SUMO with the GUI; logs in `artifacts/demo_logs/`). Frames are served by `/api/showcase/*` from `artifacts/eval10_run`.
+`scripts/run_visual_demo.py` (needs SUMO with the GUI; logs in `artifacts/demo_logs/`). **Inside the model** (`/model`) shows the actor and the critic as a living 3D network running the real trained weights. Frames are served by `/api/showcase/*` from `artifacts/eval10_run`.
 
 ## Licence
 

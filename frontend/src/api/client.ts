@@ -231,6 +231,30 @@ export interface ShowcaseMetrics {
   measures: ShowcaseMeasure[];
 }
 
+export interface PolicyDenseDTO {
+  /** [outputs, inputs]; `w` is row-major (output-major) and `b` has one bias per output. */
+  shape: [number, number];
+  w: number[];
+  b: number[];
+}
+
+export interface PolicyNetDTO {
+  l1: PolicyDenseDTO;
+  l2: PolicyDenseDTO;
+  out: PolicyDenseDTO;
+}
+
+/** The trained weights of a final model: actor 22 -> 256 -> 256 -> 2 and critic 22 -> 256 -> 256 -> 1 (tanh hidden layers). */
+export interface PolicyDTO {
+  controller: string;
+  label: string;
+  obs_names: string[];
+  actions: string[];
+  activation: "tanh";
+  actor: PolicyNetDTO;
+  critic: PolicyNetDTO;
+}
+
 export interface LaunchResponse {
   status: string;
   pid?: number | null;
@@ -394,6 +418,8 @@ export const api = {
     ),
   getShowcaseMetrics: (controller: string, signal?: AbortSignal) =>
     _fetch<ShowcaseMetrics>(`/showcase/metrics/${encodeURIComponent(controller)}`, { signal }),
+  getPolicy: (controller: string, signal?: AbortSignal) =>
+    _fetch<PolicyDTO>(`/showcase/policy/${encodeURIComponent(controller)}`, { signal }),
 
   // ── XAI ───────────────────────────────────────────────────────────────
   getXAISummary: (controller: string = "ppo", signal?: AbortSignal) =>

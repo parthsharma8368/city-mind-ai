@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: Se
 Dates below come from `git log`.
 
 ## [Unreleased]
+### Inside the model (2026-10-26): a living 3D figure of the actor and the critic
+- New page `/model`: the two real networks (actor 22 -> 256 -> 256 -> 2, critic 22 -> 256 -> 256 -> 1, tanh) drawn in perspective 3D on a canvas. Every 5 s of traffic a wave
+  crosses both networks; neuron glow = activation, line brightness = weight x activation, photons ride the strongest connections, the chosen action sends out a ring. Drag to rotate; Model A / B, 0.5-2x, pause.
+- The forward pass is real: `GET /api/showcase/policy/{ippo_A|ippo_B}` serves the trained weights (read from `policy.pth` in the fixed model zips, ~0.36 MB gzipped) and the browser runs
+  them on a small made-up junction that follows the 22-number observation layout and the safety layer. The 16 most active neurons of each 256-wide layer are drawn.
+- Fix: the dashboard showed "No recorded trajectory available" because a re-resolve had upgraded pyarrow to 26, which cannot import with NumPy 1.x. `pyproject.toml` now caps `pyarrow<26` (lock: 25.0.1).
 ### Showcase (2026-10-26): one-click presentation page
 - `/` is now the Showcase: **Run the showcase** plays the recorded peak-hour run of all four controllers at 10x (canvas, interpolated between the 5 s frames,
   60 fps; one master clock), loads each controller's stored results below with a dissolve while it plays, and mounts the benchmarks only once all
