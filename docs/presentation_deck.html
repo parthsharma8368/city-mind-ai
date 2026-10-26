@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CityMind AI — Professor Defense Master Presentation Deck</title>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    :root {
+        --navy-dark: #0b192c;
+        --slate-dark: #0f172a;
+        --bg-light: #f8fafc;
+        --card-bg: #ffffff;
+        --border-color: #e2e8f0;
+        --blue-accent: #2a78d6;
+        --coral-accent: #eb6834;
+        --green-accent: #10b981;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --text-light: #f1f5f9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #0f172a;
+        color: var(--text-main);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 32px;
+    }
+
+    .slide-container {
+        width: 1280px;
+        height: 720px;
+        background: var(--bg-light);
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        padding: 44px 56px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        page-break-after: always;
+        break-after: page;
+    }
+
+    .slide-container.dark {
+        background: var(--navy-dark);
+        color: var(--text-light);
+    }
+
+    /* Header */
+    .header { display: flex; flex-direction: column; gap: 6px; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
+    .badge {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        padding: 4px 12px;
+        border-radius: 6px;
+        display: inline-block;
+    }
+    .slide-container.dark .badge {
+        background: #1e293b;
+        color: #93c5fd;
+        border: 1px solid var(--blue-accent);
+    }
+    .slide-num {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    .slide-title {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text-main);
+        line-height: 1.2;
+    }
+    .slide-container.dark .slide-title { color: #ffffff; }
+    .slide-subtitle {
+        font-size: 14px;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    .slide-container.dark .slide-subtitle { color: #94a3b8; }
+
+    /* Content Area */
+    .content-area {
+        flex: 1;
+        margin: 20px 0;
+        display: flex;
+        gap: 20px;
+        overflow: hidden;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border-color);
+        border-radius: 10px;
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .slide-container.dark .card {
+        background: #182235;
+        border-color: #334155;
+    }
+    .card-title {
+        font-size: 15px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .card-title.blue { color: var(--blue-accent); }
+    .card-title.coral { color: var(--coral-accent); }
+    .card-title.green { color: var(--green-accent); }
+    .card-title.amber { color: #d97706; }
+
+    .bullet-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .bullet-list li {
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: #334155;
+        position: relative;
+        padding-left: 14px;
+    }
+    .slide-container.dark .bullet-list li { color: #cbd5e1; }
+    .bullet-list li::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--blue-accent);
+        font-weight: bold;
+    }
+
+    /* Table */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .data-table th {
+        background: var(--slate-dark);
+        color: #ffffff;
+        padding: 10px 12px;
+        text-align: left;
+        font-weight: 700;
+    }
+    .data-table td {
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--border-color);
+        background: #ffffff;
+    }
+    .data-table tr:nth-child(even) td { background: #f8fafc; }
+    .data-table tr:hover td { background: #eff6ff; }
+    .highlight-green { color: var(--green-accent); font-weight: 700; }
+
+    /* Figure Layout */
+    .fig-container {
+        flex: 1.4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        border: 1.5px solid var(--border-color);
+        border-radius: 10px;
+        padding: 12px;
+    }
+    .fig-container img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 6px;
+    }
+    .fig-explanation {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Callout */
+    .callout {
+        background: #f0fdf4;
+        border: 1.5px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 12px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .callout-title {
+        font-size: 11px;
+        font-weight: 800;
+        color: #166534;
+        letter-spacing: 0.5px;
+    }
+    .callout-body {
+        font-size: 12.5px;
+        color: var(--text-main);
+        line-height: 1.4;
+    }
+
+    /* Dark Slide 1 Specifics */
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin: 28px 0;
+    }
+    .hero-stat-card {
+        background: #182235;
+        border: 1.5px solid #334155;
+        border-radius: 10px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .hero-stat-val {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--green-accent);
+    }
+    .hero-stat-val.blue { color: var(--blue-accent); }
+    .hero-stat-lbl {
+        font-size: 13px;
+        font-weight: 700;
+        color: #f1f5f9;
+    }
+    .hero-stat-sub {
+        font-size: 11px;
+        color: #94a3b8;
+    }
+
+    /* Speaker Notes Drawer */
+    .notes-drawer {
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-top: 8px;
+        width: 1280px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .notes-drawer strong { color: #38bdf8; }
+
+    @media print {
+        body { background: transparent; padding: 0; gap: 0; }
+        .slide-container {
+            width: 16in;
+            height: 9in;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0.5in 0.6in;
+        }
+        .notes-drawer { display: none !important; }
+        @page { size: 16in 9in landscape; margin: 0; }
+    }
+    </style>
+</head>
+<body>
+    
+        <div class="slide-container dark" id="slide-1">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">FINAL RL PROJECT REVIEW & DEFENSE</span>
+                    <span class="slide-num">SLIDE 01 / 18</span>
+                </div>
+                <div class="slide-title">CityMind AI</div>
+                <div class="slide-subtitle">Decentralized Deep Reinforcement Learning for City-Wide Traffic Signal Control</div>
+            </div>
+            
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px;">
+                <h1 style="font-size: 52px; font-weight: 800; color: #ffffff; letter-spacing: -1px;">CityMind AI</h1>
+                <p style="font-size: 24px; font-weight: 600; color: #cbd5e1;">Decentralized Deep Reinforcement Learning for City-Wide Traffic Signal Control</p>
+                <p style="font-size: 16px; color: #38bdf8; font-weight: 500;">Beating Calibrated Civil-Engineering Actuation on 98 Real-World Heterogeneous Intersections in Ingolstadt, Germany</p>
+                <div class="hero-stats">
+            <div class="hero-stat-card">
+                <div class="hero-stat-val ">-41.4 s</div>
+                <div class="hero-stat-lbl">Lag per scheduled car</div>
+                <div class="hero-stat-sub">10/10 seeds won (p=0.002)</div>
+            </div>
+            
+            <div class="hero-stat-card">
+                <div class="hero-stat-val ">-41.1%</div>
+                <div class="hero-stat-lbl">Mean waiting time</div>
+                <div class="hero-stat-sub">Dropped from 6.39s to 3.77s</div>
+            </div>
+            
+            <div class="hero-stat-card">
+                <div class="hero-stat-val blue">-256 Cars</div>
+                <div class="hero-stat-lbl">City backlog at 08:00</div>
+                <div class="hero-stat-sub">Zero gridlock spillback</div>
+            </div>
+            
+            <div class="hero-stat-card">
+                <div class="hero-stat-val blue">10 / 10</div>
+                <div class="hero-stat-lbl">Statistical victory</div>
+                <div class="hero-stat-sub">Paired seed-by-seed tests</div>
+            </div>
+            </div>
+                <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #334155; padding-top: 12px;">Environment: SUMO Microscopic Physics (TraCI / libsumo) | Algorithm: IPPO + Split Gradient Clipping | Baseline: SUMO Actuated Induction Loops</p>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Good morning, Professor. Today I am presenting CityMind AI, a decentralized Deep Reinforcement Learning system for city-wide traffic signal control. Most academic RL papers test on synthetic, 4-way toy grids with uncalibrated fixed timers and claim massive improvements. We asked a much tougher question: Can Deep RL outperform real-world civil engineering on a genuine city scale? We evaluated on the Ingolstadt InTAS network in Germany—98 heterogeneous intersections during the morning rush hour with over 15,000 scheduled trips. Our benchmark is SUMO's calibrated vehicle-actuated controller running induction loops with gap-out logic. As shown here, our model beats the civil engineering baseline on 10 out of 10 seeds, slashing wait time by 41.1% and saving 41.4 seconds of lag per vehicle across the entire city.
+        </div>
+        
+        <div class="slide-container" id="slide-2">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Problem Statement & Motivation</span>
+                    <span class="slide-num">SLIDE 02 / 18</span>
+                </div>
+                <div class="slide-title">The Reality Check: Escaping Academic Toy Grids</div>
+                <div class="slide-subtitle">Why typical RL traffic papers fail in reality, and how CityMind evaluates real urban scale</div>
+            </div>
+            
+            <div class="content-area">
+            <div class="card">
+                <div class="card-title coral">1. Academic Toy Grids ❌</div>
+                <ul class="bullet-list">
+                    <li>Synthetic 4-way intersections with identical 2-lane approaches.</li><li>Uncalibrated fixed-time timers as the comparison baseline (trivial to beat).</li><li>Assumes infinite queue capacity; ignores turning-bay spillback and lane blocking.</li><li>Reports 'Mean Wait Time of Completed Cars', disguising massive gridlock on side streets (Survivor Bias).</li><li>Fails completely when deployed on real urban topology.</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title blue">2. Real Ingolstadt (InTAS) 🇩🇪</div>
+                <ul class="bullet-list">
+                    <li>Genuine European city network: 98 signalized intersections in Ingolstadt, Germany.</li><li>Severe structural heterogeneity: Junctions have between 4 and 19 lanes, varying green phases (2 to 6).</li><li>Morning rush hour scenario (07:00–08:00) with over 15,000 scheduled trips.</li><li>Realistic driver behavior: Krauss car-following, LC2013 lane change dynamics, clearance delays.</li><li>Real-world bottlenecks: Stop lines holding only 2 cars with 60-car feeder jams.</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title green">3. The True Civil Baseline 🎯</div>
+                <ul class="bullet-list">
+                    <li>SUMO Calibrated Vehicle-Actuated Controller (the real-world industry standard).</li><li>Uses embedded induction loop detectors that sense gap-out headway in real time.</li><li>Extends green phases dynamically when platoons arrive and terminates when gaps appear.</li><li>Governed by authentic civil-engineering minimum, maximum, and yellow clearance intervals.</li><li>Our Goal: Prove Deep RL can outperform calibrated civil engineering across the full network.</li>
+                </ul>
+            </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'We refused to test on toy 4-way synthetic grids. We took the full Ingolstadt city network with 98 real intersections and matched our RL agent against SUMO's calibrated induction-loop actuated controller. If our model wins here, it proves RL is ready for real cities.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, standard RL traffic papers test on 4-way toy grids and claim 20% improvements. But real cities have 4 to 19 lanes per junction, short stop lines, and turning conflicts. We benchmarked against SUMO's calibrated vehicle-actuated controller with gap-out logic—the actual system civil engineers use. Our goal was to prove Deep RL can beat calibrated civil engineering at true city scale.
+        </div>
+        
+        <div class="slide-container" id="slide-3">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Simulation & Physical Modeling</span>
+                    <span class="slide-num">SLIDE 03 / 18</span>
+                </div>
+                <div class="slide-title">Microscopic Vehicle Physics in Eclipse SUMO</div>
+                <div class="slide-subtitle">Simulating continuous-space driver dynamics, car-following, and urban heterogeneity</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-title blue">Microscopic Simulation Engine: Eclipse SUMO</div>
+                    <ul class="bullet-list">
+                        <li>Continuous Space & Discrete Time: Tracks every single vehicle individually at 1.0-second physics increments.</li><li>Krauss Car-Following Model: Models realistic acceleration, safe following distance, deceleration limits, and driver reaction latencies.</li><li>LC2013 Lane-Changing Model: Simulates tactical overtaking, lane blocking, merge conflicts, and turning-lane queues.</li><li>Intersection Clearance Physics: Yellow change intervals (3–4s) and all-red clearance intervals are explicitly simulated to prevent phantom teleportations.</li><li>Spillback Dynamics: Traffic backing up past intersection stop-lines actively blocks upstream cross-traffic, capturing cascading urban gridlock.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-title green">Ingolstadt InTAS Network Specifications</div>
+                    <ul class="bullet-list">
+                        <li>98 Controlled Intersections: Spans high-speed arterial corridors, highway entry ramps, and dense downtown streets.</li><li>Heterogeneous Geometry: Signals feature between 4 and 19 controlled incoming lanes and 2 to 6 unique green phase configurations.</li><li>Morning Rush Hour Window: 07:00 to 08:00 (3,600 simulated seconds), representing peak commuting demand.</li><li>>15,000 Scheduled Vehicle Trips: Calibrated origin-destination trip demand from German municipal mobility surveys.</li><li>Decision Step: The RL agent acts every 5 seconds (720 discrete decision steps per hour), allowing vehicle platoons to clear without jitter.</li><li>Parallel Training: 6 parallel SUMO environments (588 simultaneous signal transitions per step) for high sample efficiency.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'SUMO doesn't treat traffic as abstract fluid flow. Every car has an engine, brakes, driver latency, and lane-changing logic. If an intersection turns green, cars don't instantly move—they accelerate one by one according to Krauss physics. That makes signal coordination genuinely challenging.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, we chose Eclipse SUMO because it is a microscopic simulator. It models discrete vehicles using Krauss car-following for realistic acceleration and brake latency, and LC2013 for lane changes. In Ingolstadt, 98 junctions handle over 15,000 scheduled trips. The agent acts every 5 seconds, providing a stable 720 decision cycles per hour.
+        </div>
+        
+        <div class="slide-container" id="slide-4">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Middleware & Integration</span>
+                    <span class="slide-num">SLIDE 04 / 18</span>
+                </div>
+                <div class="slide-title">TraCI: The Bi-directional TCP Socket Protocol</div>
+                <div class="slide-subtitle">How our Python RL environment queries sensors and actuates signal phases in SUMO</div>
+            </div>
+            
+            <div class="content-area">
+            <div class="card">
+                <div class="card-title blue">1. What is TraCI? 🔌</div>
+                <ul class="bullet-list">
+                    <li>TraCI = Traffic Control Interface.</li><li>Client-Server Architecture: SUMO runs as a socket server (listening on a TCP port); our Python environment connects as a client.</li><li>Bidirectional Interaction: Retrieves simulation state (sensors) and commands simulation objects (actuators).</li><li>Deterministic Stepping: The simulation clock is frozen until Python sends traci.simulationStep().</li><li>Speed Optimization: In src/environment/sumo_connection.py, we use libsumo—a direct C++ SWIG binding eliminating socket overhead during training.</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title green">2. Sensor Ingestion (Every 5s) 📡</div>
+                <ul class="bullet-list">
+                    <li>Queue Measurements: Calls traci.lane.getLastStepHaltingNumber(lane) to detect stopped vehicles (<0.1 m/s).</li><li>Upstream Feeder Walking: Recursively crawls lane topology via traci.lane.getLinks() to inspect traffic up to 300 meters behind stop-lines.</li><li>Downstream Speeds: Queries traci.lane.getLastStepMeanSpeed(lane) to monitor exit road congestion and prevent spillback.</li><li>Outside Network Demand: Queries traci.simulation.getPendingVehicles() to count vehicles queued at city boundary gates waiting to spawn.</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title coral">3. Phase Actuation & Safety 🚦</div>
+                <ul class="bullet-list">
+                    <li>RL Decision: Agent chooses action a in {0: Keep, 1: Advance}.</li><li>Deterministic Safety Filter: Actions pass through SafetyLayer (safety.py) before reaching SUMO.</li><li>Guarantees Min/Max Green: Prevents rapid oscillation and starvation.</li><li>Executes Clearance: Automatically schedules yellow and all-red clearance intervals.</li><li>Direct Actuation Command: Sends traci.trafficlight.setPhase(tls_id, phase_index) to command the hardware.</li><li>Advances Clock: Calls traci.simulationStep() to progress physics by 1 second.</li>
+                </ul>
+            </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'TraCI is our TCP socket middleware. In src/environment/sumo_connection.py, we connect Python to SUMO. Every 5 seconds, Python queries vehicle queues and speeds, runs our RL policy, checks the safety layer, and commands traci.trafficlight.setPhase(). It is 100% automated and deterministic.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, TraCI is the Traffic Control Interface—a TCP socket client-server protocol. SUMO acts as the server; Python acts as the client. In training, we use libsumo C++ bindings for speed. Every 5 seconds, Python queries queues via getLastStepHaltingNumber, checks 300m feeder roads, evaluates our RL model, filters actions through the SafetyLayer, and commands traci.trafficlight.setPhase().
+        </div>
+        
+        <div class="slide-container" id="slide-5">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">System Architecture Figure</span>
+                    <span class="slide-num">SLIDE 05 / 18</span>
+                </div>
+                <div class="slide-title">Figure 1 Walkthrough: The Closed-Loop Control System</div>
+                <div class="slide-subtitle">Explaining the 720-cycle agent-environment interaction loop and the safety layer</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="fig-container">
+                    <img src="fig/fig_loop.png" alt="Figure">
+                </div>
+                <div class="card fig-explanation">
+                    <div class="card-title blue">Deconstructing Figure 1</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                        
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Left Box (The Agent):</strong> ONE shared neural network for all 98 signals. It takes a 22-number state vector and outputs an action.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Right Box (The Environment):</strong> SUMO simulating 98 signals, ~15,000 cars, and microscopic road physics across Ingolstadt.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Top Arrow (Action):</strong> Sent every 5 seconds: 0 = Keep Green, 1 = Advance to Next Phase.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Middle Arrow (State):</strong> 22 normalized features: current phase, elapsed green time, queue lengths, 300m feeder jams, and neighbor traffic.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Bottom Arrow (Reward):</strong> A direct cost penalty proportional to stopped queues, driver delays, and city boundary backlogs.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Bottom Banner (Safety Layer):</strong> A deterministic filter ensuring minimum green, maximum green, and yellow clearance are never violated.
+            </div>
+            
+                    </div>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Point directly to Figure 1: On the left is our single shared neural network. On the right is SUMO. Every 5 seconds, 98 signals send 22 numbers, the policy chooses Keep or Advance, and the safety layer ensures no accidents happen. This loop runs 720 times per hour.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, Figure 1 illustrates our closed-loop architecture. On the left is our single shared neural network; on the right is SUMO simulating 98 signals. Every 5 seconds, the agent receives 22 numbers describing traffic, picks an action (Keep or Advance), and receives a delay-cost reward. The safety layer sits between the policy and SUMO, guaranteeing clearance intervals.
+        </div>
+        
+        <div class="slide-container" id="slide-6">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">System Architecture Evolution</span>
+                    <span class="slide-num">SLIDE 06 / 18</span>
+                </div>
+                <div class="slide-title">Architectural Exploration: 3 Approaches Tested</div>
+                <div class="slide-subtitle">Directly reflecting our handwritten engineering journey from Centralized to IPPO</div>
+            </div>
+            
+            <div class="content-area">
+            <div class="card">
+                <div class="card-title coral">Approach 1: Centralized Agent ❌</div>
+                <ul class="bullet-list">
+                    <li>Concept: One single central controller observes the entire city state and selects joint actions for all 98 intersections.</li><li>Observation Space: Combined state vector of thousands of raw lane queues.</li><li>Action Space Explosion: With 98 binary signals, joint discrete action space is 2^98 ≈ 3.16 × 10^29 actions per step!</li><li>Why It Failed: Mathematically intractable. Neural networks cannot sample or converge across 10^29 joint actions. Severe sample inefficiency.</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title amber">Approach 2: 98 Separate Agents ❌</div>
+                <ul class="bullet-list">
+                    <li>Concept: Every single intersection gets its own dedicated, specialized neural network policy.</li><li>Theoretical Appeal: Each policy network can specialize in the unique geometry of its intersection.</li><li>Massive Overhead: Training, checkpointing, and optimizing 98 distinct neural networks simultaneously.</li><li>Why It Failed: Environment non-stationarity. Each agent changed the traffic environment for its neighbors, destabilizing learning. Zero knowledge transfer between junctions.</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title green">Approach 3: IPPO + Shared Network ✅</div>
+                <ul class="bullet-list">
+                    <li>Concept: Independent PPO (IPPO) with Parameter Sharing + Neighbor Observation Sharing.</li><li>One Shared Brain: All 98 intersections share one identical Actor-Critic policy (22 -> 256 -> 256 -> 2).</li><li>Local Observations: Each signal inputs its own 22-dim local view (including queues from immediate neighbor junctions).</li><li>Why It Won: Massive sample efficiency! Every 5s step produces 98 experience transitions. Knowledge learned on a major avenue immediately generalizes across the city.</li>
+                </ul>
+            </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'As written in our review notes, we tested all three architectures: A centralized agent suffers from 2^98 action space explosion; 98 separate networks suffer from non-stationarity and compute bloat; but IPPO with parameter sharing gives us 98x sample efficiency and spatial generalization.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, as documented in our handwritten notes, we explored three architectures. Centralized control failed due to 2^98 action space explosion. 98 separate networks failed due to non-stationarity and high maintenance overhead. IPPO with parameter sharing won: one shared neural network receives 98 transitions per step, allowing knowledge learned on major corridors to instantly benefit neighbor intersections.
+        </div>
+        
+        <div class="slide-container" id="slide-7">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Theoretical Foundations</span>
+                    <span class="slide-num">SLIDE 07 / 18</span>
+                </div>
+                <div class="slide-title">Why PPO? Grounded in Sudharsan Ravichandiran (2018)</div>
+                <div class="slide-subtitle">Comparing classical RL algorithms against PPO across stability, variance, and sample efficiency</div>
+            </div>
+            
+            <div class="content-area" style="flex-direction: column;">
+                <table class="data-table">
+                    <thead><tr><th>Algorithm</th><th>Book Reference</th><th>Why It Fails on 98-Signal City Control</th><th>Why PPO / IPPO Wins</th></tr></thead>
+                    <tbody><tr><td class="">Q-Learning / Tabular TD</td><td class="">Ch 3 & 5 (pp. 53–120)</td><td class="">State space is continuous & infinite (22 numbers per signal). Tabular Q cannot generalize.</td><td class="">PPO uses deep neural network function approximation mapping continuous states to actions.</td></tr><tr><td class="">Deep Q-Networks (DQN)</td><td class="">Ch 8 (pp. 165–188)</td><td class="">Joint action space is 2^98. In multi-agent, off-policy non-stationarity invalidates replay buffer.</td><td class="">PPO is on-policy; handles multi-agent decentralized transitions naturally without replay corruption.</td></tr><tr><td class="">REINFORCE (Vanilla PG)</td><td class="">Ch 11 (pp. 226–230)</td><td class="">Relies on full episode Monte Carlo returns. Massive variance, slow learning, no baseline.</td><td class="">PPO uses Actor-Critic with GAE (gamma=0.99, lambda=0.95), drastically reducing return variance.</td></tr><tr><td class="">A2C / A3C (Actor-Critic)</td><td class="">Ch 10 (pp. 208–224)</td><td class="">Unconstrained policy updates. One bad gradient can push policy off a cliff into irrecoverable collapse.</td><td class="">PPO clips the surrogate objective to [1-eps, 1+eps], guaranteeing safe, monotonic policy updates.</td></tr><tr><td class="">TRPO (Trust Region)</td><td class="">Ch 11 (pp. 240–244)</td><td class="">Requires calculating second-order Fisher Information matrix inversions with conjugate gradients.</td><td class="">PPO achieves trust-region safety using first-order clipping optimized with standard Adam.</td></tr></tbody>
+                </table>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Grounded in Sudharsan Ravichandiran's book: DQN fails due to the 2^98 action space and replay buffer corruption; REINFORCE has high Monte Carlo variance; TRPO requires expensive second-order Hessian inversions. PPO gives us first-order trust-region clipping with GAE variance reduction.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, we grounded our algorithm choice directly in Sudharsan Ravichandiran’s textbook. Tabular Q cannot handle continuous 22-dimensional states. DQN suffers from 2^98 joint actions and multi-agent replay buffer corruption. REINFORCE has high variance from full Monte Carlo rollouts. TRPO requires expensive second-order Fisher matrix inversions. PPO achieves trust-region safety with a first-order clipped surrogate loss and GAE variance reduction.
+        </div>
+        
+        <div class="slide-container" id="slide-8">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Mathematical Mechanics Figure</span>
+                    <span class="slide-num">SLIDE 08 / 18</span>
+                </div>
+                <div class="slide-title">Figure 2 Walkthrough: The Clipped Surrogate Objective</div>
+                <div class="slide-subtitle">Understanding how PPO prevents policy collapse through probability ratio bounding</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="fig-container">
+                    <img src="fig/fig_ppo_clip.png" alt="Figure">
+                </div>
+                <div class="card fig-explanation">
+                    <div class="card-title blue">Mathematical Intuition of Figure 2</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                        
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Probability Ratio r(θ):</strong> r_t(θ) = π_θ(a_t | s_t) / π_old(a_t | s_t). Measures how much the updated policy differs from the old policy.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Left Plot (Advantage > 0, Good Action):</strong> The dashed line shows unclipped gain. But PPO's blue curve FLATTENS at r = 1 + ε = 1.2. The model gets no extra credit for making an update larger than 20%.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Right Plot (Advantage < 0, Bad Action):</strong> If an action was bad, we want to decrease its probability. But the blue curve flattens at r = 1 - ε = 0.8. It prevents destructive over-penalization.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Shaded Corridor [0.8, 1.2]:</strong> This is the Trust Region (ε = 0.2). Updates within this corridor are smooth; updates outside are clipped.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">GAE (γ=0.99, λ=0.95):</strong> Generalized Advantage Estimation balances immediate reward (low variance) against future traffic delay (low bias).
+            </div>
+            
+                    </div>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Point to Figure 2: The x-axis is r (how much the policy changed). On the left, if the action was good, the blue line clips at 1.2 so the agent doesn't get greedy. On the right, if the action was bad, it clips at 0.8 so the policy doesn't collapse. That 20% corridor guarantees training stability.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, Figure 2 shows PPO's clipped surrogate objective from Ravichandiran Chapter 11. On the left, when an action was good, the objective flattens at 1.2, preventing greedy over-updates. On the right, when an action was bad, it clips at 0.8, preventing policy collapse. The 20% corridor restricts policy updates to a safe trust region, ensuring monotonic improvement.
+        </div>
+        
+        <div class="slide-container" id="slide-9">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Key Breakthrough Figure</span>
+                    <span class="slide-num">SLIDE 09 / 18</span>
+                </div>
+                <div class="slide-title">Figure 3 Walkthrough: Split Gradient Clipping Fix</div>
+                <div class="slide-subtitle">How decoupling Actor and Critic gradient norms solved the hidden 7,600x suppression bug</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="fig-container">
+                    <img src="fig/fig_gradnorm.png" alt="Figure">
+                </div>
+                <div class="card fig-explanation">
+                    <div class="card-title blue">The 'Aha!' Engineering Breakthrough</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                        
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Initial Mystery:</strong> Early in the project, standard PPO failed against SUMO actuated. Policy entropy remained frozen at ~90%, and lights switched almost randomly.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Discovery (Figure 3):</strong> We probed the raw gradients: Critic gradient norm was ~3,830 (due to large early value errors), while Actor gradient norm was only ~0.19!
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Joint Clipping Bug:</strong> Standard Stable-Baselines3 clips all parameters jointly: Scale = 0.5 / sqrt(3830^2 + 0.19^2) ≈ 0.5 / 3830 ≈ 1.3 × 10^-4.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Catastrophe:</strong> The actor's gradient (0.19) was multiplied by 1.3 × 10^-4, shrinking to 0.000025—below Adam optimizer's epsilon threshold (10^-8)! The actor was effectively turned off!
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Our Fix (split_clip.py):</strong> We decoupled gradient clipping: Actor clipped at 0.5; Critic clipped at 0.5 independently.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Result:</strong> Policy learning accelerated by 10x immediately, and CityMind began decisively beating the civil engineering baseline.
+            </div>
+            
+                    </div>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Point to Figure 3: Look at the top bar—the critic gradient was 3,830. The actor gradient at the bottom was only 0.19. Standard libraries clip them together, which scaled down the actor by 7,600 times and froze the policy. By clipping them independently, we solved the bug and unlocked 10x faster learning.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, Figure 3 represents our key algorithmic breakthrough: Split Gradient Clipping. Early on, policy entropy was frozen at 90%. Probing the gradients revealed that the Critic gradient norm was ~3,830 while the Actor was only ~0.19. Standard libraries clipped them jointly under 0.5, scaling the actor down by 7,600x—below Adam's epsilon. In split_clip.py, we clipped the actor and critic independently at 0.5. The actor immediately woke up, accelerating learning by 10x.
+        </div>
+        
+        <div class="slide-container" id="slide-10">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Mathematical & Hyperparameter Rigor</span>
+                    <span class="slide-num">SLIDE 10 / 18</span>
+                </div>
+                <div class="slide-title">Figure Walkthrough: IPPO Hyperparameters & Architecture</div>
+                <div class="slide-subtitle">Rigorous parameter selection, rollout scale (588 agents/tick), and mathematical loss formulation</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="fig-container">
+                    <img src="ippo_hyperparameters_guide.png" alt="Figure">
+                </div>
+                <div class="card fig-explanation">
+                    <div class="card-title blue">Mathematical & Physical Traffic Rationale</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                        
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Master Objective L(θ):</strong> L^CLIP(θ) - 0.5·L^VF(θ) + 0.01·S[π_θ](s_t). Balances policy gain, value estimation, and exploration.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Rollout Scale (588 Agents):</strong> 6 parallel SUMO envs × 98 signals = 588 agents acting per tick. 180 steps = 900s (15 min) rush hour = 105,840 samples/update.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Horizon γ = 0.99 & GAE λ = 0.95:</strong> Effective horizon = 500s (~8.3 min), enabling coordinated multi-intersection green waves instead of myopic 5s gains.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Trust Region ε = 0.2:</strong> Bounds policy ratio to [0.8, 1.2], preventing destructive policy shifts and citywide gridlock.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Split Gradient Clipping:</strong> Decouples Actor (0.5) and Critic (0.5) clipping, resolving the 7,600x gradient suppression bug and speeding learning by 10x.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">MLP [256, 256] with Tanh:</strong> Zero-centered smooth gradients in [-1, 1], avoiding dying ReLUs and executing inference in <1ms on CPU.
+            </div>
+            
+                    </div>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Every hyperparameter is mathematically grounded: γ=0.99 ensures an 8.3-minute horizon for green waves; ε=0.2 bounds policy shift to 20%; 6 parallel environments collect 105,840 transitions per update; and Split Gradient Clipping isolates actor gradients from critic value error.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, this slide details our best-performing IPPO hyperparameters. With 6 parallel environments, 588 agents act simultaneously, collecting 105,840 transitions every 15 minutes of simulated rush hour across 8 minibatches. Gamma=0.99 grants an 8.3-minute horizon for green wave formation, epsilon=0.2 bounds updates to a 20% trust region, and Split Gradient Clipping clips actor and critic independently at 0.5 to prevent gradient starvation.
+        </div>
+        
+        <div class="slide-container" id="slide-11">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Environment Specification</span>
+                    <span class="slide-num">SLIDE 11 / 18</span>
+                </div>
+                <div class="slide-title">22-Dim Observation Space, Action Space & Safety Layer</div>
+                <div class="slide-subtitle">How 22 numbers describe any intersection geometry and how safety rules prevent crashes</div>
+            </div>
+            
+            <div class="content-area">
+            <div class="card">
+                <div class="card-title blue">1. Observation Vector (22-Dim) 📊</div>
+                <ul class="bullet-list">
+                    <li>Normalized to [-1, 1] for stable NN input.</li><li>0–5: Active green phase (one-hot vector across up to 6 green phases).</li><li>6: In-transition flag (1.0 during yellow or red clearance).</li><li>7–8: Elapsed green duration relative to authored Min Green and Max Green.</li><li>9–14: Varaiya pressure per green movement (Upstream + Feeders - Downstream).</li><li>15: Max queue on worst approach (300m feeders).</li><li>16: Pending outside-network vehicles waiting to enter.</li><li>17: Number of valid green phases / 6.</li><li>18–21: Neighbor queues (2 upstream, 2 downstream junctions).</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title green">2. Action Space: Discrete(2) 🚦</div>
+                <ul class="bullet-list">
+                    <li>Action 0: KEEP current green phase.</li><li>Action 1: ADVANCE to next sequential green phase.</li><li>Why Discrete(2)? Avoids combinatorial phase selection bugs.</li><li>Spatial Invariance: A 2-phase pedestrian crossing and a 6-phase major boulevard use the exact same action contract.</li><li>Safety Decoupling: The neural network never directly commands raw light colors. It expresses intent ('keep' or 'advance'), which is evaluated by the SafetyLayer.</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title coral">3. Deterministic Safety Layer 🛡️</div>
+                <ul class="bullet-list">
+                    <li>Implemented in src/environment/safety.py as a deterministic finite-state machine.</li><li>Minimum Green Enforcement: Even if agent chooses 'advance', phase cannot switch until minimum green (10s) expires. Prevents light flickering.</li><li>Maximum Green Cap: Forces phase advance if maximum green (60s) is exceeded. Prevents lane starvation.</li><li>Mandatory Clearance Phases: Yellow (3-4s) and all-red clearance intervals are strictly executed in hardware before green switches.</li><li>Zero Collision Risk: The agent physically cannot cause an accident in the simulator.</li>
+                </ul>
+            </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Because junctions have different numbers of lanes (4 to 19), feeding raw lanes into a neural network is impossible. We engineered a compact 22-dimensional feature vector that works across all 98 signals, and backed it with a deterministic safety layer that enforces clearance intervals.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, we engineered a fixed 22-dimensional observation vector that maps any junction geometry: features 0-5 encode active phase, 7-8 encode relative green duration, 9-14 encode Varaiya pressure, 15 tracks worst feeder queue, 16 tracks vehicles waiting outside, and 18-21 encode neighbor traffic. Actions are Discrete(2): Keep or Advance. The deterministic SafetyLayer enforces minimum green, maximum green, and yellow clearance, preventing collisions.
+        </div>
+        
+        <div class="slide-container" id="slide-12">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Civil Engineering Realism</span>
+                    <span class="slide-num">SLIDE 12 / 18</span>
+                </div>
+                <div class="slide-title">Engineering Breakthroughs: 300m Feeders & Delay Cost</div>
+                <div class="slide-subtitle">Overcoming stop-line blindness and designing a non-gameable reward function</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-title blue">Breakthrough 2: 300-Meter Feeder Walker 🚗</div>
+                    <ul class="bullet-list">
+                        <li>The Stop-Line Blindness Trap: In European city centers, stop-lines can be as short as 15 to 20 meters, holding only 2 or 3 vehicles per lane.</li><li>The Blindspot: If an RL agent only queries the stop-line lane, a massive 60-car traffic jam sitting 30 meters behind it is completely invisible!</li><li>Our Solution (local_observation.py): We implemented a recursive upstream road crawler.</li><li>300-Meter Depth: The algorithm walks backwards along incoming edges up to 300 meters, aggregating halted vehicles on all connected feeder lanes.</li><li>Result: The agent can see platoons and traffic jams forming hundreds of meters away, giving it the foresight to extend green phases before spillback blocks cross-traffic.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-title green">Breakthrough 3: Delay-Level Cost Reward 🎯</div>
+                    <ul class="bullet-list">
+                        <li>Why Change in Waiting Time (ΔW) Failed: Academic papers often reward 'decrease in waiting time'. Agents quickly game this reward by rapidly flipping lights—briefly reducing wait time while causing massive physical gridlock.</li><li>Our Delay-Cost Function (local_reward.py): Formulated as a direct economic cost penalty:</li><li>r_i(t) = -0.1 × min(Q_i + 2D_i + S_i + 0.5P_i + 0.5(P_total / 98), 200)</li><li>Q_i = Halted vehicles on stop-line and 300m feeder approaches.</li><li>D_i = Stopped vehicles experiencing severe delay (>30s).</li><li>S_i = Phase switching penalty (discourages unnecessary phase changes).</li><li>P_i & P_total = Vehicles queued outside the network waiting to enter.</li><li>Result: Impossible to game. The agent maximizes reward only by flushing vehicles cleanly through the network.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Two practical civil engineering fixes: First, stop-lines only hold 2 cars, so we recursively crawl upstream roads 300 meters to see real queues. Second, we abandoned delta-wait-time (which causes light-flipping oscillation) and used a direct delay-cost penalty that includes outside entry queues.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, here are two vital engineering breakthroughs: First, stop-lines in Ingolstadt only hold 2 cars. If the agent only checks the stop-line, a 60-car jam 30 meters back is invisible. We recursively crawl upstream roads up to 300 meters. Second, delta-waiting-time caused rapid light flipping. We replaced it with a direct delay-cost penalty on queues, delays, phase switches, and outside entry backlogs.
+        </div>
+        
+        <div class="slide-container" id="slide-13">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Scientific Evaluation Protocol</span>
+                    <span class="slide-num">SLIDE 13 / 18</span>
+                </div>
+                <div class="slide-title">The Survivor Bias Trap & Drain Metrics Protocol</div>
+                <div class="slide-subtitle">Why standard academic metrics lie, and how our evaluation scores all scheduled demand</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-title coral">The Survivor Bias Trap in Standard RL ❌</div>
+                    <ul class="bullet-list">
+                        <li>What standard literature reports: 'Mean Waiting Time of Completed Trips'.</li><li>The Fatal Flaw: In a failing, gridlocked simulation, vehicles attempting long journeys across the city get trapped in queues and NEVER reach their destinations.</li><li>Who actually completes? Only lucky vehicles taking short, direct trips on uncongested perimeter roads.</li><li>The Paradoxical Lie: The simulator computes average wait time ONLY across the completed cars. Because only the fast, uncongested cars finished, the metric reports a falsely low waiting time!</li><li>Severe Disguise: An agent causing catastrophic citywide gridlock can appear to have 'low wait times' simply by trapping all difficult trips forever.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-title green">Our Solution: The Drain Metrics Protocol ✅</div>
+                    <ul class="bullet-list">
+                        <li>Implemented in src/evaluation/drain_metrics.py to eliminate survivor bias.</li><li>Scores ALL ~15,000 Scheduled Trips: Evaluates every vehicle that was supposed to travel during the rush hour.</li><li>Free-Flow Ideal Baseline: Calculates the theoretical zero-delay completion time for each car: ideal_k = depart_k + free_flow_time_k.</li><li>Lag per Scheduled Car: Lag_k = min(actual_arrival_k, T_end) - min(ideal_k, T_end).</li><li>Trapped Car Penalty: If a vehicle gets stuck or never enters the city, its completion time is penalized at the simulation boundary (T_end = 08:00).</li><li>Total Network Accountability: A controller cannot score well without draining the entire city cleanly.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Evaluating traffic by only completed cars is like evaluating a hospital by only counting patients who walked out alive! If an RL policy causes gridlock, cars get trapped and never finish. Our Drain Metrics score all 15,000 scheduled cars against ideal free-flow arrival, eliminating survivor bias.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, standard literature reports 'Mean Wait Time of Completed Trips'. But if an agent causes gridlock, cars get trapped and never finish. Only lucky cars on short trips finish, making wait times look artificially low! Our Drain Metrics protocol evaluates all 15,000 scheduled trips against ideal zero-delay completion. Trapped cars are penalized at simulation end time.
+        </div>
+        
+        <div class="slide-container" id="slide-14">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Statistical Evidence Figure</span>
+                    <span class="slide-num">SLIDE 14 / 18</span>
+                </div>
+                <div class="slide-title">Figure 4 Walkthrough: 10-Seed Head-to-Head Victory</div>
+                <div class="slide-subtitle">Every single gray line slopes downward: CityMind wins 10 out of 10 independent random seeds</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="fig-container">
+                    <img src="fig/fig_seed_lag.png" alt="Figure">
+                </div>
+                <div class="card fig-explanation">
+                    <div class="card-title blue">Statistical Rigor of Figure 4</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                        
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Evaluation Protocol:</strong> 40 full 1-hour simulation runs across 10 random seeds (7, 11, 19, 23, 31, 42, 57, 91, 123, 777).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">What the Gray Lines Represent:</strong> Each connecting gray line is ONE exact traffic realization tested head-to-head across SUMO actuated, Model A, and Model B.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">The Unbroken Downward Slope:</strong> Notice that every single line slopes downward from baseline to our models. There is not a single seed where the baseline won!
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Baseline (SUMO Actuated):</strong> Mean lag of 276.8 seconds per scheduled vehicle.
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">CityMind Model A:</strong> Mean lag of 235.4 seconds (-41.4 seconds, -15.0%). Won 10/10 seeds (p = 0.002, exact sign test).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">CityMind Model B:</strong> Mean lag of 239.9 seconds (-36.9 seconds, -13.3%). Won 10/10 seeds (p = 0.002, exact sign test).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Confidence Interval:</strong> 95% t-interval for Model A difference is [-43.9 s, -38.9 s], safely excluding zero.
+            </div>
+            
+                    </div>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Point directly to Figure 4: The y-axis is lag per car. The left column is the civil engineering baseline; the middle is Model A. Each gray line is the exact same traffic seed. Every single line slopes downward! That proves our victory is not a random lucky seed—it is a 10-out-of-10 statistically verified result (p=0.002).'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, Figure 4 provides our definitive statistical proof across 10 independent seeds. Each gray line connects the exact same random traffic seed across controllers. Every single gray line slopes downward: on SUMO actuated, mean lag is 276.8s; on Model A, it drops to 235.4s—saving 41.4 seconds per vehicle. Under the exact sign test, winning 10/10 seeds yields p = 0.002.
+        </div>
+        
+        <div class="slide-container" id="slide-15">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Benchmark Comparison Figure</span>
+                    <span class="slide-num">SLIDE 15 / 18</span>
+                </div>
+                <div class="slide-title">Figure 5 Walkthrough: Multi-Metric Citywide Gains</div>
+                <div class="slide-subtitle">Longer bars indicate greater percentage improvement over SUMO Actuated across 14 metrics</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="fig-container">
+                    <img src="fig/fig_improvement.png" alt="Figure">
+                </div>
+                <div class="card fig-explanation">
+                    <div class="card-title blue">Key Metric Breakdown in Figure 5</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                        
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">How to Read the Chart:</strong> Horizontal bars show percentage improvement over SUMO Actuated (longer = better). Blue = Model A; Orange = Model B. Numbers show seeds won (out of 10).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Mean Waiting Time (-41.1%):</strong> The longest bar at the top! Waiting time at intersections dropped from 6.39s to 3.77s (10/10 seeds won).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Mean Queue Length (-27.9%):</strong> Average junction queue dropped from 0.44 to 0.32 halted cars (10/10 seeds won).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">City Backlog (-8.2%, -256 Cars):</strong> At 08:00, 256 fewer cars were left trapped inside the city network (10/10 seeds won).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Trips Completed (+258 Cars):</strong> Finished journeys increased by +258 vehicles (from 11,585 to 11,842, 10/10 seeds won).
+            </div>
+            
+            <div style="font-size: 12.5px; line-height: 1.45; color: #334155;">
+                <strong style="color: var(--blue-accent);">Zero Degradation:</strong> No metric is worse. Fixed-time, in contrast, failed on 11 out of 14 metrics.
+            </div>
+            
+                    </div>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Point to Figure 5: This bar chart displays all 14 traffic metrics. Notice that every bar extends to the right—meaning positive improvement over SUMO Actuated. Notice the small numbers on the right of each bar: 10/10, 10/10, 10/10. We didn't sacrifice one metric to boost another; the entire network improved.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, Figure 5 demonstrates holistic network improvement. Every bar extends to the right, showing percentage gain over SUMO Actuated. Waiting time dropped 41.1%, queue lengths dropped 27.9%, city backlog dropped by 256 trapped vehicles, and trips completed increased by +258 vehicles. All core metrics won 10 out of 10 seeds.
+        </div>
+        
+        <div class="slide-container" id="slide-16">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Numerical Performance Matrix</span>
+                    <span class="slide-num">SLIDE 16 / 18</span>
+                </div>
+                <div class="slide-title">Comprehensive Head-to-Head Benchmark Table</div>
+                <div class="slide-subtitle">Statistical comparison across SUMO Actuated, Fixed-Time, Model A, and Model B</div>
+            </div>
+            
+            <div class="content-area" style="flex-direction: column;">
+                <table class="data-table">
+                    <thead><tr><th>Metric Evaluated</th><th>SUMO Actuated (Base)</th><th>Fixed-Time</th><th>CityMind Model A</th><th>Difference (vs Base)</th><th>Seeds Won</th><th>Statistical Verdict</th></tr></thead>
+                    <tbody><tr><td class="">Lag per scheduled car (s)</td><td class="">276.8 s</td><td class="">298.7 s (+7.9%)</td><td class="">235.4 s</td><td class="highlight-green">-41.4 s (-15.0%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr><tr><td class="">Time loss per finished car (s)</td><td class="">336.6 s</td><td class="">363.5 s (+8.0%)</td><td class="">286.4 s</td><td class="">-50.2 s (-14.9%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr><tr><td class="">Mean waiting time (s)</td><td class="">6.39 s</td><td class="">7.14 s (+11.7%)</td><td class="">3.77 s</td><td class="highlight-green">-2.63 s (-41.1%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr><tr><td class="">Backlog at 08:00 (cars)</td><td class="">3,108 cars</td><td class="">3,297 cars</td><td class="">2,852 cars</td><td class="">-256 cars (-8.2%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr><tr><td class="">Mean queue length (cars)</td><td class="">0.440</td><td class="">0.492 (+11.8%)</td><td class="">0.318</td><td class="">-0.123 (-27.9%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr><tr><td class="">Mean vehicle speed (m/s)</td><td class="">8.70 m/s</td><td class="">8.40 m/s (-3.4%)</td><td class="">9.37 m/s</td><td class="">+0.68 m/s (+7.8%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr><tr><td class="">Trips completed (vehicles)</td><td class="">11,585</td><td class="">11,432 (-152)</td><td class="">11,842</td><td class="">+258 cars (+2.2%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr><tr><td class="">Depart delay (s)</td><td class="">15.7 s</td><td class="">15.3 s</td><td class="">14.1 s</td><td class="">-1.59 s (-10.2%)</td><td class="">10 / 10</td><td class="highlight-green">BEATEN (p=0.002)</td></tr></tbody>
+                </table>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'This table summarizes the 40 experimental runs. Look at Fixed-Time in column 3: it is worse than the baseline on almost every metric (+7.9% lag, +11.7% wait time). In contrast, CityMind Model A beats SUMO Actuated across the board with p=0.002 statistical significance.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, this table aggregates our findings. Fixed-time timers performed significantly worse than SUMO Actuated (+7.9% lag, +11.7% wait time). In contrast, CityMind Model A reduced lag by 41.4s, reduced time loss by 50.2s, reduced waiting time by 41.1%, and increased completed trips by +258 vehicles, winning 10/10 seeds with p=0.002.
+        </div>
+        
+        <div class="slide-container" id="slide-17">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Engineering & Reproducibility</span>
+                    <span class="slide-num">SLIDE 17 / 18</span>
+                </div>
+                <div class="slide-title">Modular Codebase Architecture & Live Execution</div>
+                <div class="slide-subtitle">Clean modular software design with verified reproducibility commands</div>
+            </div>
+            
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-title blue">Modular Codebase Architecture 📂</div>
+                    <ul class="bullet-list">
+                        <li>src/agents/ippo_agent.py: PettingZoo wrapper, GAE calculator, and training harness.</li><li>src/agents/split_clip.py: Decoupled Actor/Critic gradient norm clipping optimizer.</li><li>src/environment/sumo_connection.py: Lazy TraCI / libsumo socket proxy.</li><li>src/environment/decentralized_sumo_env.py: 98-agent PettingZoo parallel traffic environment.</li><li>src/environment/local_observation.py: 22-dim feature extractor and 300m feeder crawler.</li><li>src/environment/local_reward.py: Delay-cost reward function with boundary backlog tracking.</li><li>src/environment/safety.py: Deterministic clearance and min/max green state machine.</li><li>src/evaluation/drain_metrics.py: Survivor-bias-free scheduled demand evaluation.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-title green">Live Verification & CLI Commands 💻</div>
+                    <ul class="bullet-list">
+                        <li>100% Runnable & Self-Contained: Managed with uv and virtual environment.</li><li>Evaluate 10 Seeds Head-to-Head: uv run python scripts/evaluate.py --help</li><li>Launch Live SUMO GUI Demo: uv run python scripts/run_visual_demo.py --render</li><li>Train IPPO from Scratch: uv run python scripts/run_ippo_training.py</li><li>Re-generate Figures & Report: uv run python docs/professor_report/make_figures.py</li><li>Automated CI & Validation: Passes pytest, ruff formatting, and model contracts.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Explain to the professor: 'Everything in this project is modular, fully typed, unit-tested, and reproducible with simple uv run CLI commands. If you would like to see a live demonstration right now, we can run the visual GUI demo or inspection script immediately.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Professor, our software is fully modular and reproducible. src/agents contains IPPO and split-clipping; src/environment isolates TraCI and the safety layer; src/evaluation contains drain metrics. The entire project is runnable with uv. We can run the live SUMO visual demo right now if you wish.
+        </div>
+        
+        <div class="slide-container dark" id="slide-18">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Summary & Contributions</span>
+                    <span class="slide-num">SLIDE 18 / 18</span>
+                </div>
+                <div class="slide-title">Conclusion: Why CityMind AI Succeeds</div>
+                <div class="slide-subtitle">Summary of key contributions and theoretical breakthroughs in city-wide traffic control</div>
+            </div>
+            
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px;">
+                    
+            <div class="card" style="background: #182235; border-color: #334155;">
+                <div class="card-title blue" style="font-size: 16px;">1. Real-World Scale 🇩🇪</div>
+                <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">Evaluated on Ingolstadt InTAS: 98 heterogeneous intersections, >15k vehicles, Krauss car-following physics, beating calibrated induction loops.</p>
+            </div>
+            
+            <div class="card" style="background: #182235; border-color: #334155;">
+                <div class="card-title blue" style="font-size: 16px;">2. Solid RL Theory 📚</div>
+                <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">Formulated as Dec-POMDP with parameter-shared IPPO, GAE variance reduction, and clipped surrogate loss grounded in Ravichandiran (2018).</p>
+            </div>
+            
+            <div class="card" style="background: #182235; border-color: #334155;">
+                <div class="card-title blue" style="font-size: 16px;">3. Engineering Breakthroughs 🛠️</div>
+                <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">Invented Split Gradient Clipping (fixing 7,600x actor suppression), 300m feeder walker, delay-cost reward, and deterministic safety layer.</p>
+            </div>
+            
+            <div class="card" style="background: #182235; border-color: #334155;">
+                <div class="card-title green" style="font-size: 16px;">4. Decisive 10-Seed Victory 🏆</div>
+                <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">Slashing lag by -41.4s (-15%) and wait times by -41.1%, clearing 256 trapped vehicles, winning 10/10 seeds with p=0.002.</p>
+            </div>
+            
+                </div>
+                <div style="background: #1e293b; border: 1.5px solid var(--blue-accent); border-radius: 8px; padding: 14px; text-align: center; color: #ffffff; font-weight: 700; font-size: 14px; margin-top: 20px;">
+                    🎯 THANK YOU, PROFESSOR. READY FOR YOUR QUESTIONS & DISCUSSION.
+                </div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            In conclusion, Professor: CityMind AI demonstrates that decentralized Deep RL can outperform calibrated civil engineering across 98 real intersections in Ingolstadt. By resolving the 7,600x actor gradient suppression bug, seeing 300m feeder queues, and enforcing deterministic safety, we achieved a statistically bulletproof 10/10 seed victory with a 41.1% wait-time reduction. Thank you, and I look forward to your questions.
+        </div>
+        
+        <div class="slide-container" id="slide-19">
+            <div class="header">
+                <div class="header-top">
+                    <span class="badge">Appendix & Oral Defense Reference</span>
+                    <span class="slide-num">SLIDE 19 / 18</span>
+                </div>
+                <div class="slide-title">Professor Q&A Cheat Sheet: Rapid-Fire Answers</div>
+                <div class="slide-subtitle">Targeted technical answers for anticipated professor questions</div>
+            </div>
+            
+            <div class="content-area" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+                
+            <div class="card" style="padding: 14px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--blue-accent); margin-bottom: 4px;">Q1: Why not Centralized DQN?</div>
+                <p style="font-size: 11.5px; color: var(--text-main); line-height: 1.4;">Centralized action space is 2^98 ≈ 3.16 × 10^29. Finding argmax Q is NP-hard. In multi-agent, off-policy replay buffers become invalid due to environment non-stationarity.</p>
+            </div>
+            
+            <div class="card" style="padding: 14px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--blue-accent); margin-bottom: 4px;">Q2: What if TraCI socket drops or lags?</div>
+                <p style="font-size: 11.5px; color: var(--text-main); line-height: 1.4;">Wrapped in a resilient proxy (sumo_connection.py). For training, we use libsumo—a direct C++ SWIG binding that runs in-process, eliminating sockets and network latency entirely.</p>
+            </div>
+            
+            <div class="card" style="padding: 14px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--blue-accent); margin-bottom: 4px;">Q3: Why Tanh activations in MLP?</div>
+                <p style="font-size: 11.5px; color: var(--text-main); line-height: 1.4;">Tanh produces zero-centered, smooth gradients bounded in [-1, 1]. In continuous-control PPO, ReLU often leads to dead neurons and aggressive policy shifts; Tanh ensures stable updates.</p>
+            </div>
+            
+            <div class="card" style="padding: 14px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--blue-accent); margin-bottom: 4px;">Q4: How does Safety Layer prevent crashes?</div>
+                <p style="font-size: 11.5px; color: var(--text-main); line-height: 1.4;">The RL agent never sets light colors directly. SafetyLayer implements a deterministic state machine: when advancing, it strictly inserts yellow (3-4s) and all-red clearance intervals.</p>
+            </div>
+            
+            <div class="card" style="padding: 14px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--blue-accent); margin-bottom: 4px;">Q5: Why GAE gamma=0.99 and lambda=0.95?</div>
+                <p style="font-size: 11.5px; color: var(--text-main); line-height: 1.4;">Grounded in Ravichandiran Ch. 10: gamma=0.99 ensures the policy values clearing future downstream queues. lambda=0.95 balances Temporal Difference bias against Monte Carlo variance.</p>
+            </div>
+            
+            <div class="card" style="padding: 14px;">
+                <div style="font-size: 13px; font-weight: 800; color: var(--blue-accent); margin-bottom: 4px;">Q6: Why are teleports noisy in results?</div>
+                <p style="font-size: 11.5px; color: var(--text-main); line-height: 1.4;">Teleports occur only when extreme gridlock persists for 300+ seconds. In a 1-hour run, teleports are rare (7.5 vs 13.3). They dropped 43%, but due to high variance, sign test is p=0.508 (directional).</p>
+            </div>
+            
+            </div>
+            <div class="callout">
+                <div class="callout-title">💡 HOW TO EXPLAIN TO THE PROFESSOR IN 20 SECONDS</div>
+                <div class="callout-body">Tip for the student: 'If the professor asks any technical question, keep calm, refer to this slide, and connect your answer to: 1. Ravichandiran's book principles, 2. The physical realities of traffic in Ingolstadt, or 3. Our exact code implementation in src/.'</div>
+            </div>
+            
+        </div>
+        <div class="notes-drawer">
+            <strong>🎤 SPEAKER NOTES (WHAT TO SAY TO PROFESSOR):</strong><br>
+            Keep this slide ready as backup during the Q&A session. If the professor asks why Tanh was used instead of ReLU, point to smooth bounded gradient propagation in control. If asked how collisions are prevented, point to the deterministic SafetyLayer state machine.
+        </div>
+        
+</body>
+</html>

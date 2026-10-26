@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CityMind AI - Project report</title>
+<style>
+  :root { --ink:#0b0b0b; --ink2:#3d3c39; --muted:#6b6a66; --line:#dcdad5; --soft:#f6f5f2;
+          --blue:#2a78d6; --blue-bg:#eaf2fc; --green:#0b7a53; --green-bg:#e8f5ef; --orange:#c4501f; --orange-bg:#fcefe8;
+          --violet:#5b49c9; --violet-bg:#efedfb; }
+  @page { size: A4; margin: 17mm 15mm 18mm 15mm;
+          @bottom-left   { content: "CityMind AI - project report"; font: 8pt Helvetica, Arial, sans-serif; color: #8a8985; }
+          @bottom-right  { content: "Page " counter(page) " of " counter(pages); font: 8pt Helvetica, Arial, sans-serif; color: #8a8985; } }
+  @page :first { @bottom-left { content: ""; } @bottom-right { content: ""; } }
+  * { box-sizing: border-box; }
+  body { font: 10pt/1.5 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); margin: 0; background: #fff; }
+  h1 { font-size: 27pt; line-height: 1.12; margin: 0 0 6pt; letter-spacing: -0.4pt; }
+  h2 { font-size: 15.5pt; margin: 0 0 6pt; padding-top: 4pt; border-top: 2.5pt solid var(--ink); break-after: avoid; }
+  h3 { font-size: 11.2pt; margin: 13pt 0 3pt; break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 7pt; padding-left: 16pt; } li { margin-bottom: 2pt; }
+  .sec { break-before: page; }
+  .sub { color: var(--muted); font-size: 11pt; margin-bottom: 10pt; }
+  .meta { color: var(--muted); font-size: 8.8pt; margin-bottom: 12pt; }
+  a { color: var(--blue); text-decoration: none; }
+  a.c { font: 8pt/1.2 "SF Mono", Menlo, Consolas, monospace; background: #eef0f3; padding: 0.5pt 3pt; border-radius: 2pt; color: #1a4f94; white-space: nowrap; }
+  .bk { display: inline-block; font: 600 7.6pt/1.35 -apple-system, Helvetica, Arial, sans-serif; background: var(--green-bg); color: var(--green);
+        border: 0.6pt solid #b9dccd; padding: 0 3.5pt; border-radius: 6pt; white-space: nowrap; }
+  code { font: 8.6pt "SF Mono", Menlo, Consolas, monospace; background: #f0efec; padding: 0.4pt 2.5pt; border-radius: 2pt; }
+  .box { border-left: 3pt solid var(--blue); background: var(--blue-bg); padding: 6pt 9pt; margin: 7pt 0 9pt; border-radius: 0 4pt 4pt 0; break-inside: avoid; }
+  .box .t { display: block; font: 700 7.8pt -apple-system, Helvetica, Arial, sans-serif; letter-spacing: 0.7pt; text-transform: uppercase; margin-bottom: 2pt; }
+  .box.plain { border-color: var(--blue); background: var(--blue-bg); } .box.plain .t { color: var(--blue); }
+  .box.book  { border-color: var(--green); background: var(--green-bg); } .box.book .t { color: var(--green); }
+  .box.code  { border-color: var(--violet); background: var(--violet-bg); } .box.code .t { color: var(--violet); }
+  .box.warn  { border-color: var(--orange); background: var(--orange-bg); } .box.warn .t { color: var(--orange); }
+  .box p:last-child, .box ul:last-child { margin-bottom: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 9pt; font-size: 8.8pt; }
+  th { text-align: left; background: var(--soft); border-bottom: 1.2pt solid var(--ink); padding: 3.5pt 5pt; font-weight: 650; }
+  td { border-bottom: 0.6pt solid var(--line); padding: 3.5pt 5pt; vertical-align: top; }
+  .keep { break-inside: avoid; }
+  tr { break-inside: avoid; } td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.win td { background: #f1f8f4; } tr.lvl td { background: #fcf7ea; }
+  .fig { margin: 7pt 0 9pt; text-align: center; break-inside: avoid; } .fig img { max-width: 100%; }
+  .fig .cap { font-size: 8.4pt; color: var(--muted); margin-top: 2pt; text-align: left; }
+  .formula { background: var(--soft); border: 0.6pt solid var(--line); border-radius: 4pt; padding: 7pt 10pt; margin: 6pt 0 8pt; font: 10pt/1.6 "STIXGeneral", "Times New Roman", serif; break-inside: avoid; }
+  .formula .ft { font: 600 7.8pt -apple-system, Helvetica, Arial, sans-serif; color: var(--muted); letter-spacing: 0.5pt; text-transform: uppercase; display: block; margin-bottom: 2pt; }
+  .formula i { font-family: "STIXGeneral", "Times New Roman", serif; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; } .grid2 > * { break-inside: avoid; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; margin: 8pt 0 10pt; }
+  .kpi { border: 0.8pt solid var(--line); border-radius: 5pt; padding: 7pt 9pt; } .kpi b { display: block; font-size: 19pt; letter-spacing: -0.4pt; line-height: 1.1; }
+  .kpi span { font-size: 8.2pt; color: var(--muted); }
+  .strip { display: flex; gap: 1.5pt; margin: 6pt 0 2pt; } .strip div { flex: none; height: 15pt; border-radius: 2pt; }
+  .strip-l { display: flex; gap: 1.5pt; font-size: 7pt; color: var(--muted); margin-bottom: 6pt; } .strip-l div { flex: none; text-align: center; overflow: hidden; white-space: nowrap; }
+  .chain { display: flex; align-items: stretch; gap: 4pt; margin: 6pt 0 9pt; } .chain > div { flex: 1; border: 0.8pt solid var(--line); border-radius: 5pt; padding: 5pt 6pt; font-size: 8.4pt; background: var(--soft); }
+  .chain > div b { display: block; font-size: 9pt; margin-bottom: 1pt; } .chain .ar { flex: none; align-self: center; border: none; background: none; padding: 0; font-size: 12pt; color: var(--muted); }
+  .small { font-size: 8.4pt; color: var(--muted); }
+  .cover-top { border-top: 5pt solid var(--ink); padding-top: 12pt; }
+</style>
+</head>
+<body>
+
+<!-- ===================================================== COVER ===================================================== -->
+<div class="cover-top">
+  <div class="meta">REINFORCEMENT-LEARNING PROJECT REPORT &nbsp;&middot;&nbsp; INGOLSTADT MORNING RUSH HOUR &nbsp;&middot;&nbsp; 25 OCTOBER 2026</div>
+  <h1>CityMind AI</h1>
+  <div class="sub">One neural network that runs 98 traffic lights - and does better than the simulator's own signal logic</div>
+</div>
+
+<div class="box plain"><span class="t">The project in 60 seconds</span>
+<ol>
+<li><b>Problem.</b> Every traffic light needs a rule for when to turn green. We simulate the morning rush hour (07:00-08:00, about 15,000 cars, 98 signalised junctions) of the German city Ingolstadt in the traffic simulator SUMO. The simulator's own rule - "actuated" control, which keeps a green on while cars keep arriving - is the opponent we must beat.</li>
+<li><b>Idea.</b> Let a computer <i>learn</i> the rule by trial and error (reinforcement learning). We train <b>one</b> neural network and copy it to all 98 junctions. Every 5 simulated seconds each junction shows the network 22 numbers about its traffic and gets back one answer: <i>stay green</i> or <i>move to the next green</i>.</li>
+<li><b>Learning.</b> The network is rewarded for fewer waiting cars. It practised on about 11 million such decisions using the PPO algorithm (book Ch.11), with a few project-specific fixes that made the difference between "learns nothing" and "wins".</li>
+<li><b>Result.</b> Tested on 10 random traffic seeds against the baseline on identical traffic, both trained models are better on 12 / 11 of 14 measures and worse on none. Cars wait about <b>41 % less</b> and about <b>200-260 more trips finish per hour</b>.</li>
+</ol></div>
+
+<div class="kpis">
+  <div class="kpi"><b>-41 %</b><span>mean waiting time per car<br>6.39 s &rarr; 3.77 s (model A)</span></div>
+  <div class="kpi"><b>-15 %</b><span>lag per scheduled car<br>276.8 s &rarr; 235.4 s</span></div>
+  <div class="kpi"><b>-28 %</b><span>mean queue length<br>0.440 &rarr; 0.318 cars/lane</span></div>
+  <div class="kpi"><b>+258</b><span>trips completed per hour<br>11,585 &rarr; 11,842</span></div>
+</div>
+
+<table>
+<tr><th>Measure (one simulated hour, mean of 10 seeds)</th><th class="n">SUMO actuated<br>(baseline)</th><th class="n">Model A</th><th class="n">Model B</th><th>Verdict (both models)</th></tr>
+<tr class="win"><td>Lag per scheduled car, s &darr;</td><td class="n">276.8</td><td class="n"><b>235.4</b></td><td class="n"><b>239.9</b></td><td>better on 10 / 10 seeds</td></tr>
+<tr class="win"><td>Mean waiting time, s &darr;</td><td class="n">6.39</td><td class="n"><b>3.77</b></td><td class="n"><b>3.86</b></td><td>better on 10 / 10 seeds</td></tr>
+<tr class="win"><td>Backlog at 08:00, cars &darr;</td><td class="n">3,108</td><td class="n"><b>2,852</b></td><td class="n"><b>2,921</b></td><td>better on 10 / 10 seeds</td></tr>
+<tr class="win"><td>Mean speed, m/s &uarr;</td><td class="n">8.70</td><td class="n"><b>9.37</b></td><td class="n"><b>9.30</b></td><td>better on 10 / 10 seeds</td></tr>
+<tr class="win"><td>Trips completed &uarr;</td><td class="n">11,585</td><td class="n"><b>11,842</b></td><td class="n"><b>11,791</b></td><td>better on 10 / 10 seeds</td></tr>
+<tr class="lvl"><td>Cars that never got into the network &darr;</td><td class="n">503</td><td class="n">501</td><td class="n">481</td><td><b>level - not a win</b> (5 / 10 and 7 / 10 seeds)</td></tr>
+<tr class="lvl"><td>Teleports (gridlock events) &darr;</td><td class="n">13.3</td><td class="n">7.5</td><td class="n">10.0</td><td>lower on average, but too noisy to call (6 / 10 seeds)</td></tr>
+</table>
+<p class="small">All 14 measures are in section 10. &darr; = lower is better, &uarr; = higher is better. Model A and model B are two independent trainings (different random seeds).</p>
+
+<div class="box book"><span class="t">How to read this report</span>
+<p>The report explains the project the way a textbook would: first the vocabulary of reinforcement learning (agent, state, action, reward, policy), then how each word is realised in our code, then the learning algorithm, then the evidence.</p>
+<ul>
+<li><span class="bk">BOOK Ch.3 p.44</span> a green tag = the concept is explained in <i>Hands-On Reinforcement Learning with Python</i> by Sudharsan Ravichandiran (Packt, 2018), "the book". Page numbers are the printed ones.</li>
+<li><a class="c" href="#">path/file.py:85</a> a grey tag = the line of project code that implements it (links open the file in the project repository).</li>
+<li>Orange boxes mark things that are <b>not</b> in the book or that are honest limits of our results.</li>
+</ul></div>
+
+<!-- ===================================================== 1 MAP ===================================================== -->
+<div>
+<h2>1 &nbsp;Map: book concept &rarr; what we did &rarr; where it is in the code</h2>
+<p>This table is the index of the whole report. Each row is explained in the section named in the last column.</p>
+<table>
+<tr><th style="width:22%">Concept</th><th style="width:30%">In this project</th><th style="width:15%">Book</th><th style="width:25%">Code</th><th style="width:8%">Sect.</th></tr>
+<tr><td>Agent, environment, reward</td><td>Shared neural network &harr; SUMO traffic simulation</td><td><span class="bk">BOOK Ch.1 p.9-11</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L151">src/agents/ippo_agent.py:151</a><br><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/decentralized_sumo_env.py#L43">src/environment/decentralized_sumo_env.py:43</a></td><td>3</td></tr>
+<tr><td>State, Markov property, partially observable</td><td>22 numbers per junction (own lanes + neighbours)</td><td><span class="bk">BOOK Ch.3 p.41</span> <span class="bk">BOOK Ch.1 p.13</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L151">src/environment/local_observation.py:151</a></td><td>4</td></tr>
+<tr><td>Action (discrete)</td><td>0 = keep green, 1 = go to next green, behind a safety layer</td><td><span class="bk">BOOK Ch.1 p.11</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/safety.py#L106">src/environment/safety.py:106</a></td><td>5</td></tr>
+<tr><td>Reward, return</td><td>Minus the cars waiting at and around the junction</td><td><span class="bk">BOOK Ch.3 p.44</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L85">src/environment/local_reward.py:85</a></td><td>6</td></tr>
+<tr><td>Reward clipping</td><td>Cost capped at 200, then scaled by 0.1</td><td><span class="bk">BOOK Ch.8 p.174</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L97">src/environment/local_reward.py:97</a></td><td>6</td></tr>
+<tr><td>Discount factor &gamma;</td><td>&gamma; = 0.99 (about 8 minutes of look-ahead)</td><td><span class="bk">BOOK Ch.3 p.44-45</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L12">configs/ippo.yaml:12</a></td><td>3</td></tr>
+<tr><td>Policy and value function</td><td>Actor network and critic network, 22-256-256 each</td><td><span class="bk">BOOK Ch.3 p.45-46</span> <span class="bk">BOOK Ch.1 p.9-10</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L221">src/agents/ippo_agent.py:221</a></td><td>7</td></tr>
+<tr><td>Neural network, activation, gradient descent</td><td>tanh units, Adam optimiser, learning rate 3e-4</td><td><span class="bk">BOOK Ch.7 p.132</span> <span class="bk">BOOK Ch.7 p.136</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L25">configs/ippo.yaml:25</a></td><td>7</td></tr>
+<tr><td>Policy gradient</td><td>Make actions that led to high return more likely</td><td><span class="bk">BOOK Ch.11 p.225-226</span></td><td>(inside PPO)</td><td>7</td></tr>
+<tr><td>Actor-critic, advantage = Q - V</td><td>Critic scores states, actor picks actions</td><td><span class="bk">BOOK Ch.10 p.209-211</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L221">src/agents/ippo_agent.py:221</a></td><td>7</td></tr>
+<tr><td>Entropy bonus</td><td>c<sub>2</sub> = 0.01 keeps the policy from freezing early</td><td><span class="bk">BOOK Ch.10 p.211</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L16">configs/ippo.yaml:16</a></td><td>7</td></tr>
+<tr><td>TRPO &rarr; PPO, clipped objective</td><td>The training algorithm, &epsilon; = 0.2</td><td><span class="bk">BOOK Ch.11 p.240</span> <span class="bk">BOOK Ch.11 p.245-247</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L221">src/agents/ippo_agent.py:221</a></td><td>7</td></tr>
+<tr><td>Many environments in parallel</td><td>6 SUMO simulations feed one learner</td><td><span class="bk">BOOK Ch.10 p.209</span></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L37">src/agents/ippo_agent.py:37</a></td><td>7</td></tr>
+<tr><td>Generalised advantage estimation (GAE)</td><td>&lambda; = 0.95</td><td><b>not in book</b></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L13">configs/ippo.yaml:13</a></td><td>7</td></tr>
+<tr><td>One network for all junctions (IPPO)</td><td>Parameter sharing: 98 junctions = 98x the experience</td><td><b>not in book</b></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L37">src/agents/ippo_agent.py:37</a></td><td>7</td></tr>
+<tr><td>Split gradient clipping</td><td>The fix that made the network learn at all</td><td><b>not in book</b></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/split_clip.py#L28">src/agents/split_clip.py:28</a></td><td>8</td></tr>
+<tr><td>Drain-aware metrics, paired statistics</td><td>Lag per scheduled car, sign test over 10 seeds</td><td><b>not in book</b></td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/evaluation/drain_metrics.py#L387">src/evaluation/drain_metrics.py:387</a><br><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/report_eval.py#L67">scripts/report_eval.py:67</a></td><td>9</td></tr>
+</table>
+</div>
+
+<!-- ===================================================== 2 PROBLEM ===================================================== -->
+<div>
+<h2>2 &nbsp;The problem and the opponent</h2>
+<h3>The scenario</h3>
+<p>We use <b>InTAS</b>, a published, realistic model of Ingolstadt's road network and traffic, inside the open-source simulator <b>Eclipse SUMO</b>. We simulate one morning rush hour, 07:00-08:00, in which about 15,000 cars are scheduled to drive. <b>98 junctions</b> have traffic lights. The simulator moves every car second by second, so a bad signal rule shows up as queues, slow trips and cars that cannot even enter the network because the entry road is jammed.</p>
+<h3>The opponent: SUMO "actuated" control</h3>
+<p>76 of the 98 signal programs in the scenario are <i>vehicle-actuated</i>: a detector sees cars, the green is extended while cars keep coming and ends at a gap, always between a minimum and a maximum duration. This is a good, adaptive rule - far better than a plain timer. We confirmed it: a pure fixed-time plan is <b>worse</b> than actuated control on 11 of the 14 measures (lag 298.7 s vs 276.8 s), so actuated control is the real bar.</p>
+<div class="box code"><span class="t">Where in the code</span>
+<p>Baseline controllers: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/controllers/sumo_actuated.py">src/controllers/sumo_actuated.py</a> (lets SUMO run its own programs untouched), <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/controllers/fixed_time.py">src/controllers/fixed_time.py</a> (plain timer, for context). Trained agent: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/evaluation/evaluate.py#L257">src/evaluation/evaluate.py:257</a> (<code>_run_ippo_episode</code>). All three are scored by the same code.</p></div>
+<h3>What "better" means - the goal in numbers</h3>
+<p>We do not want a model that looks good only on one number. We therefore score <b>14 measures</b> (section 10), chosen so that the model cannot win by cheating - for example, by blocking cars from entering the network (that would shorten queues inside but leave cars waiting outside). The main number is <b>lag per scheduled car</b>: for every car that was <i>supposed</i> to drive in this hour, how many seconds later than on an empty road did it finish? Cars that never finish or never enter count as "late until 08:00". Section 9 gives the formula.</p>
+</div>
+
+<!-- ===================================================== 3 RL FRAMING ===================================================== -->
+<div>
+<h2>3 &nbsp;Reinforcement learning, in our words</h2>
+<div class="box book"><span class="t">What the book says</span>
+<p>RL is learning by trial and error: an <b>agent</b> acts in an <b>environment</b>, sees the new <b>state</b> and gets a <b>reward</b>; its goal is to maximise the total reward (<span class="bk">BOOK Ch.1 p.6-11</span>). The agent's behaviour is its <b>policy</b>; the <b>value function</b> says how good a state is under that policy (<span class="bk">BOOK Ch.1 p.9-10</span>, <span class="bk">BOOK Ch.3 p.45-46</span>). The problem is formalised as a <b>Markov decision process</b> (<span class="bk">BOOK Ch.3 p.43</span>).</p></div>
+
+<div class="fig"><img src="fig/fig_loop.png" width="86%"><div class="cap">Figure 1 - The agent-environment loop of <span class="bk">BOOK Ch.1 p.11</span>, with our real quantities. One pass = 5 simulated seconds; one hour = 720 passes.</div></div>
+
+<table>
+<tr><th style="width:17%">RL word</th><th style="width:44%">In CityMind</th><th>Code</th></tr>
+<tr><td><b>Environment</b></td><td>SUMO simulating Ingolstadt; one agent slot per traffic light (98), wrapped in the standard multi-agent interface PettingZoo.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/decentralized_sumo_env.py#L43">src/environment/decentralized_sumo_env.py:43</a></td></tr>
+<tr><td><b>Agent</b></td><td>One neural network that is <i>copied</i> to every junction - all junctions share the same weights.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L151">src/agents/ippo_agent.py:151</a></td></tr>
+<tr><td><b>State</b> s</td><td>22 numbers describing one junction and its neighbours (section 4).</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L151">src/environment/local_observation.py:151</a></td></tr>
+<tr><td><b>Action</b> a</td><td>Two choices, every 5 s: <code>0</code> keep the current green, <code>1</code> advance to the next green.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/safety.py#L106">src/environment/safety.py:106</a></td></tr>
+<tr><td><b>Reward</b> r</td><td>Minus (weighted) cars waiting - always &le; 0, so "less negative" = better (section 6).</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L85">src/environment/local_reward.py:85</a></td></tr>
+<tr><td><b>Policy</b> &pi;(a|s)</td><td>The actor network: 22 inputs &rarr; 256 &rarr; 256 &rarr; probability of "advance".</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L221">src/agents/ippo_agent.py:221</a></td></tr>
+<tr><td><b>Value</b> V(s)</td><td>The critic network (same shape): predicts how much waiting is still to come from this state.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L221">src/agents/ippo_agent.py:221</a></td></tr>
+<tr><td><b>Episode</b></td><td>One simulated hour = 720 decisions per junction.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment.yaml#L5">configs/environment.yaml:5</a></td></tr>
+</table>
+
+<h3>Why it is a hard version of RL</h3>
+<ul>
+<li><b>Partially observable.</b> The book's Markov property says the future depends only on the present state (<span class="bk">BOOK Ch.3 p.41</span>). A junction cannot see the whole city, only its own lanes and a few neighbours - this is the "partially observable environment" of <span class="bk">BOOK Ch.1 p.13</span>. So we design the 22 numbers carefully to include what matters (section 4).</li>
+<li><b>Many agents at once.</b> 98 junctions act simultaneously and affect each other (a queue released upstream arrives downstream). The book names multi-agent environments among the environment types, as mostly stochastic (<span class="bk">BOOK Ch.1 p.13</span>). Our answer is <i>independent learners with shared weights</i> (IPPO, section 7).</li>
+<li><b>Delayed consequences.</b> A green given now empties a queue over the next minute; a green given to the wrong road is felt only later. That is the reason for the discount factor below.</li>
+</ul>
+
+<h3>Return and the discount factor</h3>
+<p>The <b>return</b> is the total future reward, with later rewards counting a bit less (<span class="bk">BOOK Ch.3 p.44-45</span>):</p>
+<div class="formula"><span class="ft">Return (book Ch.3 p.44)</span>
+G<sub>t</sub> = r<sub>t+1</sub> + &gamma; r<sub>t+2</sub> + &gamma;<sup>2</sup> r<sub>t+3</sub> + &hellip; &nbsp;&nbsp;with &gamma; = 0.99</div>
+<p>With &gamma; = 0.99 a reward 100 steps ahead (100 x 5 s &asymp; 8 minutes) still counts about 37 %. That is the time scale on which a queue forms and clears, so it is the right horizon.</p>
+<div class="box warn"><span class="t">Where we differ from the book</span>
+<p>The book calls a discount factor "optimal" between 0.2 and 0.8 (<span class="bk">BOOK Ch.3 p.45</span>); that is a rule of thumb for its small examples where reward comes quickly. In traffic, the effect of a decision is spread over minutes, so such a small &gamma; would make the agent short-sighted (0.8<sup>10</sup> &asymp; 0.1: it would ignore anything beyond ~1 minute). 0.99 is also the usual default for PPO.</p></div>
+<div class="box code"><span class="t">Where in the code</span>
+<p>Loop and one environment step: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/decentralized_sumo_env.py#L191">src/environment/decentralized_sumo_env.py:191</a> - runs 5 simulated seconds through the safety layer, then builds new states and rewards for all 98 junctions. Episode length and decision interval: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment.yaml#L6">configs/environment.yaml:6</a>, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment.yaml#L9">configs/environment.yaml:9</a>. Fake-SUMO unit tests: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/tests/test_envs_fake_traci.py">tests/test_envs_fake_traci.py</a>.</p></div>
+</div>
+
+<!-- ===================================================== 4 STATE ===================================================== -->
+<div class="sec">
+<h2>4 &nbsp;State: what each junction sees (22 numbers)</h2>
+<div class="box plain"><span class="t">In plain words</span>
+<p>Imagine a police officer at one junction. To decide "keep green or switch?" they need: <i>which road has green now, for how long, and how many cars are queuing on each road - including the road behind the short stretch just before the line, cars still waiting to enter the city, and the queue at the next junctions up and down the road.</i> That is exactly the 22 numbers, each squashed into the range &minus;1 to +1 so the network can digest them.</p></div>
+
+<div class="strip">
+<div style="width:96pt;background:#cfe0f7"></div><div style="width:16pt;background:#f6d9c8"></div><div style="width:32pt;background:#f1e3a8"></div>
+<div style="width:96pt;background:#c9ebdd"></div><div style="width:16pt;background:#e6c7e9"></div><div style="width:16pt;background:#e6c7e9"></div><div style="width:16pt;background:#d9d8d3"></div>
+<div style="width:64pt;background:#d6d2f4"></div></div>
+<div class="strip-l">
+<div style="width:96pt">1-6 active green</div><div style="width:16pt">7</div><div style="width:32pt">8-9</div>
+<div style="width:96pt">10-15 demand per phase</div><div style="width:16pt">16</div><div style="width:16pt">17</div><div style="width:16pt">18</div><div style="width:64pt">19-22 neighbours</div></div>
+
+<table>
+<tr><th style="width:9%">Nos.</th><th style="width:25%">What</th><th>How it is computed / why it is there</th></tr>
+<tr><td>1-6</td><td>Which green is on</td><td>One-hot over up to 6 green "slots" (a junction has 2-6 greens). Tells the network which of its own roads currently moves.</td></tr>
+<tr><td>7</td><td>In transition?</td><td>1 while yellow / all-red is running (nothing can be changed then).</td></tr>
+<tr><td>8-9</td><td>Time in this green</td><td>elapsed &divide; <i>that phase's own minimum green</i>, and elapsed &divide; its maximum. Scaled into [0,1].</td></tr>
+<tr><td>10-15</td><td>Demand per green phase</td><td><i>d<sub>i</sub></i> = &sum; over movements that green releases of [ halted cars on the lane + halted cars on its feeder lanes + share of waiting-outside cars &minus; halted cars on the lane it flows into ]; squashed <i>d</i>/(|<i>d</i>|+8).</td></tr>
+<tr><td>16</td><td>Worst queue</td><td>longest queue on the junction's own lanes, q/(q+8).</td></tr>
+<tr><td>17</td><td>Cars waiting outside</td><td>cars scheduled to enter at this junction but not yet inserted, p/(p+20).</td></tr>
+<tr><td>18</td><td>Number of greens</td><td>n<sub>green</sub> &divide; 6 - tells the shared network what kind of junction it is.</td></tr>
+<tr><td>19-22</td><td>Neighbours</td><td>queue of the 2 strongest road-connected junctions upstream and 2 downstream (0 if none).</td></tr>
+</table>
+
+<div class="formula"><span class="ft">Squashing function (used for 10-22)</span>
+squash(<i>x</i>) = <i>x</i> / (|<i>x</i>| + <i>k</i>) &nbsp;&nbsp; e.g. with <i>k</i> = 8: &nbsp; 0 &rarr; 0 &nbsp;&nbsp; 8 cars &rarr; 0.50 &nbsp;&nbsp; 24 cars &rarr; 0.75 &nbsp;&nbsp; &minus;8 &rarr; &minus;0.50<br>
+Any number of cars maps smoothly into (&minus;1, 1); small queues still change the input visibly, huge queues do not saturate abruptly.</div>
+
+<h3>Three design decisions that mattered</h3>
+<ol>
+<li><b>Timing relative to the phase's own minimum and maximum (inputs 8-9).</b> We measured which inputs the winning baseline effectively uses: predicting <i>when actuated control leaves a green</i> from our old 18 inputs gave an AUC of only 0.757 (0.5 = guessing); adding "elapsed &divide; own minimum green" lifted it to <b>0.977</b>. The old agent was blind to the one thing the baseline reacts to. (Analysis: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/artifacts/eda/observation_relevance/REPORT.md#L35">artifacts/eda/observation_relevance/REPORT.md:35</a>)</li>
+<li><b>Feeder lanes (reach 300 m).</b> Some stop-line lanes are only ~20 m long (about 2 cars) while 60 cars wait on the unsignalised road behind them. The old agent saw "2 cars". We now walk upstream along unsignalised roads up to 300 m and add the halted cars. (<a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L191">src/environment/local_observation.py:191</a>, setting <code>queue_reach_m</code> in <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment.yaml#L14">configs/environment.yaml:14</a>)</li>
+<li><b>Cars waiting outside the network (input 17, and added to demand in stage 2).</b> A jammed entry road leaves cars queuing <i>outside</i> the simulated network, where the agent saw nothing. We count them in input 17 and, in stage 2, add them to the demand of the lane they will queue at (<code>pending_in_demand</code>, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment_pending.yaml#L16">configs/environment_pending.yaml:16</a>).</li>
+</ol>
+<div class="box book"><span class="t">Book link</span>
+<p>The book's Markov property (<span class="bk">BOOK Ch.3 p.41</span>) requires the state to contain what the future depends on. Because a junction cannot see everything (<span class="bk">BOOK Ch.1 p.13</span>), these three additions are our way of putting the most decision-relevant hidden facts into the state.</p></div>
+<div class="box code"><span class="t">Where in the code</span>
+<ul>
+<li>Layout and names: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L33">src/environment/local_observation.py:33</a> (<code>OBS_SIZE</code>, <code>OBS_NAMES</code>); builder: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L151">src/environment/local_observation.py:151</a> (<code>build_observation</code>); per-phase demand: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L77">src/environment/local_observation.py:77</a>.</li>
+<li>Environment side (queue reach, feeders, road neighbours): <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/decentralized_sumo_env.py#L302">src/environment/decentralized_sumo_env.py:302</a>, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/decentralized_sumo_env.py#L323">src/environment/decentralized_sumo_env.py:323</a>, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/decentralized_sumo_env.py#L340">src/environment/decentralized_sumo_env.py:340</a>. Tests: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/tests/test_observation.py">tests/test_observation.py</a>.</li>
+</ul></div>
+</div>
+
+<!-- ===================================================== 5 ACTION ===================================================== -->
+<div>
+<h2>5 &nbsp;Action: keep or advance - behind a safety layer</h2>
+<div class="box plain"><span class="t">In plain words</span>
+<p>The network can only ask one of two things every 5 seconds: "stay on this green" (0) or "move on to the next green" (1). It can never switch a light directly - a safety layer (like a traffic engineer's rule book) translates the request and refuses unsafe ones.</p></div>
+<table>
+<tr><th style="width:30%">Safety rule</th><th>What happens</th><th style="width:22%">Code</th></tr>
+<tr><td>Minimum green</td><td>A request to advance is <b>ignored</b> until the current green has run for its own minimum duration.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/safety.py#L172">src/environment/safety.py:172</a></td></tr>
+<tr><td>Maximum green</td><td>If a green reaches its maximum the layer <b>forces</b> the advance, whatever the network says.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/safety.py#L161">src/environment/safety.py:161</a></td></tr>
+<tr><td>Yellow / all-red</td><td>Every change walks through the signal program's own clearance phases (3 s yellow, 1 s all-red where defined). The network cannot skip them.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/safety.py#L106">src/environment/safety.py:106</a></td></tr>
+<tr><td>Own cycle only</td><td>"Advance" always goes to the junction's <i>next green in its own program</i> - never to an arbitrary phase.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/scenario/tls_metadata.py#L100">src/scenario/tls_metadata.py:100</a></td></tr>
+</table>
+<p>Per-phase minimum and maximum come from the junction's own authored program when it has them (<code>_green_bounds</code>, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/safety.py#L205">src/environment/safety.py:205</a>); the configured 5 s / 60 s are only fallbacks. Unit and fuzz tests (<a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/tests/test_safety_layer.py">tests/test_safety_layer.py</a>, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/tests/test_safety_property.py">tests/test_safety_property.py</a>) exercise these rules on every real junction.</p>
+<div class="box book"><span class="t">Book link</span>
+<p>A discrete action space, where the agent picks one of a few actions, is the setting of <span class="bk">BOOK Ch.1 p.11</span> and of the book's policy-gradient chapter (<span class="bk">BOOK Ch.11 p.225</span>). Our two-action choice is the simplest case: the policy outputs one probability, p(advance).</p></div>
+<div class="box warn"><span class="t">Honest note</span>
+<p>The network changes phases more often than the baseline: about 17,600 (A) and 18,600 (B) phase changes per hour network-wide against 14,600 for actuated control. Because every change passes through yellow, this has a cost that the reward charges for (section 6), and the measured results already include it.</p></div>
+</div>
+
+<!-- ===================================================== 6 REWARD ===================================================== -->
+<div>
+<h2>6 &nbsp;Reward: what the network is paid for</h2>
+<div class="box book"><span class="t">What the book says</span>
+<p>The reward is the feedback signal; the agent's objective is to maximise the return, the discounted sum of rewards (<span class="bk">BOOK Ch.3 p.44</span>). The book also notes that rewards are often <b>clipped</b> to a small range to keep learning stable (<span class="bk">BOOK Ch.8 p.174</span>).</p></div>
+<p>Every junction, every 5 seconds, pays a <b>cost</b> that is the weighted sum of five things; the reward is its negative:</p>
+<div class="formula"><span class="ft">Reward of one junction for one step</span>
+<i>r</i> = &minus; 0.1 &times; min( &nbsp;<i>Q</i> + 2<i>D</i> + <i>S</i> + 0.5 <i>P</i><sub>own</sub> + 0.5 <i>P</i><sub>all</sub> / 98 &nbsp;,&nbsp; 200 )</div>
+<table>
+<tr><th style="width:10%">Symbol</th><th style="width:12%">Weight</th><th>Meaning</th></tr>
+<tr><td><i>Q</i></td><td>1</td><td>cars standing still on this junction's incoming lanes (including the feeder roads behind them).</td></tr>
+<tr><td><i>D</i></td><td>2</td><td>average cars standing per lane on the roads this junction <i>feeds into</i> - so pushing a queue onto a full road is punished (spill-back).</td></tr>
+<tr><td><i>S</i></td><td>1</td><td>1 if the junction changed phase in this step, else 0 - a small price on needless switching.</td></tr>
+<tr><td><i>P</i><sub>own</sub></td><td>0.5</td><td>cars waiting outside the network whose first signal is this junction.</td></tr>
+<tr><td><i>P</i><sub>all</sub> / 98</td><td>0.5</td><td>all cars waiting outside, divided over the 98 junctions - a shared term so every junction cares that the city can take cars in.</td></tr>
+<tr><td>min(&middot;, 200), 0.1</td><td>-</td><td>the cost is capped at 200 (outlier protection) and scaled by 0.1 so rewards sit in roughly [&minus;20, 0] (<span class="bk">BOOK Ch.8 p.174</span>).</td></tr>
+</table>
+<div class="box plain"><span class="t">Worked example</span>
+<p>A junction with 6 standing cars, 2 per lane on the road it feeds, no switch, 4 cars waiting outside for it and 300 waiting outside in total:<br>
+cost = 6 + 2&middot;2 + 0 + 0.5&middot;4 + 0.5&middot;300/98 = 6 + 4 + 0 + 2 + 1.53 = 13.53 &nbsp;&rarr;&nbsp; reward = &minus;0.1 &times; 13.53 = <b>&minus;1.35</b>. If the next step has 3 standing cars instead of 6, cost falls to 10.5 and the reward rises to &minus;1.05 - the network has been paid for the improvement.</p></div>
+<h3>Why a <i>level</i>, not a <i>change</i></h3>
+<p>Earlier versions rewarded the <i>change</i> in queue from step to step. That can be gamed: wait while the queue grows (small penalties), release it all at once (one big reward). Paying on the <b>level</b> of waiting makes the total return equal to minus the total vehicle-delay, which has no such loophole. The test <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/tests/test_reward.py">tests/test_reward.py</a> pins this behaviour.</p>
+<div class="box code"><span class="t">Where in the code</span>
+<p>Weights: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L28">src/environment/local_reward.py:28</a> (<code>LocalRewardConfig</code>); formula: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L85">src/environment/local_reward.py:85</a> (<code>compute</code>); clip: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L97">src/environment/local_reward.py:97</a>; outside-cars bookkeeping: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L57">src/environment/local_reward.py:57</a>. Values come from <code>reward:</code> in <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment.yaml#L29">configs/environment.yaml:29</a>.</p></div>
+</div>
+
+<!-- ===================================================== 7 PPO ===================================================== -->
+<div class="sec">
+<h2>7 &nbsp;The learning algorithm: PPO, used as IPPO</h2>
+<h3>7.1 &nbsp;The ladder of ideas (all in the book)</h3>
+<div class="chain">
+<div><b>Policy gradient</b>Nudge the policy so actions that gave a high return become more likely.<br><span class="bk">BOOK Ch.11 p.225-226</span></div><div class="ar">&rarr;</div>
+<div><b>Actor-critic</b>A second network (critic) predicts value; the actor learns from the <i>advantage</i> A = Q &minus; V: "better or worse than expected?"<br><span class="bk">BOOK Ch.10 p.209-211</span></div><div class="ar">&rarr;</div>
+<div><b>TRPO</b>Limit how far one update may move the policy, or learning collapses.<br><span class="bk">BOOK Ch.11 p.240</span></div><div class="ar">&rarr;</div>
+<div><b>PPO</b>Same safety idea, but simply <i>clip</i> the update. Easy and stable.<br><span class="bk">BOOK Ch.11 p.245-247</span></div></div>
+
+<h3>7.2 &nbsp;The PPO objective</h3>
+<div class="formula"><span class="ft">PPO clipped objective (book Ch.11 p.245-247)</span>
+<i>r</i><sub>t</sub>(&theta;) = &pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>) / &pi;<sub>old</sub>(a<sub>t</sub>|s<sub>t</sub>) &nbsp;&nbsp;(how much more likely the new policy makes the action)<br>
+<i>L</i><sup>CLIP</sup> = E[ min( <i>r</i><sub>t</sub> &middot; A<sub>t</sub> , clip(<i>r</i><sub>t</sub>, 1&minus;&epsilon;, 1+&epsilon;) &middot; A<sub>t</sub> ) ] &nbsp;&nbsp;with &epsilon; = 0.2<br>
+<i>L</i> = &minus;<i>L</i><sup>CLIP</sup> + c<sub>1</sub> &middot; (V<sub>&theta;</sub>(s<sub>t</sub>) &minus; G<sub>t</sub>)<sup>2</sup> &minus; c<sub>2</sub> &middot; H[&pi;<sub>&theta;</sub>] &nbsp;&nbsp;with c<sub>1</sub> = 0.5, c<sub>2</sub> = 0.01</div>
+<div class="fig"><img src="fig/fig_ppo_clip.png" width="92%"><div class="cap">Figure 2 - Why clipping keeps updates small. Left: for a good action (A &gt; 0) the gain stops growing once the action is 20 % more likely than before. Right: for a bad action the push-down also stops at 0.8. Inside the blue band the update behaves normally. (Same picture as the book's <span class="bk">BOOK Ch.11 p.246</span>.)</div></div>
+<div class="box plain"><span class="t">In plain words</span>
+<p>After the network has played some traffic, we look back: <i>"in this situation I advanced the green and the outcome was better than the critic expected."</i> We then make that choice a little more likely - but never by more than 20 % in one update, so one lucky batch cannot wreck what was already learnt. The third term (entropy, <span class="bk">BOOK Ch.10 p.211</span>) rewards staying a bit random so the network keeps exploring other options; the book's epsilon-greedy (<span class="bk">BOOK Ch.6 p.114</span>) has the same aim, but a policy-gradient method explores by <i>sampling</i> from its own probabilities instead.</p></div>
+
+<div class="keep"><h3>7.3 &nbsp;The network and the settings</h3>
+<table>
+<tr><th style="width:27%">Setting</th><th style="width:15%">Value</th><th>Meaning</th></tr>
+<tr><td>Network (actor and critic each)</td><td>22 &rarr; 256 &rarr; 256 &rarr; out, tanh</td><td>Two hidden layers of 256 units; tanh activation (<span class="bk">BOOK Ch.7 p.132</span>). <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L24">configs/ippo.yaml:24</a></td></tr>
+<tr><td>Optimiser, learning rate</td><td>Adam, 3e-4</td><td>Gradient descent with adaptive step sizes (<span class="bk">BOOK Ch.7 p.136</span>). <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L20">configs/ippo.yaml:20</a></td></tr>
+<tr><td>Discount &gamma;</td><td>0.99</td><td>Section 3. <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L12">configs/ippo.yaml:12</a></td></tr>
+<tr><td>GAE &lambda;</td><td>0.95</td><td>Advantage smoothing, section 7.4. <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L13">configs/ippo.yaml:13</a></td></tr>
+<tr><td>Clip range &epsilon;</td><td>0.2</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L15">configs/ippo.yaml:15</a></td></tr>
+<tr><td>Value coef. c<sub>1</sub> / entropy coef. c<sub>2</sub></td><td>0.5 / 0.01</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L17">configs/ippo.yaml:17</a>, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L16">configs/ippo.yaml:16</a></td></tr>
+<tr><td>Samples per update</td><td>105,840</td><td>180 steps &times; 98 junctions &times; 6 simulations. <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L7">configs/ippo.yaml:7</a></td></tr>
+<tr><td>Mini-batches, epochs</td><td>8 of 13,230; 10 epochs</td><td>Each batch of experience is reused 10 times. <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L8">configs/ippo.yaml:8</a></td></tr>
+<tr><td>Updates</td><td>100 (+10 or +20)</td><td>10,584,000 steps in stage 1 (<a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L6">configs/ippo.yaml:6</a>); stage 2 in section 8.</td></tr>
+</table></div>
+
+<h3>7.4 &nbsp;Three things that are <u>not</u> in the book</h3>
+<div class="box warn"><span class="t">Beyond the book</span>
+<ol>
+<li><b>One network for every junction - IPPO (parameter sharing).</b> "Independent PPO" means each junction decides on its own from its own observation, but all junctions use <i>the same weights</i>, and every junction's experience trains them. Per update the one network learns from 98 junctions &times; 6 simulations = <b>588 simultaneous "players"</b>, i.e. 98 times more experience per simulated hour than a network for one junction. It works because junctions play the same role; the active-slot and number-of-greens inputs let the network tell junction types apart. (The book's A3C <span class="bk">BOOK Ch.10 p.209</span> also gathers experience from many parallel copies of the environment; ours is the synchronous variant - all 6 simulations finish a batch, then one update runs.)</li>
+<li><b>Generalised advantage estimation (GAE).</b> The book's advantage is "return &minus; value" (<span class="bk">BOOK Ch.10 p.209</span>). GAE averages short and long look-aheads with weight &lambda; = 0.95: less noise than waiting for the full return, less bias than trusting the critic after one step. Standard in modern PPO libraries (Stable-Baselines3 here).</li>
+<li><b>Split gradient clipping</b> - our own fix, next section.</li>
+</ol></div>
+<div class="box code"><span class="t">Where in the code</span>
+<p>Parallel environments: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L37">src/agents/ippo_agent.py:37</a> (<code>make_ippo_env</code>). Model construction with every hyper-parameter above: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L221">src/agents/ippo_agent.py:221</a> (<code>build_model</code>), learning loop <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L292">src/agents/ippo_agent.py:292</a> (<code>_run_learn</code>), resume after interruption <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/ippo_agent.py#L270">src/agents/ippo_agent.py:270</a>. Entry points: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/run_ippo_training.py#L33">scripts/run_ippo_training.py:33</a> (stage 1), <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/finetune_ippo.py#L18">scripts/finetune_ippo.py:18</a> (stage 2). The PPO implementation itself is Stable-Baselines3's; the contract that a model must be evaluated under the settings it was trained with is <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/model_contract.py#L115">src/agents/model_contract.py:115</a>.</p></div>
+</div>
+
+<!-- ===================================================== 8 WHAT WE CHANGED ===================================================== -->
+<div class="sec">
+<h2>8 &nbsp;What we changed to beat the baseline - five fixes in plain English</h2>
+<p>The first versions of the agent <i>lost</i> clearly to the baseline (lag 363-476 s against 277 s). We went looking for the reasons one by one; each row is a root cause that was found with evidence and fixed.</p>
+<table>
+<tr><th style="width:4%">#</th><th style="width:27%">What was wrong</th><th style="width:43%">Fix (plain English)</th><th>Code</th></tr>
+<tr><td>1</td><td><b>The network was barely learning.</b> The policy moved ~0 per update ("clip fraction" = 0).</td><td>PPO clips the gradient to keep updates stable - but the actor and critic were clipped <i>together</i>. The critic's gradient was ~3,830, the actor's only ~0.19, so the common shrink factor made the actor's steps ~7,600 times smaller. <b>Fix: clip them separately.</b> (Figure 3)</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/split_clip.py#L28">src/agents/split_clip.py:28</a><br><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/tests/test_split_clip.py">tests/test_split_clip.py</a></td></tr>
+<tr><td>2</td><td><b>A see-saw reward.</b> It paid for <i>changes</i> in queue.</td><td>Paying for change can be gamed (let it grow, then release). <b>Fix: pay for the level</b> of waiting, so return = minus total delay.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_reward.py#L85">src/environment/local_reward.py:85</a></td></tr>
+<tr><td>3</td><td><b>Dead or stuck inputs, and blind to timing.</b> Two inputs sat at their maximum 81 % and 90 % of the hour; the signal the baseline uses (time in phase vs its minimum) was missing.</td><td><b>Fix: a new, smaller 22-number observation</b> with the per-phase timing ratios and a demand number per green (section 4).</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L151">src/environment/local_observation.py:151</a></td></tr>
+<tr><td>4</td><td><b>Blind behind short lanes.</b> A 20 m stop-line lane hid 60 queued cars.</td><td><b>Fix: look up to 300 m upstream</b> and count halted cars on the unsignalised feeder roads.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/local_observation.py#L191">src/environment/local_observation.py:191</a></td></tr>
+<tr><td>5</td><td><b>Blind to cars waiting <u>outside</u> the network.</b> After stages 1-4 the model was already ~26 s of lag ahead but lost ~100 more cars at the network entrance than the baseline.</td><td><b>Fix, stage 2:</b> add outside-waiting cars to the demand of the lane they will queue at, then fine-tune the trained network for 10 (A) or 20 (B) more updates.</td><td><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment_pending.yaml#L16">configs/environment_pending.yaml:16</a><br><a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/finetune_ippo.py#L18">scripts/finetune_ippo.py:18</a></td></tr>
+</table>
+
+<div class="fig"><img src="fig/fig_gradnorm.png" width="68%"><div class="cap">Figure 3 - Fix 1. Typical gradient sizes during stage-1 training. With one shared limit of 0.5 the critic's huge gradient sets the shrink factor for both networks, so the actor's update was reduced about 7,600x. With separate limits each network is clipped on its own.</div></div>
+<div class="box code"><span class="t">How split clipping works (about 40 lines)</span>
+<p>PyTorch's <code>clip_grad_norm_</code> is temporarily replaced by a version that clips the actor's parameters and the critic's parameters as two groups (<a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/split_clip.py#L28">src/agents/split_clip.py:28</a>); <code>SplitClipPPO</code> (<a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/agents/split_clip.py#L62">src/agents/split_clip.py:62</a>) switches it on during <code>train()</code> and logs both norms. It is enabled by <code>split_clip: true</code> in <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml#L19">configs/ippo.yaml:19</a>.</p></div>
+<div class="box warn"><span class="t">Beyond the book</span>
+<p>Gradient clipping against "exploding gradients" is mentioned in the book only in passing (e.g. <span class="bk">BOOK Ch.7 p.149</span>); clipping <i>two networks separately inside PPO</i> is our own engineering fix, validated by the change in learning behaviour and by the final results, not by a reference.</p></div>
+<h3>The two stages of training</h3>
+<ul>
+<li><b>Stage 1</b> - from scratch, 100 PPO updates (10,584,000 steps, about 7 hours), recipe <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo.yaml">configs/ippo.yaml</a> + <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment.yaml">configs/environment.yaml</a>.</li>
+<li><b>Stage 2</b> - continue the stage-1 network with <code>pending_in_demand: true</code> (<a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/ippo_finetune.yaml">configs/ippo_finetune.yaml</a> + <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/configs/environment_pending.yaml">configs/environment_pending.yaml</a>). The input size is unchanged, so the trained weights are reused; only what feeds the demand numbers changes. Model A: +10 updates (seed 42). Model B: +20 updates (seed 1042).</li>
+</ul>
+</div>
+
+<!-- ===================================================== 9 METRICS ===================================================== -->
+<div>
+<h2>9 &nbsp;How we measure - a fair test</h2>
+<h3>9.1 &nbsp;Same traffic for model and baseline</h3>
+<p>SUMO has randomness (exact departure moments, driver behaviour). A <b>seed</b> fixes that randomness. For each of <b>10 seeds</b> (7, 11, 19, 23, 31, 42, 57, 91, 123, 777) we run baseline, fixed-time, model A and model B on <i>exactly the same traffic</i> and compare run against run ("paired by seed"). 4 controllers &times; 10 seeds = 40 one-hour simulations. The seeds used while training were all above 100,000 (each parallel training worker adds 100,000 &times; its number to the seed, <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/environment/sumo_session.py#L78">src/environment/sumo_session.py:78</a>), so none of the ten test seeds was ever seen in training.</p>
+<h3>9.2 &nbsp;The main number: lag per scheduled car</h3>
+<div class="formula"><span class="ft">Lag of one scheduled car (W = 08:00)</span>
+lag = ( W &minus; <i>t</i><sub>ideal</sub> )<sup>+</sup> &minus; ( W &minus; <i>t</i><sub>arrival</sub> )<sup>+</sup> &nbsp;&nbsp; with <i>t</i><sub>arrival</sub> := W if the car never finished or never entered<br>
+<b>lag per scheduled car</b> = average of lag over <b>all</b> ~15,000 scheduled cars</div>
+<div class="box plain"><span class="t">Worked example</span>
+<p>A car would finish at 07:30 on an empty road (<i>t</i><sub>ideal</sub>). Case 1: it really finishes at 07:42 &rarr; lag = 30 min &minus; 18 min = <b>12 min</b>. Case 2: it never finishes (still queuing at 08:00, or stuck outside) &rarr; lag = 30 min &minus; 0 = <b>30 min</b>: it is charged for every minute until the window closed. So a controller cannot look good by letting some cars simply disappear from the statistics - the usual weakness of "mean trip time of the cars that finished".</p></div>
+<h3>9.3 &nbsp;The other measures</h3>
+<ul>
+<li><b>Never inserted</b> - scheduled cars that could not enter the network because the entry road was full. <b>Depart delay</b> - waiting time at the entrance for those that did enter.</li>
+<li><b>Backlog</b> - cars still in the network (or waiting outside) at 08:00. <b>Due completion</b> - share of cars that should have finished by 08:00 that did. <b>Overdue cars</b> - how many were due but not finished.</li>
+<li><b>Waiting time, queue, speed, time loss, trip duration, throughput, trips completed</b> - the classic traffic measures. <b>Teleports</b> - SUMO removes cars stuck for too long: a sign of gridlock.</li>
+</ul>
+<h3>9.4 &nbsp;When do we say "beaten"?</h3>
+<p>We take the 10 per-seed differences (model &minus; baseline) and require <b>both</b>: (i) the 95 % confidence interval of the mean difference excludes zero on the good side, and (ii) the exact <b>sign test</b> is significant - the model wins on at least 9 of 10 seeds (chance of 10 / 10 by luck = 2 &times; 0.5<sup>10</sup> = 0.002). One strange seed therefore cannot carry a verdict. The table in section 10 shows the verdict for each measure; weaker outcomes are named honestly ("better, not significant", "level").</p>
+<div class="box code"><span class="t">Where in the code</span>
+<ul>
+<li>Scoring of one run (lag formula at line 420): <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/evaluation/drain_metrics.py#L387">src/evaluation/drain_metrics.py:387</a> (<code>score_run</code>); scheduled demand and the empty-road ideal time: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/evaluation/drain_metrics.py#L299">src/evaluation/drain_metrics.py:299</a>.</li>
+<li>Running a controller on a seed: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/evaluation/evaluate.py#L77">src/evaluation/evaluate.py:77</a>; command-line: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/evaluate.py#L23">scripts/evaluate.py:23</a>.</li>
+<li>Paired statistics and verdict rule: <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/report_eval.py#L67">scripts/report_eval.py:67</a>, verdict at <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/report_eval.py#L87">scripts/report_eval.py:87</a>; interval helpers <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/src/evaluation/statistics.py">src/evaluation/statistics.py</a>. The full result table is in <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/docs/TEST_REPORT_10_SEEDS.md">docs/TEST_REPORT_10_SEEDS.md</a>.</li>
+</ul></div>
+</div>
+
+<!-- ===================================================== 10 RESULTS ===================================================== -->
+<div class="sec">
+<h2>10 &nbsp;Results</h2>
+<div class="fig"><img src="fig/fig_seed_lag.png" width="80%"><div class="cap">Figure 4 - Lag per scheduled car on each of the 10 seeds. Every seed's line goes down from the baseline to model A, and from the baseline to model B: the lead is not an accident of one seed.</div></div>
+<div class="fig"><img src="fig/fig_improvement.png" width="78%"><div class="cap">Figure 5 - Improvement over the baseline on all 14 measures (longer bar = better). Two bars are not wins: <i>cars never inserted</i> is level, and <i>teleports</i> looks large but varies too much between seeds to claim.</div></div>
+
+<div class="keep"><table>
+<tr><th>Measure (mean of 10 seeds)</th><th class="n">SUMO actuated</th><th class="n">Model A</th><th class="n">Model B</th><th>Verdict A / B</th></tr>
+<tr class="win"><td>Lag per scheduled car, s &darr;</td><td class="n">276.8</td><td class="n">235.4</td><td class="n">239.9</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Time loss per finished car, s &darr;</td><td class="n">336.6</td><td class="n">286.4</td><td class="n">289.4</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Backlog at 08:00, cars &darr;</td><td class="n">3,108</td><td class="n">2,852</td><td class="n">2,921</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Mean waiting time, s &darr;</td><td class="n">6.39</td><td class="n">3.77</td><td class="n">3.86</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Mean queue &darr;</td><td class="n">0.440</td><td class="n">0.318</td><td class="n">0.314</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Mean speed, m/s &uarr;</td><td class="n">8.70</td><td class="n">9.37</td><td class="n">9.30</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Due completion &uarr;</td><td class="n">0.839</td><td class="n">0.861</td><td class="n">0.856</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Trips completed &uarr;</td><td class="n">11,585</td><td class="n">11,842</td><td class="n">11,791</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Throughput (arrived / departed) &uarr;</td><td class="n">0.796</td><td class="n">0.813</td><td class="n">0.809</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Trip duration, s &darr;</td><td class="n">745</td><td class="n">699</td><td class="n">702</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Overdue cars &darr;</td><td class="n">1,853</td><td class="n">1,597</td><td class="n">1,649</td><td>beaten / beaten</td></tr>
+<tr class="win"><td>Depart delay, s &darr;</td><td class="n">15.7</td><td class="n">14.1</td><td class="n">14.9</td><td>beaten (10/10) / better, interval only (8/10)</td></tr>
+<tr class="lvl"><td>Cars never inserted &darr;</td><td class="n">503</td><td class="n">501</td><td class="n">481</td><td>better, not significant / better, not significant</td></tr>
+<tr class="lvl"><td>Teleports (gridlock) &darr;</td><td class="n">13.3</td><td class="n">7.5</td><td class="n">10.0</td><td>better (interval only) / better, not significant</td></tr>
+</table></div>
+<p>Score: model A <b>beaten on 12 of 14</b>, model B <b>on 11 of 14</b>; the other measures are better on average but not significantly; <b>none is worse</b>. Held-out windows that were never trained on (one seed, model A only): 08:00-09:00 lag 230.7 &rarr; 177.8 s; 17:00-18:00 lag 108.5 &rarr; 50.0 s.</p>
+</div>
+
+<!-- ===================================================== 11 LIMITS ===================================================== -->
+<div>
+<h2>11 &nbsp;Honest limits - what this does <u>not</u> show</h2>
+<div class="box warn"><span class="t">Please read before quoting a result</span>
+<ul>
+<li><b>"Cars never inserted" is not won.</b> A first 3-seed test suggested a win (473 vs 539); the 10-seed test shows the baseline was unusually high on those three seeds. The honest statement: the stage-2 fix <i>closed</i> the entrance gap (stage 1 lost ~100 more cars than the baseline) but did not open a lead.</li>
+<li><b>Teleports</b> are too noisy (6 / 10 seeds) to claim in either direction.</li>
+<li><b>One scenario.</b> Training and test use the same network and the same demand pattern (07:00-08:00 InTAS); seeds only change the random details. The 08:00 and 17:00 windows (one seed, model A) are a first check on other times of day; a different city or real traffic is untested.</li>
+<li><b>Sensing is generous.</b> The agent reads exact halted-car counts per lane, including cars still waiting outside. Real junctions have detectors with limited range and noise; degraded sensing was not tested.</li>
+<li><b>Choices made after seeing data.</b> Model B received a second fine-tune block (10 &rarr; 20 updates) after a 3-seed result, and the strict "beaten" rule was fixed after the first results (it is stricter than the first rule). Both are disclosed; neither was selected on the 10-seed test set.</li>
+<li><b>More phase changes</b> than the baseline (section 5) - the results already include this cost, but wear and comfort are not modelled.</li>
+</ul></div>
+
+<div class="keep"><h2 style="margin-top:14pt">12 &nbsp;Reproduce it</h2>
+<table>
+<tr><th style="width:28%">Step</th><th>Command (from the repository root)</th></tr>
+<tr><td>Set up</td><td><code>make install &amp;&amp; make sumo &amp;&amp; source .env.sumo</code> &nbsp;(Python 3.11, Eclipse SUMO 1.20+, InTAS fetched at setup)</td></tr>
+<tr><td>Tests (no SUMO needed)</td><td><code>make test lint</code></td></tr>
+<tr><td>Stage 1 training (~7 h)</td><td><code>make train</code> &nbsp;&rarr; <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/scripts/run_ippo_training.py#L33">scripts/run_ippo_training.py:33</a> with <code>configs/ippo.yaml</code> + <code>configs/environment.yaml</code></td></tr>
+<tr><td>Stage 2 fine-tune</td><td><code>python scripts/finetune_ippo.py --init-model &lt;stage-1 model&gt; ... --ppo-config configs/ippo_finetune.yaml --env-config configs/environment_pending.yaml</code></td></tr>
+<tr><td>Evaluate one run</td><td><code>python scripts/evaluate.py --controller ippo --model &lt;model_final.zip&gt; --out artifacts/eval/ippo</code></td></tr>
+<tr><td>10-seed paired report</td><td><code>python scripts/report_eval.py --root artifacts/eval10_run --baseline sumo_actuated --models ippo_A ippo_B --extra fixed_time</code></td></tr>
+</table>
+<p class="small">Trained weights are not stored in git; hashes and where to find them are in <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/docs/MODELS.md">docs/MODELS.md</a> and <a class="c" href="https://github.com/parthsharma8368/city-mind-ai/blob/feat/peak-hour-mechanics-fix/artifacts/models/MANIFEST.json">artifacts/models/MANIFEST.json</a>. Every result file records the code version and settings it was produced with.</p></div>
+
+<h2 style="margin-top:14pt">13 &nbsp;One-paragraph summary for the viva</h2>
+<div class="box plain"><span class="t">If asked "what did you do?"</span>
+<p>We modelled morning traffic in Ingolstadt as a reinforcement-learning problem: one shared neural network, copied to all 98 junctions, sees 22 numbers about its junction and chooses every 5 seconds to keep or advance the green, behind a safety layer; it is paid minus the cars waiting. We trained it with PPO (book Ch.11), found why the first versions failed - the actor's learning signal was being squashed by the critic's gradient, the reward could be gamed, the inputs were blind to the baseline's timing logic, to long queues behind short lanes and to cars waiting outside - fixed each, and then tested on 10 seeds of identical traffic against SUMO's own actuated control. The trained network is significantly better on 12 (and 11) of 14 measures - e.g. 41 % less waiting, about 200-260 more completed trips per hour - and worse on none; it does not reduce the number of cars blocked at the network entrance, and has only been tested on this one scenario.</p></div>
+</div>
+
+</body>
+</html>

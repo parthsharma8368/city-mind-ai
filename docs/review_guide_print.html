@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CityMind AI — 5-Minute Master Defense & Codebase Navigation Manual</title>
+<style>
+  @page {
+    size: A4;
+    margin: 15mm 15mm 15mm 15mm;
+    @bottom-center {
+      content: counter(page);
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    background-color: #ffffff;
+    line-height: 1.55;
+    font-size: 10pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cover-banner {
+    background: linear-gradient(135deg, #090d16 0%, #1e3a8a 100%);
+    color: #ffffff;
+    padding: 26px 24px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+
+  .cover-banner h1 {
+    margin: 0 0 6px 0;
+    font-size: 19pt;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+  }
+
+  .cover-banner h2 {
+    margin: 0 0 14px 0;
+    font-size: 12pt;
+    font-weight: 400;
+    color: #93c5fd;
+  }
+
+  .cover-meta {
+    font-size: 8.5pt;
+    color: #cbd5e1;
+    display: flex;
+    gap: 20px;
+  }
+
+  .h1-title {
+    font-size: 15pt;
+    font-weight: 700;
+    color: #0f172a;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 4px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+
+  .h2-title {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #1e40af;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+    border-left: 3px solid #2563eb;
+    padding-left: 8px;
+  }
+
+  .h3-title {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: #374151;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+
+  .para {
+    margin: 0 0 8px 0;
+    text-align: justify;
+  }
+
+  .list-item {
+    margin-bottom: 4px;
+    margin-left: 18px;
+  }
+
+  .callout {
+    background-color: #f0fdf4;
+    border-left: 4px solid #16a34a;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 9.5pt;
+    color: #14532d;
+    page-break-inside: avoid;
+  }
+
+  .inline-code {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 8.5pt;
+    border: 1px solid #e2e8f0;
+  }
+
+  .code-block {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 7.8pt;
+    line-height: 1.4;
+    overflow-x: auto;
+    margin: 8px 0;
+    page-break-inside: avoid;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 8.5pt;
+    page-break-inside: avoid;
+  }
+
+  .styled-table th {
+    background-color: #1e293b;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
+    padding: 7px 10px;
+    border: 1px solid #334155;
+  }
+
+  .styled-table td {
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+  }
+
+  .styled-table tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+
+  .spacer {
+    height: 4px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 16px 0;
+  }
+
+  a {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  @media print {
+    body {
+      font-size: 9.5pt;
+    }
+    .h1-title {
+      page-break-before: auto;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover-banner">
+  <h1>CityMind AI — 5-Minute Master Defense & Codebase Navigation Manual</h1>
+  <h2>Project Review Preparation & Comprehensive Defense Document</h2>
+  <div class="cover-meta">
+    <span><strong>Frameworks:</strong> Eclipse SUMO, TraCI, PyTorch, Stable-Baselines3</span>
+    <span><strong>Scenario:</strong> Ingolstadt InTAS (98 Signalized Junctions)</span>
+    <span><strong>Reference Book:</strong> Sudharsan Ravichandiran (Packt, 2018)</span>
+  </div>
+</div>
+
+<h1 class="h1-title">CityMind AI — 5-Minute Master Defense & Codebase Navigation Manual</h1>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h2 class="h2-title">Part 1: The 5-Minute Speaking Script (Timed for Perfection)</h2>
+<div class="spacer"></div>
+<p class="para">Deliver this script smoothly in <strong>exactly 5 minutes</strong>. It addresses every previous question and demonstrates deep theoretical mastery from <strong>Sudharsan Ravichandiran’s textbook</strong> alongside rigorous software engineering.</p>
+<div class="spacer"></div>
+<pre class="code-block "><code>       5-MINUTE ORAL DEFENSE TIMELINE
+0:00 ─── [1] The Problem &amp; Real-World InTAS Scenario (Ingolstadt)
+1:00 ─── [2] Simulator &amp; Middleware: Why SUMO &amp; What is TraCI?
+2:00 ─── [3] RL Formulation: Why PPO, IPPO Architecture &amp; Bellman Principles
+3:00 ─── [4] The Breakthroughs: Split-Clipping, 300m Feeders &amp; Delay-Level Reward
+4:00 ─── [5] Evaluation: Drain Metrics, Survivor Bias &amp; 10/10 Seed Victory
+5:00 ─── Conclusion &amp; Ready for Q&amp;A</code></pre>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Minute 1:00 — Problem Statement & The Real-World InTAS Scenario</h3>
+<div class="callout"><p><em>"Good morning, Professor. Today I am presenting <strong>CityMind AI</strong>, a decentralized Deep Reinforcement Learning system for city-wide traffic signal control.</em></p></div>
+<p class="para">></p>
+<div class="callout"><p><em>Most academic RL papers test on synthetic, 4-way toy grids with uncalibrated fixed-time timers and claim massive 20% improvements. We evaluated whether RL can outperform real-world civil engineering on a genuine city scale: the <strong>Ingolstadt InTAS network</strong> in Germany, consisting of <strong>98 heterogeneous, signalized intersections</strong> during the morning rush hour (07:00 to 08:00) with over <strong>15,000 scheduled trips</strong>.</em></p></div>
+<p class="para">></p>
+<div class="callout"><p><em>Our benchmark target is not an artificial baseline, but <strong>SUMO's calibrated vehicle-actuated controller</strong>—the actual industry standard running embedded induction loops with dynamic gap-out logic."</em></p></div>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Minute 2:00 — Simulation Engine & Middleware: Why SUMO & TraCI?</h3>
+<div class="callout"><p><em>"To simulate microscopic traffic physics, we use <strong>Eclipse SUMO</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/sumo_session.py#L100-L125">sumo_session.py</a>). SUMO models discrete-time, continuous-space driver dynamics including Krauss car-following, lane changing, and intersection clearance.</em></p></div>
+<p class="para">></p>
+<div class="callout"><p><em>To connect our Python RL agent to SUMO, we use <strong>TraCI (Traffic Control Interface)</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/sumo_connection.py#L74-L107">sumo_connection.py</a>). TraCI is a TCP socket client-server protocol enabling bidirectional interaction: the simulation acts as the server, and our Python environment acts as the client.</em></p></div>
+<p class="para">></p>
+<div class="callout"><p><em>In our codebase, TraCI functions in two ways:</p></div>
+<div class="callout"><p>1. <strong>Sensor Ingestion:</strong> At each 5-second decision step, we query vehicle queues, halted cars, and downstream speeds via <code class="inline-code">traci.lane.getLastStepHaltingNumber</code> and <code class="inline-code">traci.simulation.getPendingVehicles</code> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/lane_stats.py">lane_stats.py</a>, <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_reward.py#L57-L83">local_reward.py</a>).</p></div>
+<div class="callout"><p>2. <strong>Actuation:</strong> After filtering RL decisions through our deterministic <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/safety.py#L83-L100">SafetyLayer</a>, we command signal phases using <code class="inline-code">traci.trafficlight.setPhase</code> and advance time using <code class="inline-code">traci.simulationStep()</code>.</em></p></div>
+<p class="para">></p>
+<div class="callout"><p><em>For maximum training throughput, we wrap this via <code class="inline-code">libsumo</code>—a direct C++ SWIG binding eliminating socket serialization overhead."</em></p></div>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Minute 3:00 — RL Formulation: Why PPO, IPPO Architecture & Textbook Theory</h3>
+<div class="callout"><p><em>"Now addressing the core RL theory from <strong>Sudharsan Ravichandiran’s book</strong> (specifically <strong>Chapter 1 on Dec-POMDPs, Chapter 10 on Actor-Critic, and Chapter 11 on PPO</strong>):</em></p></div>
+<p class="para">></p>
+<div class="callout"><p><em> <strong>Why not DQN (Chapter 8)?</strong> Centralized DQN suffers from the curse of dimensionality: with 98 intersections, the joint discrete action space is $2^{98} \approx 3.16 \times 10^{29}$ actions per step, making Q-value convergence mathematically intractable.</p></div>
+<div class="callout"><p></em> <strong>Why not vanilla Policy Gradients / REINFORCE (Chapter 11)?</strong> REINFORCE has high variance and poor sample efficiency because it relies on full Monte Carlo returns.</p></div>
+<table class="styled-table"><tr><th></th></tr></table>
+<div class="callout"><p><em> <strong>Why PPO (Chapter 11, p. 245)?</strong> PPO achieves trust-region stability using a first-order <strong>Clipped Surrogate Objective</strong>:</p></div>
+<div class="callout"><p>$$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left( r_t(\theta)\hat{A}_t, \, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t \right) \right]$$</p></div>
+<div class="callout"><p>with Generalized Advantage Estimation (GAE, $\gamma=0.99, \lambda=0.95$). This prevents destructive policy collapse while running standard first-order Adam optimization.</p></div>
+<p class="para">></p>
+<div class="callout"><p></em> <strong>How we structured PPO:</strong> We formulate the city as a <strong>Decentralized Partially Observable MDP (Dec-POMDP)</strong> using <strong>IPPO (Independent PPO with Parameter Sharing)</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/ippo_agent.py#L37-L98">ippo_agent.py</a>). All 98 intersections have their own decentralized observations and rewards, but share <strong>one single neural network policy</strong> ($22 \rightarrow 256 \rightarrow 256 \rightarrow 2$, with Tanh activations). Each simulation step generates 98 decentralized transitions, providing massive sample efficiency across 6 parallel SUMO instances (588 parallel environments)."<em></p></div>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Minute 4:00 — The Key Engineering Breakthroughs That Beat the Baseline</h3>
+<div class="callout"><p></em>"Early in the project, standard PPO failed against SUMO actuated. We analyzed the failures and engineered 5 major breakthroughs:</p></div>
+<p class="para">></p>
+<div class="callout"><p>1. <strong>Separate Actor/Critic Gradient Clipping</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/split_clip.py#L27-L64">split_clip.py</a>): In standard Stable-Baselines3, actor and critic gradients are clipped together under a single norm ($0.5$). The critic’s gradient norm was <strong>3,830</strong> while the actor's was <strong>0.19</strong>. Joint clipping scaled the actor’s gradients down by $7,600\times$, below Adam’s epsilon threshold, causing policy entropy to freeze at 90%! By clipping actor and critic parameters independently at $0.5$, policy update speed increased by $10\times$.</p></div>
+<div class="callout"><p>2. <strong>300-Meter Feeder Lane Queues</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_observation.py#L18-L22">local_observation.py</a>): In urban networks, stop-line lanes can be as short as 20 meters (holding only 2 cars). If an agent only checks stop-lines, a 60-car queue directly behind it remains invisible. We recursively walk upstream roads up to 300 meters to measure true incoming queues.</p></div>
+<div class="callout"><p>3. <strong>Delay-Level Reward Design</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_reward.py#L6-L19">local_reward.py</a>): We abandoned naive 'change in waiting time' ($\Delta W$), which agents game by rapidly oscillating lights. Instead, our reward is a direct cost of stopped vehicles, downstream spillback risk, switching penalty, and outside-network backlog:</p></div>
+<div class="callout"><p>$$r_i(t) = -0.1 \times \min\left( Q_i + 2D_i + S_i + 0.5P_i + 0.5\frac{P_{total}}{98}, \, 200 \right)$$</p></div>
+<div class="callout"><p>4. <strong>Outside-Network Pending Demand</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_observation.py#L13-L17">local_observation.py</a>): Cars queued outside city entry edges are fed into the observation (feature 16) and reward, preventing the agent from blocking entry gates.</p></div>
+<div class="callout"><p>5. <strong>Deterministic Safety Layer</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/safety.py#L53-L100">safety.py</a>): Guarantees physical clearance (Yellow + All-Red) and bounds green phases between minimum and maximum constraints."<em></p></div>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Minute 5:00 — Metrics, Experimental Protocol & 10-Seed Victory</h3>
+<div class="callout"><p></em>"To evaluate performance, we developed the <strong>Drain Metrics Protocol</strong> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/evaluation/drain_metrics.py#L1-L38">drain_metrics.py</a>). Standard metrics suffer from <strong>Survivor Bias</strong>: if an agent causes gridlock on side streets, only a few lucky highway cars finish, making 'mean wait of completed cars' look falsely positive. Drain metrics score <strong>all scheduled vehicles</strong> against theoretical free-flow completion.</p></div>
+<p class="para">></p>
+<div class="callout"><p>We evaluated over <strong>10 independent simulation seeds</strong> (40 full 1-hour runs, paired seed-by-seed, detailed in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/docs/TEST_REPORT_10_SEEDS.md">docs/TEST_REPORT_10_SEEDS.md</a>):</p></div>
+<div class="callout"><p><em> <strong>Lag per scheduled car:</strong> Reduced from $276.8\text{ s}$ to <strong>$235.4\text{ s}$</strong> ($-41.4\text{ s}$, <strong>won 10/10 seeds</strong>, $p=0.002$).</p></div>
+<div class="callout"><p></em> <strong>Trip time loss:</strong> Reduced from $336.6\text{ s}$ to <strong>$286.4\text{ s}$</strong> ($-50.2\text{ s}$, <strong>won 10/10 seeds</strong>, $p=0.002$).</p></div>
+<div class="callout"><p><em> <strong>Mean waiting time:</strong> Dropped from $6.39\text{ s}$ to <strong>$3.77\text{ s}$</strong> (<strong>$41.1\%$ reduction</strong>, <strong>won 10/10 seeds</strong>).</p></div>
+<div class="callout"><p></em> <strong>Trips completed:</strong> Increased by <strong>$+258$ vehicles</strong> (<strong>won 10/10 seeds</strong>).</p></div>
+<div class="callout"><p><em> <strong>City Backlog at 08:00:</strong> Dropped by <strong>$-256$ trapped cars</strong> (<strong>won 10/10 seeds</strong>).</p></div>
+<p class="para">></p>
+<div class="callout"><p>In summary, CityMind AI demonstrates that decentralized, parameter-shared PPO with split gradient clipping and feeder-aware perception beats calibrated civil-engineering actuation across an entire city network. Thank you, and I look forward to your questions."</em></p></div>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h2 class="h2-title">Part 2: Deep Dive Q&A Defense (Professor's Previous Questions)</h2>
+<div class="spacer"></div>
+<p class="para">Use these targeted responses if the professor asks for details on specific areas.</p>
+<div class="spacer"></div>
+<pre class="code-block "><code>                  CORE Q&amp;A MATRIX
+┌─────────────────────────────────┬──────────────────────────────────────────┐
+│ Question                        │ Core Theoretical &amp; Engineering Answer    │
+├─────────────────────────────────┼──────────────────────────────────────────┤
+│ 1. What is TraCI? Where used?   │ TCP socket client-server; sensor/control │
+│ 2. Why PPO over DQN/A2C/TRPO?   │ Continuous clipping, Dec-POMDP stability │
+│ 3. How does PPO work here?      │ Parameter-shared IPPO, GAE, clipped loss │
+│ 4. Why 22-dim MLP 256x256?      │ Spatial invariance + feeder awareness    │
+│ 5. Why Split Gradient Clipping? │ Critic grad (3830) suppressed actor (0.19)│
+│ 6. What are Drain Metrics?      │ Fixes survivor bias via scheduled demand │
+└─────────────────────────────────┴──────────────────────────────────────────┘</code></pre>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Q1: "What is TraCI? Why have you used SUMO? Where have you used TraCI in the code and how does it function?"</h3>
+<div class="spacer"></div>
+<h4 class="h4-title">1. What is TraCI & Why SUMO?</h4>
+<li class="list-item"><strong>SUMO (Simulation of Urban MObility):</strong> An open-source, continuous-space microscopic traffic simulator. Each vehicle is simulated individually using car-following models (Krauss) and lane-changing models (LC2013). Toy grid environments cannot capture real-world traffic dynamics such as queue spillback, left-turn blocking, or acceleration delays.</li>
+<li class="list-item"><strong>TraCI (Traffic Control Interface):</strong> The TCP-based network protocol enabling external applications to communicate with a running SUMO simulation process. SUMO runs as a socket server (listening on a TCP port), and our Python process connects as a socket client.</li>
+<div class="spacer"></div>
+<h4 class="h4-title">2. Where is it in the codebase?</h4>
+<li class="list-item"><strong>Central Connection Hub:</strong> <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/sumo_connection.py#L74-L107"><code class="inline-code">src/environment/sumo_connection.py</code></a> defines <code class="inline-code">_LazyTraci</code>. It dynamically loads <code class="inline-code">libsumo</code> (for speed during training) or fallback socket <code class="inline-code">traci</code>, ensuring the entire codebase imports from a single interface:</li>
+<p class="para">``<code class="inline-code">python</p>
+<p class="para">from src.environment.sumo_connection import traci, USING_LIBSUMO</p>
+<p class="para"></code>`<code class="inline-code"></p>
+<li class="list-item"><strong>Process Lifecycle:</strong> <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/sumo_session.py#L112-L125"></code>src/environment/sumo_session.py<code class="inline-code"></a> handles startup and teardown:</li>
+<p class="para"></code>`<code class="inline-code">python</p>
+<p class="para"># Line 118: Starts the SUMO simulation subprocess via TraCI</p>
+<p class="para">traci.start(cmd)</p>
+<p class="para"></code>`<code class="inline-code"></p>
+<li class="list-item"><strong>Simulation Step & Signal Actuation:</strong> <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/decentralized_sumo_env.py#L201-L211"></code>src/environment/decentralized_sumo_env.py<code class="inline-code"></a>:</li>
+<p class="para"></code>`<code class="inline-code">python</p>
+<p class="para"># Step 1: Query simulation time</p>
+<p class="para">sim_time = traci.simulation.getTime()</p>
+<p class="para"># Step 2: Apply safe phase actuation (calls traci.trafficlight.setPhase)</p>
+<p class="para">self.safety.step(sim_time, actions, self.step_length)</p>
+<p class="para"># Step 3: Advance simulation by 1 second</p>
+<p class="para">traci.simulationStep()</p>
+<p class="para"># Step 4: Collect microscopic metrics</p>
+<p class="para">self.metrics.tick()</p>
+<p class="para"></code>`<code class="inline-code"></p>
+<li class="list-item"><strong>Live Sensor Reads:</strong></li>
+<p class="para">- </code>traci.lane.getLastStepHaltingNumber(lane)<code class="inline-code">: Counts halted vehicles (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/lane_stats.py#L40">lane_stats.py</a>).</p>
+<p class="para">- </code>traci.lane.getLinks(lane)<code class="inline-code">: Discovers downstream topology (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_observation.py#L69-L74">local_observation.py</a>).</p>
+<p class="para">- </code>traci.simulation.getPendingVehicles()<code class="inline-code"> & </code>traci.vehicle.getRoute(vid)<code class="inline-code">: Tracks cars queuing outside the city gates (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_reward.py#L62-L75">local_reward.py</a>).</p>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Q2: "Why PPO? Why not DQN, Q-Learning, REINFORCE, A2C, or TRPO? Connect this with Sudharsan Ravichandiran’s book."</h3>
+<div class="spacer"></div>
+<p class="para">Grounded in <strong>Ravichandiran (2018)</strong>:</p>
+<div class="spacer"></div>
+<table class="styled-table"><tr><th>Algorithm</th><th>Book Reference</th><th>Why it Fails on 98-Signal City Control</th><th>Why PPO Wins</th></tr><tr><td><strong>Q-Learning / Tabular TD</strong></td><td>Ch 3 & Ch 5 (pp. 53–120)</td><td>Tabular state space is infinite ($22 \times 98$ continuous values); cannot generalize across continuous state spaces.</td><td>PPO uses function approximation (neural networks) to map continuous states to actions.</td></tr><tr><td><strong>Deep Q-Networks (DQN)</strong></td><td>Ch 8 (pp. 165–188)</td><td>Discrete action space for 98 signals is $2^{98} \approx 3.16 \times 10^{29}$. Q-learning over joint actions requires finding $\arg\max_a Q(s,a)$, which is NP-hard at this scale. In decentralized DQN, off-policy non-stationarity breaks the replay buffer.</td><td>PPO is on-policy and handles multi-agent decentralized policies naturally without replay buffer corruption.</td></tr><tr><td><strong>REINFORCE (Policy Gradient)</strong></td><td>Ch 11 (pp. 226–230)</td><td>Uses full episode Monte Carlo returns $\sum \gamma^t R_t$. High variance, slow convergence, and no value function baseline.</td><td>PPO uses an Actor-Critic architecture with Generalized Advantage Estimation (GAE) to drastically reduce variance.</td></tr><tr><td><strong>A2C / A3C</strong></td><td>Ch 10 (pp. 208–224)</td><td>Unconstrained policy updates. A single bad batch gradient can update $\theta$ too far, causing policy collapse (entropy drops or explodes, performance never recovers).</td><td>PPO clips the probability ratio $r_t(\theta)$ to $[1-\epsilon, 1+\epsilon]$, ensuring stable monotonic improvement.</td></tr><tr><td><strong>TRPO (Trust Region Policy Opt.)</strong></td><td>Ch 11 (pp. 240–244)</td><td>Enforces $D_{KL}(\pi_{old} \</td><td>\pi) \le \delta$. Requires computing second-order Fisher Information matrix and conjugate gradients, which is computationally prohibitive for high sample throughput.</td><td>PPO achieves the same trust-region safety using a first-order clipped surrogate loss that trains via standard Adam.</td></tr></table>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Q3: "How is PPO working in this project? Explain the Actor, Critic, Loss function, and GAE."</h3>
+<div class="spacer"></div>
+<p class="para">From <strong>Ravichandiran Chapter 10 & 11</strong>, PPO is an <strong>Actor-Critic architecture</strong>:</p>
+<div class="spacer"></div>
+<pre class="code-block "><code>                       PPO ACTOR-CRITIC IN CITYMIND AI
+                               
+                  Local Observation o_t^i (22-dim vector)
+                                    │
+                 ┌──────────────────┴──────────────────┐
+                 ▼                                     ▼
+       ┌───────────────────┐                 ┌───────────────────┐
+       │   Actor Network   │                 │  Critic Network   │
+       │   [256, 256] Tanh │                 │  [256, 256] Tanh  │
+       └─────────┬─────────┘                 └─────────┬─────────┘
+                 │ Softmax                             │ Linear
+                 ▼                                     ▼
+        Policy π_θ(a_t | o_t)                   Value Baseline V_ϕ(o_t)
+        (0: Keep, 1: Advance)                   (Expected Return)
+                 │                                     │
+                 └──────────────────┬──────────────────┘
+                                    ▼
+                         GAE Advantage A_t^i
+                                    │
+                         PPO Clipped Objective</code></pre>
+<div class="spacer"></div>
+<p class="para">1. <strong>The Probability Ratio:</strong></p>
+<table class="styled-table"><tr><th>s_t)}{\pi_{\theta_{old}}(a_t</th></tr></table>
+<p class="para">2. <strong>Clipped Surrogate Objective:</strong></p>
+<p class="para">$$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left( r_t(\theta) \hat{A}_t, \, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right) \right]$$</p>
+<p class="para">- Here $\epsilon = 0.2$ (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/configs/ippo.yaml#L15">configs/ippo.yaml</a>).</p>
+<p class="para">- If Advantage $\hat{A}_t > 0$ (action was good), $r_t$ is capped at $1 + \epsilon = 1.2$ to avoid excessive updates.</p>
+<p class="para">- If Advantage $\hat{A}_t < 0$ (action was bad), $r_t$ is capped at $1 - \epsilon = 0.8$.</p>
+<p class="para">3. <strong>Generalized Advantage Estimator (GAE) ($\gamma=0.99, \lambda=0.95$):</strong></p>
+<p class="para">$$\hat{A}_t = \sum_{l=0}^\infty (\gamma \lambda)^l \delta_{t+l}^V, \quad \text{where } \delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$$</p>
+<p class="para">$\lambda=0.95$ smoothly balances bias (TD estimate) and variance (Monte Carlo rollout).</p>
+<p class="para">4. <strong>Total PPO Loss Function (Ravichandiran p. 247):</strong></p>
+<p class="para">$$L_{total}(\theta, \phi) = - L^{CLIP}(\theta) + c_1 L^{VF}(\phi) - c_2 S[\pi_\theta]$$</p>
+<p class="para">- $L^{VF}(\phi) = \frac{1}{2} (V_\phi(s_t) - R_t)^2$ (Critic Value Loss, $c_1 = 0.5$).</p>
+<p class="para">- $S[\pi_\theta]$ is policy entropy encouraging exploration ($c_2 = 0.01$).</p>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Q4: "Why Split Gradient Clipping? Why was this the critical bug fix?"</h3>
+<div class="spacer"></div>
+<li class="list-item"><strong>The File:</strong> <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/split_clip.py#L27-L64"></code>src/agents/split_clip.py<code class="inline-code"></a></li>
+<li class="list-item"><strong>The Problem:</strong> In standard reinforcement learning libraries (Stable-Baselines3), gradients are clipped by a single global norm across all network parameters:</li>
+<p class="para">$$\text{clip\_grad\_norm\_}(\text{actor\_params} \cup \text{critic\_params}, \, \text{max\_norm}=0.5)$$</p>
+<li class="list-item"><strong>What Happened During Training:</strong></li>
+<p class="para">- Traffic reward values produced large Temporal Difference errors in the early stages, causing the <strong>critic’s gradient norm to surge to ~3,830</strong>.</p>
+<p class="para">- In contrast, the <strong>actor’s gradient norm was only ~0.19</strong>.</p>
+<p class="para">- When Stable-Baselines3 computed the combined norm:</p>
+<p class="para">$$\text{Scale Factor} = \frac{0.5}{\sqrt{3830^2 + 0.19^2}} \approx \frac{0.5}{3830} \approx 1.3 \times 10^{-4}$$</p>
+<p class="para">- The actor's gradients were multiplied by $1.3 \times 10^{-4}$, shrinking its effective gradient to $0.000025$—below Adam optimizer’s $\epsilon$ threshold ($10^{-8}$)!</p>
+<p class="para">- <strong>Result:</strong> The actor stopped learning entirely, policy entropy remained frozen at 90%, and lights switched almost randomly.</p>
+<li class="list-item"><strong>The Solution:</strong> We implemented </code>SplitClipPPO<code class="inline-code"> (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/split_clip.py#L35-L44">split_clip.py</a>), which splits parameter groups and clips them independently:</li>
+<p class="para"></code>`<code class="inline-code">python</p>
+<p class="para">n_actor = original(actor, max_norm)    # clipped at 0.5</p>
+<p class="para">n_critic = original(critic, max_norm)  # clipped at 0.5</p>
+<p class="para"></code>`<code class="inline-code"></p>
+<p class="para">This allowed the actor to learn at full capacity, accelerating policy progress by $10\times$.</p>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Q5: "What is your Neural Network Architecture, Observation Space, and Action Space?"</h3>
+<div class="spacer"></div>
+<h4 class="h4-title">1. Observation Space (22 numbers per signal, squashed to $[-1, 1]$)</h4>
+<p class="para">Implemented in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_observation.py#L7-L43"></code>src/environment/local_observation.py<code class="inline-code"></a>:</p>
+<p class="para">Because intersections have varying numbers of lanes (4 to 19 lanes), feeding raw lane vectors is impossible without variable-sized graphs. We created a <strong>fixed 22-dimensional feature vector</strong> that is identical across all 98 intersections:</p>
+<li class="list-item"><strong>Indices 0–5:</strong> Active green phase (one-hot encoding across up to 6 green phases).</li>
+<li class="list-item"><strong>Index 6:</strong> </code>in_transition<code class="inline-code"> flag (1.0 if Yellow or All-Red clearance is currently running).</li>
+<li class="list-item"><strong>Index 7:</strong> </code>elapsed_over_min<code class="inline-code"> — current green duration relative to its authored minimum green ($\min(t / G_{min}, 3) / 3$).</li>
+<li class="list-item"><strong>Index 8:</strong> </code>elapsed_over_max<code class="inline-code"> — current green duration relative to its maximum green ($\min(t / G_{max}, 1.5) / 1.5$).</li>
+<li class="list-item"><strong>Indices 9–14:</strong> </code>slot_demand_i<code class="inline-code"> — Varaiya pressure for each green phase:</li>
+<table class="styled-table"><tr><th>d_i</th></tr></table>
+<li class="list-item"><strong>Index 15:</strong> </code>max_queue<code class="inline-code"> — halted vehicles on the worst approach (including 300m feeders).</li>
+<li class="list-item"><strong>Index 16:</strong> </code>pending<code class="inline-code"> — vehicles queued outside the network waiting to enter via this intersection.</li>
+<li class="list-item"><strong>Index 17:</strong> </code>n_green<code class="inline-code"> — number of valid green phases for this signal divided by 6.</li>
+<li class="list-item"><strong>Indices 18–19:</strong> Upstream road neighbors' queues (2 strongest connected junctions).</li>
+<li class="list-item"><strong>Indices 20–21:</strong> Downstream road neighbors' queues (2 strongest connected junctions).</li>
+<div class="spacer"></div>
+<h4 class="h4-title">2. Action Space (</code>Discrete(2)<code class="inline-code">)</h4>
+<p class="para">Implemented in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/decentralized_sumo_env.py#L133-L135"></code>src/environment/decentralized_sumo_env.py<code class="inline-code"></a>:</p>
+<li class="list-item"></code>0<code class="inline-code">: Keep current green phase.</li>
+<li class="list-item"></code>1<code class="inline-code">: Advance to the next sequential green phase.</li>
+<li class="list-item"><strong>Safety Decoupling:</strong> The agent never directly sets lights in SUMO. The action is passed to <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/safety.py#L53-L100"></code>SafetyLayer<code class="inline-code"></a>, which enforces minimum green, maximum green, and the junction's authentic yellow and all-red clearance intervals.</li>
+<div class="spacer"></div>
+<h4 class="h4-title">3. Neural Network Architecture</h4>
+<li class="list-item"><strong>Policy Type:</strong> Multi-Layer Perceptron (</code>MlpPolicy<code class="inline-code"> via PyTorch).</li>
+<li class="list-item"><strong>Layers:</strong> 2 hidden layers with 256 units each: </code>[22] -> [256] -> [256] -> [2 actions]<code class="inline-code">.</li>
+<li class="list-item"><strong>Activation Function:</strong> </code>Tanh<code class="inline-code"> (preferred over ReLU in continuous-control PPO for smooth gradient propagation and bounded output dynamics).</li>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h3 class="h3-title">Q6: "What are Drain Metrics? How did you get the results and why do standard metrics fail?"</h3>
+<div class="spacer"></div>
+<li class="list-item"><strong>The File:</strong> <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/evaluation/drain_metrics.py#L1-L38"></code>src/evaluation/drain_metrics.py<code class="inline-code"></a></li>
+<li class="list-item"><strong>The Survivor Bias Trap:</strong></li>
+<p class="para">In standard literature, researchers report "Mean Waiting Time of Completed Trips". If a bad RL policy causes massive gridlock, long-distance trips are trapped and never complete. Only short trips near highway exits finish. The average wait time of completed cars looks artificially low, disguising severe network failure!</p>
+<li class="list-item"><strong>The Drain Solution:</strong></li>
+<p class="para">We evaluate against the <strong>full scheduled demand</strong> ($\sim 15,000$ cars):</p>
+<p class="para">1. For every car, calculate its ideal zero-delay completion time:</p>
+<p class="para">$$\text{ideal} = \text{depart\_time} + \text{free\_flow\_travel\_time}$$</p>
+<p class="para">2. Compute <strong>Lag per Scheduled Car</strong>:</p>
+<p class="para">$$\text{Lag} = \frac{1}{N_{scheduled}} \sum_{k=1}^{N_{scheduled}} (\min(\text{actual\_arrival}_k, T_{end}) - \min(\text{ideal}_k, T_{end}))$$</p>
+<p class="para">If a car never enters or gets stuck, its completion time is penalized at the simulation end time ($T_{end} = 08:00$).</p>
+<li class="list-item"><strong>Results Verification:</strong></li>
+<p class="para">Evaluated over <strong>10 random seeds</strong> using paired t-tests and non-parametric sign tests (<a href="file:///Users/parthsharma/Desktop/FInal%20Try/docs/TEST_REPORT_10_SEEDS.md">docs/TEST_REPORT_10_SEEDS.md</a>):</p>
+<p class="para">- <strong>Lag:</strong> Model A achieved <strong>235.4 s</strong> vs. Baseline <strong>276.8 s</strong> ($-41.4\text{ s}$ per car, <strong>10/10 seeds won</strong>, $p=0.002$).</p>
+<p class="para">- <strong>Time Loss:</strong> <strong>286.4 s</strong> vs. <strong>336.6 s</strong> ($-50.2\text{ s}$ per car, <strong>10/10 seeds won</strong>, $p=0.002$).</p>
+<p class="para">- <strong>Mean Waiting Time:</strong> <strong>3.77 s</strong> vs. <strong>6.39 s</strong> (<strong>41% reduction</strong>, <strong>10/10 seeds won</strong>, $p=0.002$).</p>
+<p class="para">- <strong>Trips Completed:</strong> <strong>11,842</strong> vs. <strong>11,585</strong> (<strong>+258 additional finished journeys</strong>, <strong>10/10 seeds won</strong>, $p=0.002$).</p>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h2 class="h2-title">Part 3: Codebase Navigation Map with Clickable Hook Links</h2>
+<div class="spacer"></div>
+<p class="para">Click any link below to jump directly to the relevant code:</p>
+<div class="spacer"></div>
+<pre class="code-block "><code>                                  CITYMIND AI CODEBASE TREE
+configs/
+  ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/configs/ippo.yaml">ippo.yaml</a>                        &lt;-- PPO hyperparameters (lr, gamma, clip, split_clip)
+  └── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/configs/environment.yaml">environment.yaml</a>         &lt;-- Simulation duration, safety bounds, reward weights
+src/
+  ├── agents/
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/ippo_agent.py#L37-L98">ippo_agent.py</a>             &lt;-- PettingZoo-to-VecEnv wrapper &amp; training harness
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/split_clip.py#L27-L64">split_clip.py</a>             &lt;-- Independent Actor/Critic gradient norm clipping
+  │     └── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/model_contract.py">model_contract.py</a>         &lt;-- Input validation and artifact packaging
+  ├── environment/
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/sumo_connection.py#L74-L107">sumo_connection.py</a>        &lt;-- TraCI / libsumo lazy proxy &amp; SUMO_HOME resolver
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/sumo_session.py#L100-L125">sumo_session.py</a>           &lt;-- SUMO subprocess command builder &amp; lifecycle
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/decentralized_sumo_env.py#L43-L238">decentralized_sumo_env.py</a> &lt;-- PettingZoo ParallelEnv (98 agents, shared policy)
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_observation.py#L7-L43">local_observation.py</a>      &lt;-- 22-dim feature builder &amp; 300m feeder walker
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_reward.py#L6-L36">local_reward.py</a>           &lt;-- Delay-level reward &amp; outside backlog tracking
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/safety.py#L53-L100">safety.py</a>                 &lt;-- Deterministic clearance state machine
+  │     └── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/lane_stats.py">lane_stats.py</a>             &lt;-- Fast memoized TraCI sensor batch reads
+  ├── controllers/
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/controllers/sumo_actuated.py">sumo_actuated.py</a>          &lt;-- Industry baseline (calibrated gap-out logic)
+  │     └── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/controllers/fixed_time.py">fixed_time.py</a>             &lt;-- Classical pre-timed Webster baseline
+  ├── evaluation/
+  │     ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/evaluation/drain_metrics.py#L1-L38">drain_metrics.py</a>          &lt;-- Survivor-bias-free demand scoring
+  │     └── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/evaluation/evaluate.py">evaluate.py</a>               &lt;-- Head-to-head multi-seed benchmark runner
+scripts/
+  ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/scripts/run_ippo_training.py">run_ippo_training.py</a>                 &lt;-- CLI entrypoint for training from scratch
+  └── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/scripts/evaluate.py">evaluate.py</a>                          &lt;-- CLI entrypoint for 10-seed evaluations
+docs/
+  ├── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/docs/TEST_REPORT_10_SEEDS.md">TEST_REPORT_10_SEEDS.md</a>              &lt;-- Comprehensive 10-seed statistical evaluation report
+  └── <a href="file:///Users/parthsharma/Desktop/FInal%20Try/docs/LEARNING_GUIDE_ALL_POLICIES.md">LEARNING_GUIDE_ALL_POLICIES.md</a>       &lt;-- Architectural manual across all controllers</code></pre>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h2 class="h2-title">Part 4: Concept Mapping — Sudharsan Ravichandiran Book ↔ CityMind AI</h2>
+<div class="spacer"></div>
+<p class="para">Reference this table to ground code details in textbook terminology:</p>
+<div class="spacer"></div>
+<table class="styled-table"><tr><th>Textbook Concept (Ravichandiran 2018)</th><th>Book Chapter & Pages</th><th>Theoretical Meaning</th><th>CityMind AI Implementation Link</th></tr><tr><td><strong>Dec-POMDP vs. MDP</strong></td><td>Chapter 1 (pp. 14–18)</td><td>Multi-agent partially observable environment where agents observe local state $o_t^i$ rather than global state $\mathcal{S}_t$.</td><td>Defined in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/decentralized_sumo_env.py#L43-L68">decentralized_sumo_env.py</a> and <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/local_observation.py#L7-L43">local_observation.py</a>.</td></tr><tr><td><strong>Discount Factor ($\gamma$) & Returns</strong></td><td>Chapter 3 (pp. 58–63)</td><td>$G_t = \sum_{k=0}^\infty \gamma^k R_{t+k+1}$; balances immediate vs future traffic delay ($\gamma=0.99$).</td><td>Configured in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/configs/ippo.yaml#L12">configs/ippo.yaml</a>.</td></tr><tr><td><strong>Actor-Critic Architecture</strong></td><td>Chapter 10 (pp. 208–212)</td><td>Two networks: Actor outputs action probabilities $\pi_\theta(a\</td><td>s)$; Critic evaluates state value baseline $V_\phi(s)$.</td><td>Initialized in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/ippo_agent.py#L235-L260">ippo_agent.py</a> with </code>MlpPolicy<code class="inline-code"> [256, 256].</td></tr><tr><td><strong>Advantage Function ($A(s,a)$)</strong></td><td>Chapter 10 (pp. 209–211)</td><td>$A(s,a) = Q(s,a) - V(s)$; quantifies how much better an action is compared to the baseline expectation.</td><td>Computed using GAE ($\lambda=0.95$) in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/ippo_agent.py#L243">ippo_agent.py</a>.</td></tr><tr><td><strong>Exploration via Entropy Bonus ($S$)</strong></td><td>Chapter 10 (pp. 211, 247)</td><td>$-c_2 \sum \pi \log \pi$ added to loss to prevent premature policy collapse to deterministic suboptima.</td><td>Configured via </code>ent_coef: 0.01<code class="inline-code"> in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/configs/ippo.yaml#L16">configs/ippo.yaml</a>.</td></tr><tr><td><strong>PPO Clipped Surrogate Objective</strong></td><td>Chapter 11 (pp. 245–247)</td><td>Clamps probability ratio $r_t(\theta)$ to $[1-\epsilon, 1+\epsilon]$ to prevent destructively large policy updates.</td><td>Configured via </code>clip_range: 0.2<code class="inline-code"> in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/configs/ippo.yaml#L15">configs/ippo.yaml</a>.</td></tr><tr><td><strong>Gradient Clipping for Stability</strong></td><td>Chapter 11 (pp. 231–235)</td><td>Prevents gradient explosion; modified here to decouple Actor and Critic gradient norms.</td><td>Custom implementation in <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/agents/split_clip.py#L27-L64">split_clip.py</a>.</td></tr></table>
+<div class="spacer"></div>
+<hr class="divider"/>
+<div class="spacer"></div>
+<h2 class="h2-title">Part 5: Rapid-Fire Pocket Reference (Pre-Defense Cheat Sheet)</h2>
+<div class="spacer"></div>
+<p class="para">Keep these numbers and facts fresh right before your presentation:</p>
+<div class="spacer"></div>
+<li class="list-item"><strong>City & Scenario:</strong> Ingolstadt (InTAS), Germany, <strong>98 traffic lights</strong>, morning peak (07:00–08:00, 3600 seconds), <strong>~15,000 scheduled vehicles</strong>.</li>
+<li class="list-item"><strong>Algorithm:</strong> <strong>IPPO (Independent PPO with Parameter Sharing)</strong>, 1 single neural network controlling all 98 signals.</li>
+<li class="list-item"><strong>Network Shape:</strong> Actor and Critic each have 2 hidden layers of 256 units with <strong>Tanh</strong> activations: </code>22 -> 256 -> 256 -> 2<code class="inline-code">.</li>
+<li class="list-item"><strong>Decision Time-step:</strong> Every <strong>5 seconds</strong> (720 decisions per hour).</li>
+<li class="list-item"><strong>Observation:</strong> <strong>22 features</strong> (normalized to $[-1, 1]$), including current phase, relative green duration, 6-phase Varaiya demand, 300m feeder queues, outside pending cars, and 4 neighbor queues.</li>
+<li class="list-item"><strong>Action:</strong> </code>Discrete(2)` (0 = keep current phase, 1 = advance to next phase), verified and safe-guarded by <a href="file:///Users/parthsharma/Desktop/FInal%20Try/src/environment/safety.py#L53-L100">SafetyLayer</a>.</li>
+<li class="list-item"><strong>Training Volume:</strong> <strong>10.58 Million timesteps</strong>, 100 PPO updates, 105,840 samples per update across 6 parallel SUMO instances.</li>
+<li class="list-item"><strong>Key Metric:</strong> <strong>Lag per scheduled car</strong> (Drain Metric): Our model achieved <strong>235.4 s</strong> vs. SUMO Actuated's <strong>276.8 s</strong> (<strong>41.4 s saved per vehicle across the entire city, winning 10 out of 10 seeds</strong>).</li>
+<div class="spacer"></div>
+
+</body>
+</html>

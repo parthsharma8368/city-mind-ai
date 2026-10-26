@@ -90,5 +90,12 @@ docs/da2/
 
 # Large evaluation outputs (re-create with scripts/evaluate.py + scripts/report_eval.py)
 artifacts/eval10_run/
+artifacts/eval10/
 artifacts/eval_demo/
 artifacts/demo_logs/
+
+# Personal / Third-party scratch documents
+Ponytail Skill.md
+/*.pdf
+!docs/*.pdf
+docs/test_keynote.pptx
