@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: Se
 Dates below come from `git log`.
 
 ## [Unreleased]
+### Showcase (2026-10-26): one-click presentation page
+- `/` is now the Showcase: **Run the showcase** plays the recorded peak-hour run of all four controllers at 10x (canvas, interpolated between the 5 s frames,
+  60 fps; one master clock), loads each controller's stored results below with a dissolve while it plays, and mounts the benchmarks only once all
+  metrics are in (a pure, tested schedule). The dashboard moved to `/dashboard`.
+- API: `GET /api/showcase/{config,frames,metrics/<controller>}` (validated window, gzip, cached); `GZipMiddleware`.
+- **Watch it in SUMO**: `scripts/run_visual_demo.py` runs the real SUMO-GUI for sumo_actuated, fixed_time, model A or model B (the models are fixed server-side, the
+  client sends only a controller id); one at a time or all four tiled. Restored the launch control the dashboard dropped; sumo-gui is found by absolute path, a
+  crashed window reports its last log line in the UI. `CITYMIND_USE_TRACI=1` makes the code use socket traci (libsumo cannot drive a window).
 ### Simplified (2026-10-23): one model, one algorithm
 - The repository now contains only the approach that beats the SUMO-actuated baseline: parameter-shared IPPO (PPO, split actor/critic
   gradient clipping), a 22-number road-graph-aware observation, a level-based delay reward and a keep/advance action behind the

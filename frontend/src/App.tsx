@@ -1,8 +1,9 @@
 import React from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
-  Activity, PlayCircle, BarChart3, Cpu, BookOpen,
+  Activity, PlayCircle, BarChart3, Cpu, BookOpen, Sparkles,
 } from "lucide-react";
+import { ShowcasePage } from "./pages/ShowcasePage";
 import { StoryPage } from "./pages/StoryPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ComparisonPage } from "./pages/ComparisonPage";
@@ -13,8 +14,9 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { API_DOCS_URL } from "./api/client";
 
 const NAV_ITEMS = [
+  { to: "/",             label: "Showcase",     icon: <Sparkles size={16} aria-hidden="true" /> },
   { to: "/story",         label: "Story",        icon: <BookOpen size={16} aria-hidden="true" /> },
-  { to: "/",             label: "Dashboard",    icon: <Activity size={16} aria-hidden="true" /> },
+  { to: "/dashboard",    label: "Dashboard",    icon: <Activity size={16} aria-hidden="true" /> },
   { to: "/replay",       label: "Replay",       icon: <PlayCircle size={16} aria-hidden="true" /> },
   { to: "/comparison",   label: "Comparison",   icon: <BarChart3 size={16} aria-hidden="true" /> },
 ];
@@ -90,8 +92,9 @@ export function App() {
               usable, and navigating (pathname change) resets it. */}
           <ErrorBoundary compact resetKey={pathname}>
           <Routes>
+            <Route path="/" element={<ShowcasePage />} />
             <Route path="/story" element={<StoryPage />} />
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/replay" element={<ReplayPage />} />
             <Route path="/comparison" element={<ComparisonPage />} />
             <Route path="*" element={<NotFound />} />

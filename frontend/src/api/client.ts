@@ -143,12 +143,92 @@ export interface TenSeedResult {
   models: Record<string, { label: string; measures: TenSeedMeasure[] }>;
 }
 
+export interface SimulationControllerInfo {
+  id: SimControllerId;
+  label: string;
+  kind: "baseline" | "model";
+  available: boolean;
+}
+
 export interface SimulationStatus {
   gui_running: boolean;
   gui_pid?: number | null;
-  latest_model?: string | null;
   xquartz_display?: string | null;
   running_controllers?: SimControllerId[];
+  controllers?: SimulationControllerInfo[];
+  /** Why a window stopped by itself (exit code and the last log line), by controller id. */
+  last_errors?: Record<string, string>;
+}
+
+export interface LaunchOptions {
+  delay?: number;
+  duration?: number;
+  /** Window position "X,Y" and size "W,H" (to tile several SUMO windows). */
+  pos?: string;
+  size?: string;
+}
+
+// ── Showcase (compact recorded frames + stored metrics) ──────────────────────
+export interface ShowcaseControllerInfo {
+  id: SimControllerId;
+  label: string;
+  kind: "baseline" | "model";
+  has_recording: boolean;
+  has_metrics: boolean;
+}
+
+export interface ShowcaseConfig {
+  seed: number;
+  start: number;
+  end: number;
+  step: number;
+  speed: number;
+  hour: [number, number];
+  demand_id: string;
+  n_seeds: number;
+  controllers: ShowcaseControllerInfo[];
+}
+
+/** Parallel arrays: car r of frame k is (vid[r], x[r], y[r], v[r]) for r in [sum(counts[:k]), sum(counts[:k+1])). */
+export interface ShowcaseFramesDTO {
+  controller: string;
+  seed: number;
+  start: number;
+  end: number;
+  step: number;
+  origin: [number, number];
+  times: number[];
+  counts: number[];
+  vid: number[];
+  x: number[];
+  y: number[];
+  v: number[];
+  vehicle_count: number;
+  tls_ids: string[];
+  /** One g/y/r/n character per junction (in tls_ids order) for every frame. */
+  tls: string[];
+}
+
+export interface ShowcaseMeasure {
+  key: string;
+  label: string;
+  better: "lower" | "higher";
+  format: string;
+  mean: number;
+  min: number;
+  max: number;
+  per_seed: number[];
+}
+
+export interface ShowcaseMetrics {
+  controller: string;
+  label: string;
+  kind: "baseline" | "model";
+  seeds: number[];
+  n_runs: number;
+  window: string;
+  source: string;
+  measures: ShowcaseMeasure[];
 }
 
 export interface LaunchResponse {
@@ -290,15 +370,30 @@ export const api = {
   // FastAPI binds these as query params (no Pydantic body on the endpoint),
   // so they're sent on the URL, not as a JSON body — the previous version of
   // this call sent a JSON body FastAPI was never reading.
-  launchSimulationGui: (controllerId: SimControllerId, model?: string, delay = 80, duration = 3600) => {
-    const params = new URLSearchParams({ controller: controllerId, delay: String(delay), duration: String(duration) });
-    if (model) params.set("model", model);
+  launchSimulationGui: (controllerId: SimControllerId, options: LaunchOptions = {}) => {
+    const params = new URLSearchParams({
+      controller: controllerId,
+      delay: String(options.delay ?? 80),
+      duration: String(options.duration ?? 3600),
+    });
+    if (options.pos) params.set("pos", options.pos);
+    if (options.size) params.set("size", options.size);
     return _fetch<LaunchResponse>(`/simulation/launch-gui?${params.toString()}`, { method: "POST" });
   },
   stopSimulationGui: (controllerId?: SimControllerId) => {
     const params = controllerId ? `?${new URLSearchParams({ controller: controllerId }).toString()}` : "";
     return _fetch<{ status: string; message: string }>(`/simulation/stop-gui${params}`, { method: "POST" });
   },
+
+  // ── Showcase ───────────────────────────────────────────────────────────
+  getShowcaseConfig: (signal?: AbortSignal) => _fetch<ShowcaseConfig>("/showcase/config", { signal }),
+  getShowcaseFrames: (controller: string, start: number, end: number, seed: number, signal?: AbortSignal) =>
+    _fetch<ShowcaseFramesDTO>(
+      `/showcase/frames?${new URLSearchParams({ controller, start: String(start), end: String(end), seed: String(seed) }).toString()}`,
+      { signal },
+    ),
+  getShowcaseMetrics: (controller: string, signal?: AbortSignal) =>
+    _fetch<ShowcaseMetrics>(`/showcase/metrics/${encodeURIComponent(controller)}`, { signal }),
 
   // ── XAI ───────────────────────────────────────────────────────────────
   getXAISummary: (controller: string = "ppo", signal?: AbortSignal) =>

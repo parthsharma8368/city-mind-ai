@@ -58,7 +58,7 @@ src/agents/                             IPPO training, split gradient clipping, 
 src/controllers/, src/evaluation/       baselines (sumo_actuated, fixed_time) and the drain-aware scoring
 src/scenario/                           network / signal metadata
 scripts/                                run_ippo_training.py, resume_ippo_training.py, finetune_ippo.py, evaluate.py, ...
-api/, frontend/                         results dashboard: `make run-api` + `make run-frontend` (reads artifacts/eval10_run)
+api/, frontend/                         Showcase (/), results dashboard (/dashboard): `make run-api` + `make run-frontend` (reads artifacts/eval10_run)
 tests/                                  pytest (runs without SUMO)
 ```
 
@@ -77,6 +77,14 @@ python scripts/evaluate.py --controller ippo --model <...> --begin 28800 --out a
 
 A run interrupted by a restart continues with `scripts/resume_ippo_training.py --checkpoint <ckpt> --run-dir <run dir>`.
 Model weights are not in git: see [docs/MODELS.md](docs/MODELS.md).
+
+### Showcase (presenting the project)
+
+`make run-api` and `make run-frontend`, then open <http://localhost:5173/> and press **Run the showcase**: the recorded 07:20-07:30 run of
+SUMO actuated, fixed time, model A and model B plays side by side at 10x; the stored results of each controller dissolve in below while
+it plays, and the benchmarks (paired 10-seed verdicts, lag per seed, mini-bars, paired test) load only after all four are in.
+**Watch it in SUMO** (bottom of the page) starts the real SUMO-GUI on this computer for one controller, or all four tiled, through
+`scripts/run_visual_demo.py` (needs SUMO with the GUI; logs in `artifacts/demo_logs/`). Frames are served by `/api/showcase/*` from `artifacts/eval10_run`.
 
 ## Licence
 

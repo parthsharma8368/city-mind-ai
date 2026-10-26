@@ -68,19 +68,22 @@ describe("URL building", () => {
   });
 
   it("sends launch parameters as query string on a POST", async () => {
-    await api.launchSimulationGui("ippo_A", "model.zip", 80, 3600);
+    await api.launchSimulationGui("ippo_A", { delay: 80, duration: 3600, pos: "0,40", size: "800,500" });
     const url = new URL(lastUrl());
     expect(url.pathname.endsWith("/simulation/launch-gui")).toBe(true);
     expect(url.searchParams.get("controller")).toBe("ippo_A");
-    expect(url.searchParams.get("model")).toBe("model.zip");
+    expect(url.searchParams.get("model")).toBeNull();   // the server only ever loads its own two model files
     expect(url.searchParams.get("delay")).toBe("80");
     expect(url.searchParams.get("duration")).toBe("3600");
+    expect(url.searchParams.get("pos")).toBe("0,40");
+    expect(url.searchParams.get("size")).toBe("800,500");
     expect((fetchMock.mock.calls.at(-1)![1] as RequestInit).method).toBe("POST");
   });
 
-  it("omits model when unset and builds stop-gui with and without a controller", async () => {
+  it("omits the window options when unset and builds stop-gui with and without a controller", async () => {
     await api.launchSimulationGui("fixed_time");
-    expect(new URL(lastUrl()).searchParams.has("model")).toBe(false);
+    expect(new URL(lastUrl()).searchParams.has("pos")).toBe(false);
+    expect(new URL(lastUrl()).searchParams.has("size")).toBe(false);
     await api.stopSimulationGui();
     expect(lastUrl().endsWith("/simulation/stop-gui")).toBe(true);
     await api.stopSimulationGui("ippo_B");

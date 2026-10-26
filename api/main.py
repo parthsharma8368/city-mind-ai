@@ -14,6 +14,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from api.security import allowed_origins, configured_key
 
@@ -34,6 +35,8 @@ app = FastAPI(
 # origins in CITYMIND_CORS_ORIGINS are rejected by parse_origins().
 _cors_origins = allowed_origins()
 
+# The showcase frames (a few MB of numbers per controller) and the 5 MB road network compress about 4x.
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=4)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -75,6 +78,14 @@ try:
     _loaded_endpoints += ["/api/simulation", "/ws/simulation"]
 except ImportError as e:
     logger.warning("simulation router unavailable: %s", e)
+
+# ── Showcase Router (compact frames + stored metrics for the one-click demo) ──
+try:
+    from api.routers import showcase
+    app.include_router(showcase.router, prefix="/api/showcase", tags=["showcase"])
+    _loaded_endpoints.append("/api/showcase")
+except ImportError as e:
+    logger.warning("showcase router unavailable: %s", e)
 
 # ── Metrics Router ────────────────────────────────────────────────────────────
 try:
